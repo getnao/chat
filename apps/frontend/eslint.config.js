@@ -12,6 +12,7 @@ export default [
 			'simple-import-sort/imports': 'off',
 			'simple-import-sort/exports': 'off',
 			'sort-imports': ['error', { ignoreDeclarationSort: true, ignoreMemberSort: true }],
+			'@typescript-eslint/no-explicit-any': 'off',
 		},
 	},
 ];

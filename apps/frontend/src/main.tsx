@@ -1,10 +1,21 @@
 import './styles.css';
 
-import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { StrictMode } from 'react';
+import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client';
+import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query';
+import { RouterProvider, createRouter } from '@tanstack/react-router';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { routeTree } from './routeTree.gen';
 import reportWebVitals from './reportWebVitals';
+import type { TrpcRouter } from 'backend/router';
+
+// Register the router instance for type safety
+declare module '@tanstack/react-router' {
+	interface Register {
+		router: typeof router;
+	}
+}
 
 // Create a new router instance
 const router = createRouter({
@@ -16,20 +27,40 @@ const router = createRouter({
 	defaultPreloadStaleTime: 0,
 });
 
-// Register the router instance for type safety
-declare module '@tanstack/react-router' {
-	interface Register {
-		router: typeof router;
-	}
-}
+/** Query client for state management */
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			retry: false,
+		},
+	},
+});
+
+/** TRPC client for typed requests to the backend */
+export const trpcClient = createTRPCClient<TrpcRouter>({
+	links: [
+		loggerLink(),
+		httpBatchLink({
+			url: '/api/trpc',
+		}),
+	],
+});
+
+/** TRPC proxy that uses the trpc and query client */
+export const trpc = createTRPCOptionsProxy<TrpcRouter>({
+	client: trpcClient,
+	queryClient,
+});
 
 // Render the app
-const rootElement = document.getElementById('app');
-if (rootElement && !rootElement.innerHTML) {
+const rootElement = document.getElementById('app')!;
+if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
 	root.render(
 		<StrictMode>
-			<RouterProvider router={router} />
+			<QueryClientProvider client={queryClient}>
+				<RouterProvider router={router} />
+			</QueryClientProvider>
 		</StrictMode>,
 	);
 }

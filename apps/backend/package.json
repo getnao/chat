@@ -1,6 +1,9 @@
 {
 	"name": "backend",
 	"type": "module",
+	"exports": {
+		"./router": "./src/router.ts"
+	},
 	"scripts": {
 		"dev": "tsx watch src/index.ts",
 		"build": "tsup src/index.ts --format esm --target node20 --minify",
@@ -18,6 +21,7 @@
 	"dependencies": {
 		"@ai-sdk/openai": "^3.0.1",
 		"@libsql/client": "^0.15.15",
+		"@trpc/server": "^11.8.1",
 		"ai": "^6.0.3",
 		"better-sqlite3": "^12.5.0",
 		"dotenv": "^17.2.3",

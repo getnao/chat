@@ -1,46 +1,40 @@
 import 'dotenv/config';
 
-import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
-import Fastify from 'fastify';
-import { z } from 'zod';
+import { fastifyTRPCPlugin, FastifyTRPCPluginOptions } from '@trpc/server/adapters/fastify';
+import fastify from 'fastify';
+import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 
-import { db } from './db/db';
+import { TrpcRouter, trpcRouter } from './router';
+import { chatPlugin } from './routes/chat';
 
-const app = Fastify({ logger: true });
+const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+export type App = typeof app;
+
+// Set the validator and serializer compilers for the Zod type provider
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
+
+// Register tRPC plugin
+app.register(fastifyTRPCPlugin, {
+	prefix: '/api/trpc',
+	trpcOptions: {
+		router: trpcRouter,
+		// createContext,
+		onError({ path, error }) {
+			console.error(`Error in tRPC handler on path '${path}':`, error);
+		},
+	} satisfies FastifyTRPCPluginOptions<TrpcRouter>['trpcOptions'],
+});
+
+app.register(chatPlugin, {
+	prefix: '/api',
+});
 
 /**
  * Tests the API connection
  */
-app.get('/api', async (request, reply) => {
-	return { hello: 'world' };
-});
-
-/**
- * Tests the database connection
- */
-app.get('/api/db', async (request, reply) => {
-	return await db.run('SELECT 42');
-});
-
-app.post('/api/chat', async (request, reply) => {
-	const { messages } = request.body as { messages: UIMessage[] };
-
-	const result = streamText({
-		model: openai.chat('gpt-4o'),
-		messages: await convertToModelMessages(messages),
-		tools: {
-			getWeather: tool({
-				description: 'Get the current weather for a specified city. Use this when the user asks about weather.',
-				inputSchema: z.object({
-					city: z.string().describe('The city to get the weather for'),
-				}),
-			}),
-		},
-	});
-
-	const response = result.toUIMessageStreamResponse();
-	return response;
+app.get('/api', async () => {
+	return 'Welcome to the API!';
 });
 
 export default app;

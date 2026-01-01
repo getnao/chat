@@ -3,7 +3,6 @@ import { createFileRoute } from '@tanstack/react-router';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { ArrowUpIcon, BotIcon, Loader2Icon, UserIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import {
 	Conversation,
 	ConversationContent,

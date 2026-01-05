@@ -38,7 +38,7 @@ export function SignForm({
 	footerLinkTo,
 	error,
 }: SignFormProps) {
-	const isGoogleSetup = useQuery(trpc.googleSetup.queryOptions());
+	const isGoogleSetup = useQuery(trpc.hasGoogleSetup.queryOptions());
 
 	return (
 		<div className='container mx-auto w-full max-w-2xl p-12'>

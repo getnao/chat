@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { signUp } from '@/lib/auth-client';
-import { SignForm } from '@/components/signForm';
+import { SignForm } from '@/components/signinForm';
 
 export const Route = createFileRoute('/signup')({
 	component: SignUpForm,
@@ -75,7 +75,7 @@ function SignUpForm() {
 			submitButtonText='Sign Up'
 			footerText='Already have an account?'
 			footerLinkText='Sign in'
-			footerLinkTo='/signin'
+			footerLinkTo='/login'
 			error={error}
 		/>
 	);

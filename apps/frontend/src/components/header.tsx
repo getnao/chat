@@ -10,7 +10,7 @@ export const Header = () => {
 	const handleSignOut = async (e: React.FormEvent) => {
 		e.preventDefault();
 		await signOut();
-		navigate({ to: '/signin' });
+		navigate({ to: '/login' });
 	};
 
 	if (!session) {

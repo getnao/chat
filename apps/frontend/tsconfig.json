@@ -25,6 +25,5 @@
 		"paths": {
 			"@/*": ["./src/*"]
 		},
-		"esModuleInterop": true,
 	}
 }

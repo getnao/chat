@@ -17,6 +17,10 @@ export const trpcRouter = router({
 		.query(({ input }) => {
 			return db.run(input.query);
 		}),
+
+	hasGoogleSetup: publicProcedure.query(() => {
+		return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+	}),
 });
 
 export type TrpcRouter = typeof trpcRouter;

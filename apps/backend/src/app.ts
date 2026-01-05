@@ -5,6 +5,7 @@ import fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { TrpcRouter, trpcRouter } from './router';
+import { authPlugin } from './routes/auth';
 import { chatPlugin } from './routes/chat';
 
 const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
@@ -27,6 +28,10 @@ app.register(fastifyTRPCPlugin, {
 });
 
 app.register(chatPlugin, {
+	prefix: '/api',
+});
+
+app.register(authPlugin, {
 	prefix: '/api',
 });
 

@@ -30,7 +30,7 @@ dependencies = [
 nao = "nao_core.main:app"
 
 [project.urls]
-Homepage = "https://github.com/naolabs/chat"
+Homepage = "https://getnao.io"
 Repository = "https://github.com/naolabs/chat"
 
 [build-system]

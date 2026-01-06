@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { db } from './db/db';
 import { publicProcedure, router } from './trpc';
+import { isPostgres } from './utils';
 
 export const trpcRouter = router({
 	test: publicProcedure.query(() => {

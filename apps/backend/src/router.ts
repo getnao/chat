@@ -15,7 +15,8 @@ export const trpcRouter = router({
 			}),
 		)
 		.query(({ input }) => {
-			return db.run(input.query);
+			// @ts-expect-error - db type is determined by isPostgres at runtime
+			return isPostgres ? db.execute(input.query) : db.run(input.query);
 		}),
 
 	hasGoogleSetup: publicProcedure.query(() => {

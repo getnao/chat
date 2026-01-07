@@ -1,5 +1,5 @@
 {
-  "id": "85377075-0905-497e-924f-2b2c9a7e27e1",
+  "id": "eb2e439e-63a8-425c-af2d-08560ac5920a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -376,8 +376,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.tool_calls": {
-      "name": "tool_calls",
+    "public.tool_call": {
+      "name": "tool_call",
       "schema": "",
       "columns": {
         "id": {
@@ -425,8 +425,8 @@
         }
       },
       "indexes": {
-        "tool_calls_messageId_idx": {
-          "name": "tool_calls_messageId_idx",
+        "tool_call_messageId_idx": {
+          "name": "tool_call_messageId_idx",
           "columns": [
             {
               "expression": "message_id",
@@ -442,9 +442,9 @@
         }
       },
       "foreignKeys": {
-        "tool_calls_message_id_chat_message_id_fk": {
-          "name": "tool_calls_message_id_chat_message_id_fk",
-          "tableFrom": "tool_calls",
+        "tool_call_message_id_chat_message_id_fk": {
+          "name": "tool_call_message_id_chat_message_id_fk",
+          "tableFrom": "tool_call",
           "tableTo": "chat_message",
           "columnsFrom": [
             "message_id"

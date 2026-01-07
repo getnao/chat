@@ -50,7 +50,7 @@ CREATE TABLE `session` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `session_token_unique` ON `session` (`token`);--> statement-breakpoint
 CREATE INDEX `session_userId_idx` ON `session` (`user_id`);--> statement-breakpoint
-CREATE TABLE `tool_calls` (
+CREATE TABLE `tool_call` (
 	`id` text PRIMARY KEY NOT NULL,
 	`message_id` text NOT NULL,
 	`tool_call_id` text NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE `tool_calls` (
 	FOREIGN KEY (`message_id`) REFERENCES `chat_message`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `tool_calls_messageId_idx` ON `tool_calls` (`message_id`);--> statement-breakpoint
+CREATE INDEX `tool_call_messageId_idx` ON `tool_call` (`message_id`);--> statement-breakpoint
 CREATE TABLE `user` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,

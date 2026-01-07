@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import * as postgresSchema from './db/pg-schema';
 import * as sqliteSchema from './db/sqlite-schema';
 

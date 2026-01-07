@@ -7,8 +7,8 @@ export type Conversation = typeof conversation.$inferSelect;
 export type NewConversation = typeof conversation.$inferInsert;
 export type ChatMessage = typeof chat_message.$inferSelect;
 export type NewChatMessage = typeof chat_message.$inferInsert;
-export type ToolCall = typeof tool_calls.$inferSelect;
-export type NewToolCall = typeof tool_calls.$inferInsert;
+export type ToolCall = typeof tool_call.$inferSelect;
+export type NewToolCall = typeof tool_call.$inferInsert;
 
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey(),
@@ -129,8 +129,8 @@ export const chat_message = sqliteTable(
 	(table) => [index('chat_message_conversationId_idx').on(table.conversationId)],
 );
 
-export const tool_calls = sqliteTable(
-	'tool_calls',
+export const tool_call = sqliteTable(
+	'tool_call',
 	{
 		id: text('id').primaryKey(),
 		messageId: text('message_id')
@@ -144,7 +144,7 @@ export const tool_calls = sqliteTable(
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 			.notNull(),
 	},
-	(table) => [index('tool_calls_messageId_idx').on(table.messageId)],
+	(table) => [index('tool_call_messageId_idx').on(table.messageId)],
 );
 
 export const userRelations = relations(user, ({ many }) => ({
@@ -180,12 +180,12 @@ export const chatMessageRelations = relations(chat_message, ({ one, many }) => (
 		fields: [chat_message.conversationId],
 		references: [conversation.id],
 	}),
-	toolCalls: many(tool_calls),
+	toolCalls: many(tool_call),
 }));
 
-export const toolCallsRelations = relations(tool_calls, ({ one }) => ({
+export const toolCallsRelations = relations(tool_call, ({ one }) => ({
 	message: one(chat_message, {
-		fields: [tool_calls.messageId],
+		fields: [tool_call.messageId],
 		references: [chat_message.id],
 	}),
 }));

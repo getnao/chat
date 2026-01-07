@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "cdcc70e6-16d9-4a71-8011-2ec7a7f4e115",
+  "id": "3f42e028-937d-4923-b9a2-9102012a7cc2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -362,8 +362,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "tool_calls": {
-      "name": "tool_calls",
+    "tool_call": {
+      "name": "tool_call",
       "columns": {
         "id": {
           "name": "id",
@@ -417,8 +417,8 @@
         }
       },
       "indexes": {
-        "tool_calls_messageId_idx": {
-          "name": "tool_calls_messageId_idx",
+        "tool_call_messageId_idx": {
+          "name": "tool_call_messageId_idx",
           "columns": [
             "message_id"
           ],
@@ -426,9 +426,9 @@
         }
       },
       "foreignKeys": {
-        "tool_calls_message_id_chat_message_id_fk": {
-          "name": "tool_calls_message_id_chat_message_id_fk",
-          "tableFrom": "tool_calls",
+        "tool_call_message_id_chat_message_id_fk": {
+          "name": "tool_call_message_id_chat_message_id_fk",
+          "tableFrom": "tool_call",
           "tableTo": "chat_message",
           "columnsFrom": [
             "message_id"

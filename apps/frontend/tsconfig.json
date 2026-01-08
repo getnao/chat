@@ -1,23 +1,11 @@
 {
-	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"eslint.config.js",
-		"vite.config.js",
-	],
+	"include": ["**/*.ts", "**/*.tsx", "eslint.config.js", "vite.config.js"],
 	"compilerOptions": {
 		"target": "ES2022",
 		"jsx": "react-jsx",
 		"module": "ESNext",
-		"lib": [
-			"ES2022",
-			"DOM",
-			"DOM.Iterable"
-		],
-		"types": [
-			"vite/client",
-			"bun-types"
-		],
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["vite/client", "bun-types"],
 		/* Bundler mode */
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": true,
@@ -32,9 +20,7 @@
 		"noUncheckedSideEffectImports": true,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": [
-				"./src/*"
-			]
-		},
+			"@/*": ["./src/*"]
+		}
 	}
 }

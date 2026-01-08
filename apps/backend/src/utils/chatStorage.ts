@@ -26,6 +26,9 @@ export const chatStorage = {
 			updatedAt: Date.now(),
 			messages,
 		};
+		if (!fs.existsSync(chatsDirectory)) {
+			fs.mkdirSync(chatsDirectory, { recursive: true });
+		}
 		fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
 		return chat;
 	},

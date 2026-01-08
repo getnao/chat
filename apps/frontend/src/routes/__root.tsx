@@ -1,5 +1,5 @@
 import { createRootRoute } from '@tanstack/react-router';
-import { Header } from '../components/header';
+// import { Header } from '../components/header';
 import { Sidebar } from '@/components/sidebar';
 import { ChatView } from '@/components/chat-view';
 import { useDisposeInactiveAgents } from '@/hooks/useAgent';
@@ -13,7 +13,7 @@ function RootComponent() {
 
 	return (
 		<div className='flex h-screen'>
-			<Header />
+			{/* <Header /> */}
 			<Sidebar />
 			<ChatView />
 		</div>

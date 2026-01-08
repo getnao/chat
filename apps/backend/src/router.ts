@@ -14,16 +14,16 @@ export const trpcRouter = router({
 		return chat;
 	}),
 
+	hasGoogleSetup: publicProcedure.query(() => {
+		return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+	}),
+
 	listChats: publicProcedure.query(async (): Promise<ChatListItem[]> => {
 		return chatStorage.listChats();
 	}),
 
 	deleteChat: publicProcedure.input(z.object({ chatId: z.string() })).mutation(async ({ input }): Promise<void> => {
 		await chatStorage.deleteChat(input.chatId);
-	}),
-
-	hasGoogleSetup: publicProcedure.query(() => {
-		return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 	}),
 });
 

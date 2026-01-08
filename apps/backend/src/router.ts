@@ -1,22 +1,26 @@
-import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
+import { z } from 'zod/v4';
 
-import { db } from './db/db';
 import { publicProcedure, router } from './trpc';
+import { type Chat, type ChatListItem } from './types/chat';
+import { chatStorage } from './utils/chatStorage';
 
 export const trpcRouter = router({
-	test: publicProcedure.query(() => {
-		return { hello: 'world' };
+	getChat: publicProcedure.input(z.object({ chatId: z.string() })).query(async ({ input }): Promise<Chat> => {
+		const chat = await chatStorage.getChat(input.chatId);
+		if (!chat) {
+			throw new TRPCError({ code: 'NOT_FOUND', message: `Chat with id ${input.chatId} not found.` });
+		}
+		return chat;
 	}),
 
-	dbTest: publicProcedure
-		.input(
-			z.object({
-				query: z.string(),
-			}),
-		)
-		.query(({ input }) => {
-			return db.run(input.query);
-		}),
+	listChats: publicProcedure.query(async (): Promise<ChatListItem[]> => {
+		return chatStorage.listChats();
+	}),
+
+	deleteChat: publicProcedure.input(z.object({ chatId: z.string() })).mutation(async ({ input }): Promise<void> => {
+		await chatStorage.deleteChat(input.chatId);
+	}),
 });
 
 export type TrpcRouter = typeof trpcRouter;

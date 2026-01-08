@@ -23,4 +23,7 @@ export default [
 			curly: 'warn',
 		},
 	},
+	{
+		ignores: ['eslint.config.js'],
+	},
 ];

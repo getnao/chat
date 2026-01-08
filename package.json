@@ -11,6 +11,7 @@
 		"lint": "npm run lint -w backend && npm run lint -w frontend",
 		"lint:fix": "npm run lint:fix -w backend && npm run lint:fix -w frontend",
 		"format": "prettier --write .",
+		"format:check": "prettier --check .",
 		"publish": "f() { cd cli && python build.py --bump ${1:-patch} -f && uv publish dist/*; }; f"
 	},
 	"devDependencies": {

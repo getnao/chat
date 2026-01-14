@@ -3,12 +3,12 @@ import { BunSQLiteDatabase, drizzle as drizzleBunSqlite } from 'drizzle-orm/bun-
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import dbConfig from './dbConfig';
+import dbConfig, { Dialect } from './dbConfig';
 import * as pgSchema from './pgSchema';
 import * as sqliteSchema from './sqliteSchema';
 
 function createDb() {
-	if (dbConfig.dialect === 'pg') {
+	if (dbConfig.dialect === Dialect.Postgres) {
 		const sql = postgres(dbConfig.dbUrl);
 		return drizzlePostgres(sql, { schema: pgSchema });
 	} else {

@@ -1,8 +1,8 @@
-import dbConfig from './dbConfig';
+import dbConfig, { Dialect } from './dbConfig';
 import * as pgSchema from './pgSchema';
 import * as sqliteSchema from './sqliteSchema';
 
-const allSchema = dbConfig.dialect === 'pg' ? pgSchema : sqliteSchema;
+const allSchema = dbConfig.dialect === Dialect.Postgres ? pgSchema : sqliteSchema;
 
 export type NewUser = typeof sqliteSchema.user.$inferInsert;
 export type User = typeof sqliteSchema.user.$inferSelect;

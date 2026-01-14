@@ -18,6 +18,23 @@ export const convertUIPartToDBPart = (
 	messageId: string,
 	order: number,
 ): NewMessagePart | undefined => {
+	if (isToolUIPart(part)) {
+		return {
+			messageId,
+			order,
+			toolName: getToolName(part),
+			type: part.type,
+			toolCallId: part.toolCallId,
+			toolState: part.state,
+			toolInput: part.input,
+			toolOutput: part.output,
+			toolErrorText: part.errorText,
+			toolApprovalApproved: part.approval?.approved,
+			toolApprovalReason: part.approval?.reason,
+			toolApprovalId: part.approval?.id,
+		};
+	}
+
 	switch (part.type) {
 		case 'text':
 			return {
@@ -34,22 +51,6 @@ export const convertUIPartToDBPart = (
 				reasoningText: part.text,
 			};
 		default:
-			if (isToolUIPart(part)) {
-				return {
-					messageId,
-					order,
-					toolName: getToolName(part),
-					type: part.type,
-					toolCallId: part.toolCallId,
-					toolState: part.state,
-					toolInput: part.input,
-					toolOutput: part.output,
-					toolErrorText: part.errorText,
-					toolApprovalApproved: part.approval?.approved,
-					toolApprovalReason: part.approval?.reason,
-					toolApprovalId: part.approval?.id,
-				};
-			}
 	}
 };
 
@@ -61,6 +62,25 @@ export const mapDBPartsToUIParts = (parts: DBMessagePart[]): UIMessagePart[] => 
 };
 
 export const convertDBPartToUIPart = (part: DBMessagePart): UIMessagePart | undefined => {
+	if (isToolDBPart(part)) {
+		return {
+			type: part.type,
+			toolName: part.toolName!,
+			toolCallId: part.toolCallId!,
+			state: part.toolState as any,
+			input: part.toolInput as any,
+			output: part.toolOutput as any,
+			errorText: part.toolErrorText as any,
+			approval: part.toolApprovalId
+				? {
+						id: part.toolApprovalId!,
+						approved: part.toolApprovalApproved!,
+						reason: part.toolApprovalReason!,
+					}
+				: undefined,
+		};
+	}
+
 	switch (part.type) {
 		case 'text':
 			return {
@@ -73,23 +93,9 @@ export const convertDBPartToUIPart = (part: DBMessagePart): UIMessagePart | unde
 				text: part.reasoningText!,
 			};
 		default:
-			if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
-				return {
-					type: part.type as UIToolPart['type'],
-					toolName: part.toolName!,
-					toolCallId: part.toolCallId!,
-					state: part.toolState as any,
-					input: part.toolInput as any,
-					output: part.toolOutput as any,
-					errorText: part.toolErrorText as any,
-					approval: part.toolApprovalId
-						? {
-								id: part.toolApprovalId!,
-								approved: part.toolApprovalApproved!,
-								reason: part.toolApprovalReason!,
-							}
-						: undefined,
-				};
-			}
 	}
+};
+
+const isToolDBPart = (part: DBMessagePart): part is DBMessagePart & { type: UIToolPart['type'] } => {
+	return part.type.startsWith('tool-') || part.type === 'dynamic-tool';
 };

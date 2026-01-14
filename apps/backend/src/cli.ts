@@ -10,7 +10,7 @@
 
 import path from 'path';
 
-import { type Dialect } from './db/dbConfig';
+import { Dialect } from './db/dbConfig';
 import dbConfig from './db/dbConfig';
 import { runMigrations } from './db/migrate';
 
@@ -21,7 +21,7 @@ function getExecutableDir(): string {
 
 function getMigrationsPath(dbType: Dialect): string {
 	const execDir = getExecutableDir();
-	const migrationsFolder = dbType === 'pg' ? 'migrations-postgres' : 'migrations-sqlite';
+	const migrationsFolder = dbType === Dialect.Postgres ? 'migrations-postgres' : 'migrations-sqlite';
 	return path.join(execDir, migrationsFolder);
 }
 
@@ -109,7 +109,7 @@ async function runServe(options: Record<string, string>): Promise<void> {
 	}
 
 	console.log(`\n🚀 Starting nao chat server...`);
-	console.log(`   Database: ${dialect}${dialect === 'sqlite' ? ` (${dbUrl})` : ''}`);
+	console.log(`   Database: ${dialect}${dialect === Dialect.Sqlite ? ` (${dbUrl})` : ''}`);
 	console.log(`   Listening on: ${host}:${port}`);
 
 	// Dynamic import to ensure env vars are set first

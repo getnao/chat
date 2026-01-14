@@ -3,7 +3,10 @@ import '../utils/loadEnv';
 import * as postgresSchema from './pgSchema';
 import * as sqliteSchema from './sqliteSchema';
 
-export type Dialect = 'sqlite' | 'pg';
+export enum Dialect {
+	Postgres = 'postgres',
+	Sqlite = 'sqlite',
+}
 
 interface DbConfig {
 	dialect: Dialect;
@@ -26,32 +29,32 @@ function parseDbUri(): { dialect: Dialect; connectionString: string } {
 	const dbUri = process.env.DB_URI || DEFAULT_DB_URI;
 
 	if (dbUri.startsWith('postgres://') || dbUri.startsWith('postgresql://')) {
-		return { dialect: 'pg', connectionString: dbUri };
+		return { dialect: Dialect.Postgres, connectionString: dbUri };
 	}
 
 	if (dbUri.startsWith('sqlite:')) {
 		// Remove 'sqlite:' prefix to get the file path
 		const filePath = dbUri.slice('sqlite:'.length);
-		return { dialect: 'sqlite', connectionString: filePath };
+		return { dialect: Dialect.Sqlite, connectionString: filePath };
 	}
 
 	// Default: treat as SQLite file path for backwards compatibility
-	return { dialect: 'sqlite', connectionString: dbUri };
+	return { dialect: Dialect.Sqlite, connectionString: dbUri };
 }
 
 const { dialect, connectionString } = parseDbUri();
 
 const dbConfig: DbConfig =
-	dialect === 'pg'
+	dialect === Dialect.Postgres
 		? {
-				dialect: 'pg',
+				dialect: Dialect.Postgres,
 				schema: postgresSchema,
 				migrationsFolder: './migrations-postgres',
 				schemaPath: './src/db/pgSchema.ts',
 				dbUrl: connectionString,
 			}
 		: {
-				dialect: 'sqlite',
+				dialect: Dialect.Sqlite,
 				schema: sqliteSchema,
 				migrationsFolder: './migrations-sqlite',
 				schemaPath: './src/db/sqliteSchema.ts',

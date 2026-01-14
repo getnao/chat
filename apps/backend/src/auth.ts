@@ -2,11 +2,11 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
 import { db } from './db/db';
-import dbConfig from './db/dbConfig';
+import dbConfig, { Dialect } from './db/dbConfig';
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
-		provider: dbConfig.dialect,
+		provider: dbConfig.dialect === Dialect.Postgres ? 'pg' : 'sqlite',
 		schema: dbConfig.schema,
 	}),
 	emailAndPassword: {

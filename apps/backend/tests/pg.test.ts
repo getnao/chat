@@ -8,8 +8,6 @@ import { NewUser } from '../src/db/abstractSchema';
 import { user } from '../src/db/pgSchema';
 import * as pgSchema from '../src/db/pgSchema';
 
-console.log(process.env.DB_URI!);
-
 const db = drizzle(process.env.DB_URI!, { schema: pgSchema });
 
 describe('userTable', () => {

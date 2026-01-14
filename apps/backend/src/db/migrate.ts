@@ -5,7 +5,7 @@ import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import { migrate as migratePostgres } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
-import type { Dialect } from './dbConfig';
+import { Dialect } from './dbConfig';
 
 interface MigrationOptions {
 	dbType: Dialect;
@@ -19,7 +19,7 @@ export async function runMigrations(options: MigrationOptions): Promise<void> {
 	console.log(`🗃️  Database type: ${dbType}`);
 	console.log(`📁 Migrations folder: ${migrationsPath}`);
 
-	if (dbType === 'pg') {
+	if (dbType === Dialect.Postgres) {
 		await runPostgresMigrations(connectionString, migrationsPath);
 	} else {
 		await runSqliteMigrations(connectionString, migrationsPath);

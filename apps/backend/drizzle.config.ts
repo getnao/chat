@@ -1,11 +1,11 @@
 import { defineConfig } from 'drizzle-kit';
 
-import dbConfig from './src/db/dbConfig';
+import dbConfig, { Dialect } from './src/db/dbConfig';
 
 export default defineConfig({
 	out: dbConfig.migrationsFolder,
 	schema: dbConfig.schemaPath,
-	dialect: dbConfig.dialect === 'pg' ? 'postgresql' : 'sqlite',
+	dialect: dbConfig.dialect === Dialect.Postgres ? 'postgresql' : 'sqlite',
 	dbCredentials: {
 		url: dbConfig.dbUrl,
 	},

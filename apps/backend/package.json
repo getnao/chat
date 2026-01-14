@@ -13,7 +13,7 @@
 		"test": "vitest run",
 		"lint": "eslint .",
 		"lint:fix": "eslint --fix",
-		"db:generate": "drizzle-kit generate",
+		"db:generate": "bash scripts/db.generate.sh",
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
 		"db:pull": "drizzle-kit pull",

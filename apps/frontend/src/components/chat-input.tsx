@@ -38,7 +38,7 @@ export function ChatInput({ onSubmit, isLoading, disabled = false }: Props) {
 					<InputGroupTextarea
 						key={chatId}
 						autoFocus
-						placeholder='Ask about the weather...'
+						placeholder='Ask anything about your data...'
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={handleKeyDown}

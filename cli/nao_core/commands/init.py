@@ -5,7 +5,7 @@ from cyclopts import Parameter
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
-from nao_core.config import BigQueryConfig, DatabaseConfig, DatabaseType, LLMConfig, LLMProvider, NaoConfig
+from nao_core.config import AnyDatabaseConfig, BigQueryConfig, DatabaseType, LLMConfig, LLMProvider, NaoConfig
 
 console = Console()
 
@@ -80,9 +80,9 @@ def setup_bigquery() -> BigQueryConfig:
     )
 
 
-def setup_databases() -> list[DatabaseConfig]:
+def setup_databases() -> list[AnyDatabaseConfig]:
     """Setup database configurations."""
-    databases: list[DatabaseConfig] = []
+    databases: list[AnyDatabaseConfig] = []
 
     should_setup = Confirm.ask("\n[bold]Set up database connections?[/bold]", default=True)
 

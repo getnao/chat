@@ -2,33 +2,11 @@ import { tool } from 'ai';
 import z from 'zod/v3';
 
 import { execute_sql } from './tools/execute_sql';
-import { grep_codebase } from './tools/grep_codebase';
-import { list_directory } from './tools/list_directory';
-import { read_file } from './tools/read_file';
-import { search_files } from './tools/search_files';
+import { list } from './tools/list';
+import { read } from './tools/read';
+import { search } from './tools/search';
 
 export const tools = {
-	getWeather: tool({
-		description: 'Get the current weather for a specified city. Use this when the user asks about weather.',
-		inputSchema: z.object({
-			city: z.string().describe('The city to get the weather for'),
-		}),
-		outputSchema: z.object({
-			condition: z.string(),
-			temperature: z.string(),
-			humidity: z.string(),
-			wind: z.string(),
-		}),
-		execute: async ({ city }) => {
-			await new Promise((resolve) => setTimeout(resolve, 3000));
-			return {
-				condition: 'sunny',
-				temperature: '20°C',
-				humidity: '50%',
-				wind: '10 km/h',
-			};
-		},
-	}),
 	read_file: tool({
 		description: 'Read the contents of a file at a given path.',
 		inputSchema: z.object({
@@ -39,7 +17,7 @@ export const tools = {
 			numberOfTotalLines: z.number(),
 		}),
 		execute: async ({ file_path }) => {
-			return await read_file(file_path);
+			return await read(file_path);
 		},
 	}),
 	search_files: tool({
@@ -49,18 +27,18 @@ export const tools = {
 		}),
 		outputSchema: z.array(
 			z.object({
-				absoluteFilePath: z.string(),
-				relativeFilePath: z.string(),
-				relativeDirPath: z.string(),
-				size: z.string().optional(),
+				path: z.string(),
+				dir: z.string(),
+				size: z.string(),
 			}),
 		),
 		execute: async ({ file_pattern }) => {
-			return await search_files(file_pattern);
+			return await search(file_pattern);
 		},
 	}),
-	list_directory: tool({
-		description: 'List the contents of a directory at a given path.',
+	list: tool({
+		description:
+			'List assets in the project (databases, schemas, tables, files, directories, etc.). Everything is organised as a filesystem tree so it is browsable like a file explorer.',
 		inputSchema: z.object({
 			dir_path: z.string(),
 		}),
@@ -73,44 +51,25 @@ export const tools = {
 			}),
 		),
 		execute: async ({ dir_path }) => {
-			return await list_directory(dir_path);
-		},
-	}),
-	grep_codebase: tool({
-		description: 'Search the codebase for a specific pattern and return matching lines with context.',
-		inputSchema: z.object({
-			pattern: z.string(),
-			include: z.array(z.string()),
-			exclude: z.array(z.string()),
-			case_sensitive: z.boolean(),
-		}),
-		outputSchema: z.array(
-			z.object({
-				line: z.number(),
-				text: z.string(),
-				matchCount: z.number(),
-				absolutePath: z.string(),
-				relativePath: z.string(),
-			}),
-		),
-		execute: async ({ ...config }) => {
-			return await grep_codebase(config);
+			return await list(dir_path);
 		},
 	}),
 	execute_sql: tool({
-		description: 'Execute a SQL query against the connected database and return the results.',
+		description:
+			'Execute a SQL query against the connected database and return the results. If multiple databases are configured, specify the database_id.',
 		inputSchema: z.object({
-			sql_query: z.string(),
-			connection_type: z
-				.enum(['bigquery', 'snowflake', 'postgres', 'redshift', 'databricks', 'duckdb', 'athena', 'clickhouse'])
-				.optional(),
+			sql_query: z.string().describe('The SQL query to execute'),
+			database_id: z
+				.string()
+				.optional()
+				.describe('The database name/id to use. Required if multiple databases are configured.'),
 		}),
 		outputSchema: z.object({
 			columns: z.array(z.string()),
 			rows: z.array(z.any()).optional(),
 		}),
-		execute: async ({ sql_query: query }) => {
-			return await execute_sql(query);
+		execute: async ({ sql_query: query, database_id }) => {
+			return await execute_sql(query, database_id);
 		},
 	}),
 };

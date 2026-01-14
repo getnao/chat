@@ -10,8 +10,8 @@
 
 import path from 'path';
 
-import { Dialect } from './db/dbConfig';
-import dbConfig from './db/dbConfig';
+import app from './app';
+import dbConfig, { Dialect } from './db/dbConfig';
 import { runMigrations } from './db/migrate';
 
 function getExecutableDir(): string {
@@ -111,9 +111,6 @@ async function runServe(options: Record<string, string>): Promise<void> {
 	console.log(`\n🚀 Starting nao chat server...`);
 	console.log(`   Database: ${dialect}${dialect === Dialect.Sqlite ? ` (${dbUrl})` : ''}`);
 	console.log(`   Listening on: ${host}:${port}`);
-
-	// Dynamic import to ensure env vars are set first
-	const { default: app } = await import('./app');
 
 	try {
 		const address = await app.listen({ host, port });

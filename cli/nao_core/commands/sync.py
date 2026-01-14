@@ -1,45 +1,260 @@
 import sys
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 from ibis import BaseBackend
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
-from nao_core.config import NaoConfig
+from nao_core.config import AccessorType, NaoConfig
 
 console = Console()
 
 
-def get_table_schema_markdown(conn: BaseBackend, dataset: str, table: str) -> str:
-    """Generate markdown content describing a table's columns."""
-    try:
-        # Get the table reference and its schema
+# =============================================================================
+# Data Accessors
+# =============================================================================
+
+
+class DataAccessor(ABC):
+    """Base class for data accessors that generate markdown files for tables."""
+
+    @property
+    @abstractmethod
+    def filename(self) -> str:
+        """The filename this accessor writes to (e.g., 'columns.md')."""
+        ...
+
+    @abstractmethod
+    def generate(self, conn: BaseBackend, dataset: str, table: str) -> str:
+        """Generate the markdown content for a table.
+
+        Args:
+            conn: The Ibis database connection
+            dataset: The dataset/schema name
+            table: The table name
+
+        Returns:
+            Markdown string content
+        """
+        ...
+
+    def get_table(self, conn: BaseBackend, dataset: str, table: str):
+        """Helper to get an Ibis table reference."""
         full_table_name = f"{dataset}.{table}"
-        t = conn.table(full_table_name)
-        schema = t.schema()
-
-        lines = [
-            f"# {table}",
-            "",
-            f"**Dataset:** `{dataset}`",
-            "",
-            "## Columns",
-            "",
-            "| Column | Type | Nullable |",
-            "|--------|------|----------|",
-        ]
-
-        for name, dtype in schema.items():
-            nullable = "Yes" if dtype.nullable else "No"
-            lines.append(f"| `{name}` | `{dtype}` | {nullable} |")
-
-        return "\n".join(lines)
-    except Exception as e:
-        return f"# {table}\n\nError fetching schema: {e}"
+        return conn.table(full_table_name)
 
 
-def sync_bigquery(db_config, base_path: Path, progress: Progress) -> tuple[int, int]:
+class ColumnsAccessor(DataAccessor):
+    """Generates columns.md with column names, types, and nullable info."""
+
+    @property
+    def filename(self) -> str:
+        return "columns.md"
+
+    def generate(self, conn: BaseBackend, dataset: str, table: str) -> str:
+        try:
+            t = self.get_table(conn, dataset, table)
+            schema = t.schema()
+
+            lines = [
+                f"# {table}",
+                "",
+                f"**Dataset:** `{dataset}`",
+                "",
+                "## Columns",
+                "",
+                "| Column | Type | Nullable | Description |",
+                "|--------|------|----------|-------------|",
+            ]
+
+            for name, dtype in schema.items():
+                nullable = "Yes" if dtype.nullable else "No"
+                description = ""
+                lines.append(f"| `{name}` | `{dtype}` | {nullable} | {description} |")
+
+            return "\n".join(lines)
+        except Exception as e:
+            return f"# {table}\n\nError fetching schema: {e}"
+
+
+class PreviewAccessor(DataAccessor):
+    """Generates preview.md with the first N rows of data."""
+
+    def __init__(self, num_rows: int = 10):
+        self.num_rows = num_rows
+
+    @property
+    def filename(self) -> str:
+        return "preview.md"
+
+    def generate(self, conn: BaseBackend, dataset: str, table: str) -> str:
+        try:
+            t = self.get_table(conn, dataset, table)
+            schema = t.schema()
+
+            preview_df = t.limit(self.num_rows).execute()
+
+            lines = [
+                f"# {table} - Preview",
+                "",
+                f"**Dataset:** `{dataset}`",
+                f"**Showing:** First {len(preview_df)} rows",
+                "",
+                "## Data Preview",
+                "",
+            ]
+
+            columns = list(schema.keys())
+            header = "| " + " | ".join(f"`{col}`" for col in columns) + " |"
+            separator = "| " + " | ".join("---" for _ in columns) + " |"
+            lines.append(header)
+            lines.append(separator)
+
+            for _, row in preview_df.iterrows():
+                row_values = []
+                for col in columns:
+                    val = row[col]
+                    val_str = str(val) if val is not None else ""
+                    if len(val_str) > 50:
+                        val_str = val_str[:47] + "..."
+                    val_str = val_str.replace("|", "\\|").replace("\n", " ")
+                    row_values.append(val_str)
+                lines.append("| " + " | ".join(row_values) + " |")
+
+            return "\n".join(lines)
+        except Exception as e:
+            return f"# {table} - Preview\n\nError fetching preview: {e}"
+
+
+class DescriptionAccessor(DataAccessor):
+    """Generates description.md with table metadata (row count, column count, etc.)."""
+
+    @property
+    def filename(self) -> str:
+        return "description.md"
+
+    def generate(self, conn: BaseBackend, dataset: str, table: str) -> str:
+        try:
+            t = self.get_table(conn, dataset, table)
+            schema = t.schema()
+
+            row_count = t.count().execute()
+            col_count = len(schema)
+
+            lines = [
+                f"# {table}",
+                "",
+                f"**Dataset:** `{dataset}`",
+                "",
+                "## Table Metadata",
+                "",
+                "| Property | Value |",
+                "|----------|-------|",
+                f"| **Row Count** | {row_count:,} |",
+                f"| **Column Count** | {col_count} |",
+                "",
+                "## Description",
+                "",
+                "_No description available._",
+                "",
+            ]
+
+            return "\n".join(lines)
+        except Exception as e:
+            return f"# {table}\n\nError fetching description: {e}"
+
+
+class ProfilingAccessor(DataAccessor):
+    """Generates profiling.md with column statistics and data profiling."""
+
+    @property
+    def filename(self) -> str:
+        return "profiling.md"
+
+    def generate(self, conn: BaseBackend, dataset: str, table: str) -> str:
+        try:
+            t = self.get_table(conn, dataset, table)
+            schema = t.schema()
+
+            lines = [
+                f"# {table} - Profiling",
+                "",
+                f"**Dataset:** `{dataset}`",
+                "",
+                "## Column Statistics",
+                "",
+                "| Column | Type | Nulls | Unique | Min | Max |",
+                "|--------|------|-------|--------|-----|-----|",
+            ]
+
+            for name, dtype in schema.items():
+                col = t[name]
+                dtype_str = str(dtype)
+
+                try:
+                    null_count = t.filter(col.isnull()).count().execute()
+                    unique_count = col.nunique().execute()
+
+                    min_val = ""
+                    max_val = ""
+                    if dtype.is_numeric() or dtype.is_temporal():
+                        try:
+                            min_val = str(col.min().execute())
+                            max_val = str(col.max().execute())
+                            if len(min_val) > 20:
+                                min_val = min_val[:17] + "..."
+                            if len(max_val) > 20:
+                                max_val = max_val[:17] + "..."
+                        except Exception:
+                            pass
+
+                    lines.append(
+                        f"| `{name}` | `{dtype_str}` | {null_count:,} | {unique_count:,} | {min_val} | {max_val} |"
+                    )
+                except Exception as col_error:
+                    lines.append(f"| `{name}` | `{dtype_str}` | Error: {col_error} | | | |")
+
+            return "\n".join(lines)
+        except Exception as e:
+            return f"# {table} - Profiling\n\nError fetching profiling: {e}"
+
+
+# =============================================================================
+# Accessor Registry
+# =============================================================================
+
+ACCESSOR_REGISTRY: dict[AccessorType, DataAccessor] = {
+    AccessorType.COLUMNS: ColumnsAccessor(),
+    AccessorType.PREVIEW: PreviewAccessor(num_rows=10),
+    AccessorType.DESCRIPTION: DescriptionAccessor(),
+    AccessorType.PROFILING: ProfilingAccessor(),
+}
+
+
+def get_accessors(accessor_types: list[AccessorType]) -> list[DataAccessor]:
+    """Get accessor instances for the given types."""
+    return [ACCESSOR_REGISTRY[t] for t in accessor_types if t in ACCESSOR_REGISTRY]
+
+
+# =============================================================================
+# Sync Functions
+# =============================================================================
+
+
+def sync_bigquery(
+    db_config,
+    base_path: Path,
+    progress: Progress,
+    accessors: list[DataAccessor],
+) -> tuple[int, int]:
     """Sync BigQuery database schema to markdown files.
+
+    Args:
+        db_config: The database configuration
+        base_path: Base output path
+        progress: Rich progress instance
+        accessors: List of data accessors to run
 
     Returns:
             Tuple of (datasets_synced, tables_synced)
@@ -50,7 +265,6 @@ def sync_bigquery(db_config, base_path: Path, progress: Progress) -> tuple[int, 
     datasets_synced = 0
     tables_synced = 0
 
-    # Get datasets to sync
     if db_config.dataset_id:
         datasets = [db_config.dataset_id]
     else:
@@ -62,16 +276,23 @@ def sync_bigquery(db_config, base_path: Path, progress: Progress) -> tuple[int, 
     )
 
     for dataset in datasets:
-        dataset_path = db_path / dataset
-        dataset_path.mkdir(parents=True, exist_ok=True)
-        datasets_synced += 1
-
-        # List tables in this dataset
         try:
-            tables = conn.list_tables(database=dataset)
+            all_tables = conn.list_tables(database=dataset)
         except Exception:
             progress.update(dataset_task, advance=1)
             continue
+
+        # Filter tables based on include/exclude patterns
+        tables = [t for t in all_tables if db_config.matches_pattern(dataset, t)]
+
+        # Skip dataset if no tables match
+        if not tables:
+            progress.update(dataset_task, advance=1)
+            continue
+
+        dataset_path = db_path / dataset
+        dataset_path.mkdir(parents=True, exist_ok=True)
+        datasets_synced += 1
 
         table_task = progress.add_task(
             f"  [cyan]{dataset}[/cyan]",
@@ -82,11 +303,12 @@ def sync_bigquery(db_config, base_path: Path, progress: Progress) -> tuple[int, 
             table_path = dataset_path / table
             table_path.mkdir(parents=True, exist_ok=True)
 
-            columns_md = get_table_schema_markdown(conn, dataset, table)
-            columns_file = table_path / "columns.md"
-            columns_file.write_text(columns_md)
-            tables_synced += 1
+            for accessor in accessors:
+                content = accessor.generate(conn, dataset, table)
+                output_file = table_path / accessor.filename
+                output_file.write_text(content)
 
+            tables_synced += 1
             progress.update(table_task, advance=1)
 
         progress.update(dataset_task, advance=1)
@@ -97,15 +319,17 @@ def sync_bigquery(db_config, base_path: Path, progress: Progress) -> tuple[int, 
 def sync(output_dir: str = "databases"):
     """Sync database schemas to local markdown files.
 
-    Creates a folder structure with table schemas:
+    Creates a folder structure with table metadata:
       databases/bigquery/<connection>/<dataset>/<table>/columns.md
+      databases/bigquery/<connection>/<dataset>/<table>/preview.md
+      databases/bigquery/<connection>/<dataset>/<table>/description.md
+      databases/bigquery/<connection>/<dataset>/<table>/profiling.md
 
     Args:
-            output_dir: Output directory for the database schemas (default: "databases")
+        output_dir: Output directory for the database schemas (default: "databases")
     """
     console.print("\n[bold cyan]🔄 nao sync[/bold cyan]\n")
 
-    # Load config
     config = NaoConfig.try_load()
     if not config:
         console.print("[bold red]✗[/bold red] No nao_config.yaml found in current directory")
@@ -133,9 +357,14 @@ def sync(output_dir: str = "databases"):
         transient=False,
     ) as progress:
         for db in config.databases:
+            # Get accessors from database config
+            db_accessors = get_accessors(db.accessors)
+            accessor_names = [a.filename.replace(".md", "") for a in db_accessors]
+
             try:
                 if db.type == "bigquery":
-                    datasets, tables = sync_bigquery(db, base_path, progress)
+                    console.print(f"[dim]{db.name} accessors:[/dim] {', '.join(accessor_names)}")
+                    datasets, tables = sync_bigquery(db, base_path, progress, db_accessors)
                     total_datasets += datasets
                     total_tables += tables
                 else:

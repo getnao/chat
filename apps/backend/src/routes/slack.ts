@@ -10,6 +10,7 @@ export const slackRoutes = async (app: App) => {
 	app.addHook('preHandler', slackAuthMiddleware);
 
 	app.post('/app_mention', { config: { rawBody: true } }, async (request, reply) => {
+		/* eslint-disable @typescript-eslint/no-explicit-any */
 		const body = request.body as any;
 
 		if (body.type === 'url_verification') {

@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+
 import { getProjectFolder, toRealPath } from '../../utils/tools';
 
 export const read = async (file_path: string) => {

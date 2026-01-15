@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Folder, Key, LogOut, Mail, User } from 'lucide-react';
+import { Folder, Key, LogOut } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sidebar } from '@/components/sidebar';

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import s, { NewChat } from '../db/abstractSchema';
 import { db } from '../db/db';
@@ -121,4 +121,14 @@ export const upsertMessage = async (chatId: string, message: UIMessage): Promise
 
 export const deleteChat = async (chatId: string): Promise<void> => {
 	await db.delete(s.chat).where(eq(s.chat.id, chatId)).execute();
+};
+
+export const getChatBySlackThread = async (threadTs: string): Promise<{ id: string; title: string } | null> => {
+	const result = await db
+		.select({ id: s.chat.id, title: s.chat.title })
+		.from(s.chat)
+		.where(eq(s.chat.slackThreadTs, threadTs))
+		.limit(1)
+		.execute();
+	return result.at(0) || null;
 };

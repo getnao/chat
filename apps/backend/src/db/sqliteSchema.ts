@@ -97,6 +97,7 @@ export const chat = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 		title: text('title').notNull().default('New Conversation'),
+		slackThreadTs: text('slack_thread_ts'),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 			.notNull(),
@@ -105,7 +106,7 @@ export const chat = sqliteTable(
 			.$onUpdate(() => new Date())
 			.notNull(),
 	},
-	(table) => [index('chat_userId_idx').on(table.userId)],
+	(table) => [index('chat_userId_idx').on(table.userId), index('chat_slack_thread_idx').on(table.slackThreadTs)],
 );
 
 export const chatMessage = sqliteTable(

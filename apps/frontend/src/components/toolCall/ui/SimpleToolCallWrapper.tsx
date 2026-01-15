@@ -1,28 +1,24 @@
-import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import type { UIToolPart } from 'backend/chat';
-import { getToolName, isToolSettled } from '@/lib/ai';
+import { useToolCallContext } from '../context';
+import type { ReactNode } from 'react';
+import { isToolSettled } from '@/lib/ai';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
-interface Props {
-	toolPart: UIToolPart;
-	onClick?: () => void;
+interface SimpleToolCallWrapperProps {
+	title: ReactNode;
+	badge?: ReactNode;
+	children: ReactNode;
 }
 
-export const ToolCall = ({ toolPart, onClick }: Props) => {
-	const [isExpanded, setIsExpanded] = useState(false);
+export const SimpleToolCallWrapper = ({ title, badge, children }: SimpleToolCallWrapperProps) => {
+	const { toolPart, isExpanded, setIsExpanded } = useToolCallContext();
 	const canExpand = !!toolPart.errorText || !!toolPart.output;
 	const isSettled = isToolSettled(toolPart);
-	const toolName = getToolName(toolPart);
 
 	const handleValueChange = (value: string) => {
-		const nowExpanded = value === 'tool-content';
-		setIsExpanded(nowExpanded);
-		if (!nowExpanded && onClick && !canExpand) {
-			onClick();
-		}
+		setIsExpanded(value === 'tool-content');
 	};
 
 	return (
@@ -47,7 +43,8 @@ export const ToolCall = ({ toolPart, onClick }: Props) => {
 					) : (
 						<Spinner className='size-4 opacity-50' />
 					)}
-					<span className={cn(!isSettled ? 'text-shimmer' : '')}>{toolName}</span>
+					<span className={cn(!isSettled ? 'text-shimmer' : '')}>{title}</span>
+					{badge && <span className='text-xs opacity-50'>{badge}</span>}
 				</AccordionTrigger>
 
 				<AccordionContent className='pb-0 pt-1.5'>
@@ -56,11 +53,9 @@ export const ToolCall = ({ toolPart, onClick }: Props) => {
 						<div>
 							{toolPart.errorText ? (
 								<pre className='p-2 overflow-auto max-h-80 m-0 bg-red-950'>{toolPart.errorText}</pre>
-							) : toolPart.output ? (
-								<pre className='overflow-auto max-h-80 m-0'>
-									{JSON.stringify(toolPart.output, null, 2)}
-								</pre>
-							) : null}
+							) : (
+								children
+							)}
 						</div>
 					</div>
 				</AccordionContent>

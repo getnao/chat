@@ -1,6 +1,6 @@
 import { File } from 'lucide-react';
 import { ToolCallProvider, useToolCallContext } from '../context';
-import { SimpleToolCallWrapper } from './SimpleToolCallWrapper';
+import { ToolCallWrapper } from './tool-call-wrapper';
 import type { ToolCallProps } from '../context';
 import type { searchFilesSchemas } from 'backend/tools';
 import { formatBytes } from '@/lib/utils';
@@ -14,7 +14,7 @@ const SearchContent = () => {
 
 	if (!isSettled) {
 		return (
-			<SimpleToolCallWrapper
+			<ToolCallWrapper
 				title={
 					<>
 						Searching <code className='text-xs bg-background/50 px-1 py-0.5 rounded'>{input?.pattern}</code>
@@ -26,7 +26,7 @@ const SearchContent = () => {
 	}
 
 	return (
-		<SimpleToolCallWrapper
+		<ToolCallWrapper
 			title={
 				<>
 					Searched <code className='text-xs bg-background/50 px-1 py-0.5 rounded'>{input?.pattern}</code>
@@ -59,7 +59,7 @@ const SearchContent = () => {
 					)}
 				</div>
 			)}
-		</SimpleToolCallWrapper>
+		</ToolCallWrapper>
 	);
 };
 

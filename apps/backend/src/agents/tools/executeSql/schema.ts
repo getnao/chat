@@ -9,8 +9,9 @@ export const inputSchema = z.object({
 });
 
 export const outputSchema = z.object({
+	data: z.array(z.any()),
+	row_count: z.number(),
 	columns: z.array(z.string()),
-	rows: z.array(z.any()).optional(),
 });
 
 export type Input = z.infer<typeof inputSchema>;

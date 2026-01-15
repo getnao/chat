@@ -1,6 +1,6 @@
 import { File, Folder, Link } from 'lucide-react';
 import { ToolCallProvider, useToolCallContext } from '../context';
-import { SimpleToolCallWrapper } from './SimpleToolCallWrapper';
+import { ToolCallWrapper } from './tool-call-wrapper';
 import type { ToolCallProps } from '../context';
 import type { listSchemas } from 'backend/tools';
 import { formatBytes } from '@/lib/utils';
@@ -25,7 +25,7 @@ const ListContent = () => {
 
 	if (!isSettled) {
 		return (
-			<SimpleToolCallWrapper
+			<ToolCallWrapper
 				title={
 					<>
 						Listing... <code className='text-xs bg-background/50 px-1 py-0.5 rounded'>{input?.path}</code>
@@ -37,7 +37,7 @@ const ListContent = () => {
 	}
 
 	return (
-		<SimpleToolCallWrapper
+		<ToolCallWrapper
 			title={
 				<>
 					Listed <code className='text-xs bg-background/50 px-1 py-0.5 rounded'>{input?.path}</code>
@@ -71,7 +71,7 @@ const ListContent = () => {
 					)}
 				</div>
 			)}
-		</SimpleToolCallWrapper>
+		</ToolCallWrapper>
 	);
 };
 

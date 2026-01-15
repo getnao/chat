@@ -1,5 +1,5 @@
 import { ToolCallProvider, useToolCallContext } from '../context';
-import { SimpleToolCallWrapper } from './SimpleToolCallWrapper';
+import { ToolCallWrapper } from './tool-call-wrapper';
 import type { ToolCallProps } from '../context';
 import type { readFileSchemas } from 'backend/tools';
 import { isToolSettled } from '@/lib/ai';
@@ -14,7 +14,7 @@ const ReadContent = () => {
 
 	if (!isSettled) {
 		return (
-			<SimpleToolCallWrapper
+			<ToolCallWrapper
 				title={
 					<>
 						Reading... <code className='text-xs bg-background/50 px-1 py-0.5 rounded'>{fileName}</code>
@@ -26,7 +26,7 @@ const ReadContent = () => {
 	}
 
 	return (
-		<SimpleToolCallWrapper
+		<ToolCallWrapper
 			title={
 				<>
 					Read <code className='text-xs bg-background/50 px-1 py-0.5 rounded'>{fileName}</code>
@@ -39,7 +39,7 @@ const ReadContent = () => {
 					<pre className='m-0 p-2 text-xs font-mono leading-relaxed'>{output.content}</pre>
 				</div>
 			)}
-		</SimpleToolCallWrapper>
+		</ToolCallWrapper>
 	);
 };
 

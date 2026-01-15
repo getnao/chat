@@ -16,6 +16,7 @@ You have access to user context defined as files and directories in the project 
 - Describe tool actions in natural language (e.g., "I'm searching for X") rather than function names.
 - Be efficient with tool calls and prefer calling multiple tools in parallel, especially when researching.
 - If you can execute a SQL query, use the execute_sql tool for it.
+- When there is a SQL query execute loop until you fix the error, search for the correct name using the list or search tools.
 ${userRules ? `\n## User Rules\n${userRules}` : ''}
 			`;
 };

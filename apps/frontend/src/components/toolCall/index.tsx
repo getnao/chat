@@ -1,6 +1,6 @@
 import { DefaultToolCall } from './ui/default';
 
-import { ExecuteSqlToolCall } from './ui/executeSql';
+import { ExecuteSqlToolCall } from './ui/execute-sql';
 import { ListToolCall } from './ui/list';
 import { ReadToolCall } from './ui/read';
 import { SearchToolCall } from './ui/search';
@@ -22,7 +22,7 @@ export const ToolCall = ({ toolPart }: { toolPart: UIToolPart }) => {
 };
 
 export { DefaultToolCall } from './ui/default';
-export { ExecuteSqlToolCall } from './ui/executeSql';
+export { ExecuteSqlToolCall } from './ui/execute-sql';
 export { ListToolCall } from './ui/list';
 export { ReadToolCall } from './ui/read';
 export { SearchToolCall } from './ui/search';

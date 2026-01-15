@@ -1,7 +1,5 @@
 import { createContext, useContext } from 'react';
 import type { AgentHelpers } from '@/hooks/useAgent';
-import type { UseChatHelpers } from '@ai-sdk/react';
-import type { UIMessage } from 'backend/chat';
 import { useMemoObject } from '@/hooks/useMemoObject';
 
 export interface Props {
@@ -9,7 +7,7 @@ export interface Props {
 	children: React.ReactNode;
 }
 
-export const ChatContext = createContext<UseChatHelpers<UIMessage> | null>(null);
+export const ChatContext = createContext<AgentHelpers | null>(null);
 
 export const useChatContext = () => {
 	const messages = useContext(ChatContext);

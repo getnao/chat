@@ -1,24 +1,10 @@
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { UIToolPart } from 'backend/chat';
 import { getToolName, isToolSettled } from '@/lib/ai';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
-
-interface SimpleToolCallContextValue {
-	isHovering: boolean;
-	isExpanded: boolean;
-}
-
-const SimpleToolCallContext = createContext<SimpleToolCallContextValue | null>(null);
-
-export const useSimpleToolCallContext = () => {
-	const context = useContext(SimpleToolCallContext);
-	if (!context) {
-		throw new Error('useSimpleToolCallContext must be used within SimpleToolCall');
-	}
-	return context;
-};
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 interface Props {
 	toolPart: UIToolPart;
@@ -27,45 +13,45 @@ interface Props {
 
 export const ToolCall = ({ toolPart, onClick }: Props) => {
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [isHovering, setIsHovering] = useState(false);
 	const canExpand = !!toolPart.errorText || !!toolPart.output;
-	const isClickable = onClick || canExpand;
 	const isSettled = isToolSettled(toolPart);
 	const toolName = getToolName(toolPart);
 
-	const handleClick = () => {
-		if (canExpand) {
-			setIsExpanded(!isExpanded);
-		} else if (onClick && !canExpand) {
+	const handleValueChange = (value: string) => {
+		const nowExpanded = value === 'tool-content';
+		setIsExpanded(nowExpanded);
+		if (!nowExpanded && onClick && !canExpand) {
 			onClick();
 		}
 	};
 
 	return (
-		<SimpleToolCallContext.Provider value={{ isHovering, isExpanded }}>
-			<div onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
-				<span
+		<Accordion type='single' collapsible onValueChange={handleValueChange} disabled={!canExpand}>
+			<AccordionItem value='tool-content' className='border-b-0'>
+				<AccordionTrigger
 					className={cn(
-						'select-none flex items-center gap-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [&_*]:overflow-hidden [&_*]:text-ellipsis [&_*]:whitespace-nowrap transition-opacity duration-150',
+						'select-none flex items-center gap-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [&_*]:overflow-hidden [&_*]:text-ellipsis [&_*]:whitespace-nowrap transition-opacity duration-150 py-0 hover:no-underline [&>svg:last-child]:hidden',
 						isExpanded ? 'opacity-100' : 'opacity-50',
-						isClickable && !isExpanded
+						canExpand && !isExpanded
 							? 'cursor-pointer hover:opacity-75'
-							: isClickable
+							: canExpand
 								? 'cursor-pointer'
 								: '',
 					)}
-					onClick={handleClick}
 				>
 					{isSettled ? (
-						<ChevronRight size={12} className={cn(isExpanded ? 'rotate-90' : '')} />
+						<ChevronRight
+							size={12}
+							className={cn('transition-transform duration-200', isExpanded ? 'rotate-90' : '')}
+						/>
 					) : (
 						<Spinner className='size-4 opacity-50' />
 					)}
 					<span className={cn(!isSettled ? 'text-shimmer' : '')}>{toolName}</span>
-				</span>
+				</AccordionTrigger>
 
-				{isExpanded && canExpand && (
-					<div className='pl-5 mt-1.5 bg-backgroundSecondary relative'>
+				<AccordionContent className='pb-0 pt-1.5'>
+					<div className='pl-5 bg-backgroundSecondary relative'>
 						<div className='h-full border-l border-l-border absolute top-0 left-[6px]' />
 						<div>
 							{toolPart.errorText ? (
@@ -77,8 +63,8 @@ export const ToolCall = ({ toolPart, onClick }: Props) => {
 							) : null}
 						</div>
 					</div>
-				)}
-			</div>
-		</SimpleToolCallContext.Provider>
+				</AccordionContent>
+			</AccordionItem>
+		</Accordion>
 	);
 };

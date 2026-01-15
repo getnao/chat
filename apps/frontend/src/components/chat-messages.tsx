@@ -1,12 +1,13 @@
+import { Streamdown } from 'streamdown';
 import { ToolCall } from './tool-call';
+import { AgentMessageLoader } from './ui/agent-message-loader';
 import type { UIMessage } from 'backend/chat';
 import {
-	AssistantMessageLoader,
 	Conversation,
 	ConversationContent,
 	ConversationEmptyState,
 	ConversationScrollButton,
-} from '@/components/conversation';
+} from '@/components/ui/conversation';
 import { checkIsGenerating, isToolUIPart } from '@/lib/ai';
 import { cn } from '@/lib/utils';
 import { useChatContext } from '@/contexts/agentProvider';
@@ -14,9 +15,8 @@ import { useChatContext } from '@/contexts/agentProvider';
 const DEBUG_MESSAGES = false;
 
 export function ChatMessages() {
-	const { messages, status } = useChatContext();
+	const { messages, isRunning, status } = useChatContext();
 	const isGenerating = checkIsGenerating(status, messages);
-	const isRunning = status === 'streaming' || status === 'submitted';
 
 	return (
 		<Conversation className='w-full'>
@@ -27,7 +27,7 @@ export function ChatMessages() {
 					messages.map((message) => <MessageBlock key={message.id} message={message} />)
 				)}
 
-				{!isGenerating && isRunning && <AssistantMessageLoader />}
+				{!isGenerating && isRunning && <AgentMessageLoader />}
 			</ConversationContent>
 
 			<ConversationScrollButton />
@@ -82,9 +82,14 @@ const UserMessageBlock = ({ message }: { message: UIMessage }) => {
 };
 
 const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
+	const { isRunning } = useChatContext();
+
 	return (
 		<div className={cn('rounded-2xl px-4 py-2 bg-muted flex flex-col gap-2')}>
 			{message.parts.map((p, i) => {
+				const isLastPart = i === message.parts.length - 1;
+				const isPartStreaming = isRunning && isLastPart;
+
 				if (isToolUIPart(p)) {
 					return <ToolCall key={i} toolPart={p} />;
 				}
@@ -92,9 +97,14 @@ const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
 				switch (p.type) {
 					case 'text':
 						return (
-							<span key={i} className='whitespace-pre-wrap'>
+							<Streamdown
+								key={i}
+								isAnimating={isPartStreaming}
+								mode={isPartStreaming ? 'streaming' : 'static'} // Turn static mode if not generating for better performance.
+								cdnUrl={null} // Streamdown makes requests to their CDN for code block languages that are not built-in.
+							>
 								{p.text}
-							</span>
+							</Streamdown>
 						);
 					default:
 						return null;

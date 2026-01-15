@@ -1,10 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useSession } from '@/lib/auth-client';
+import { capitalize } from '@/lib/utils';
 
 export const Route = createFileRoute('/_chat-layout/')({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
+	const { data: session } = useSession();
+	const username = session?.user?.name;
+
 	return (
 		<div className='flex flex-col items-center justify-end pb-8 mt-[20vh]'>
 			{/* Logo container with fixed height */}
@@ -18,7 +23,7 @@ function RouteComponent() {
 			</div>
 
 			<h1 className='text-3xl md:text-4xl font-light tracking-tight text-slate-700 text-center px-6'>
-				Hey, what do you want to analyse?
+				{username ? capitalize(username) : ''}, what do you want to analyse?
 			</h1>
 		</div>
 	);

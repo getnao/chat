@@ -1,14 +1,6 @@
-import { generateResponse } from '../agents/agentService';
 import type { App } from '../app';
 import { slackAuthMiddleware } from '../middleware/auth';
-import {
-	getSlackUser,
-	redirectUrl,
-	saveOrUpdateSlackUserMessage,
-	saveSlackAgentResponse,
-	sendFirstResponseAcknowledgement,
-	slackClient,
-} from '../utils/slack';
+import { getSlackUser, handleSlackWorkFlow, sendSlackRequestAcknowledgement } from '../utils/slack';
 
 export const slackRoutes = async (app: App) => {
 	app.addHook('preHandler', slackAuthMiddleware);
@@ -33,22 +25,10 @@ export const slackRoutes = async (app: App) => {
 			const user = await getSlackUser(body, channel, threadTs, reply);
 
 			// Acknowledge the event within 3 seconds limit and respond with a waiting message
-			await sendFirstResponseAcknowledgement(channel, threadTs, reply);
+			await sendSlackRequestAcknowledgement(channel, threadTs, reply);
 
-			const chatId = await saveOrUpdateSlackUserMessage(text, threadTs, user);
-
-			const responseText = await generateResponse(text);
-
-			await saveSlackAgentResponse(chatId, responseText);
-
-			const chatUrl = `${redirectUrl}${chatId}`;
-			const fullMessage = `${responseText}\n\nIf you want to see more, go to ${chatUrl}`;
-
-			await slackClient.chat.postMessage({
-				channel: channel,
-				text: fullMessage,
-				thread_ts: threadTs,
-			});
+			// Handle the main workflow
+			await handleSlackWorkFlow(user, text, threadTs, channel);
 		} catch (error) {
 			return reply.status(500).send({ error });
 		}

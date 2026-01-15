@@ -1,5 +1,6 @@
 import { WebClient } from '@slack/web-api';
 
+import { generateResponse } from '../agents/agentService';
 import { User } from '../db/abstractSchema';
 import * as chatQueries from '../queries/chatQueries';
 import { getUser } from '../queries/userQueries';
@@ -66,7 +67,7 @@ const getSlackUserEmail = async (userId: string): Promise<string | null> => {
 	return userProfile.profile?.email || null;
 };
 
-const sendFirstResponseAcknowledgement = async (channel: string, threadTs: string, reply: any) => {
+const sendSlackRequestAcknowledgement = async (channel: string, threadTs: string, reply: any) => {
 	reply.send({ ok: true });
 	await slackClient.chat.postMessage({
 		channel: channel,
@@ -80,12 +81,21 @@ const saveSlackAgentResponse = async (chatId: string, responseText: string) => {
 	await chatQueries.upsertMessage(chatId, assistantMessage);
 };
 
-export {
-	createTextMessage,
-	getSlackUser,
-	redirectUrl,
-	saveOrUpdateSlackUserMessage,
-	saveSlackAgentResponse,
-	sendFirstResponseAcknowledgement,
-	slackClient,
+const handleSlackWorkFlow = async (user: User, text: string, threadTs: string, channel: string) => {
+	const chatId = await saveOrUpdateSlackUserMessage(text, threadTs, user);
+
+	const responseText = await generateResponse(text);
+
+	await saveSlackAgentResponse(chatId, responseText);
+
+	const chatUrl = `${redirectUrl}${chatId}`;
+	const fullMessage = `${responseText}\n\nIf you want to see more, go to ${chatUrl}`;
+
+	await slackClient.chat.postMessage({
+		channel: channel,
+		text: fullMessage,
+		thread_ts: threadTs,
+	});
 };
+
+export { getSlackUser, handleSlackWorkFlow, sendSlackRequestAcknowledgement };

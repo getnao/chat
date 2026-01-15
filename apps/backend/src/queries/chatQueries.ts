@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import s, { NewChat } from '../db/abstractSchema';
 import { db } from '../db/db';
@@ -6,7 +6,12 @@ import { ListChatResponse, UIChat, UIMessage } from '../types/chat';
 import { convertDBPartToUIPart, mapDBPartsToUIParts, mapUIPartsToDBParts } from '../utils/chatMessagePartMappings';
 
 export const listUserChats = async (userId: string): Promise<ListChatResponse> => {
-	const chats = await db.select().from(s.chat).where(eq(s.chat.userId, userId)).execute();
+	const chats = await db
+		.select()
+		.from(s.chat)
+		.where(eq(s.chat.userId, userId))
+		.orderBy(desc(s.chat.createdAt))
+		.execute();
 	return {
 		chats: chats.map((chat) => ({
 			id: chat.id,

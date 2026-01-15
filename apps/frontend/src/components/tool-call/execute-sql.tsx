@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 import { Code, Table } from 'lucide-react';
 import { ToolCallProvider, useToolCallContext } from './context';
 import { ToolCallWrapper } from './tool-call-wrapper';
@@ -32,8 +33,8 @@ const ExecuteSqlContent = () => {
 
 	return (
 		<ToolCallWrapper
-			bordered
 			defaultExpanded
+			overrideError={viewMode === 'query'}
 			title={
 				<span>
 					{isSettled ? 'Executed' : 'Executing'}{' '}
@@ -44,8 +45,10 @@ const ExecuteSqlContent = () => {
 			actions={isSettled ? actions : undefined}
 		>
 			{viewMode === 'query' && input?.sql_query ? (
-				<div className='overflow-auto max-h-80'>
-					<pre className='p-3 m-0 text-sm font-mono bg-background/30'>{input.sql_query}</pre>
+				<div className='overflow-auto max-h-80 hide-code-header'>
+					<Streamdown mode='static' cdnUrl={null} controls={{ code: false }}>
+						{`\`\`\`sql\n${input.sql_query}\n\`\`\``}
+					</Streamdown>
 				</div>
 			) : output ? (
 				<div className='overflow-auto max-h-80'>

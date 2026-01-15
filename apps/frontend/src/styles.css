@@ -157,3 +157,13 @@ code {
 [data-streamdown='table-body'] {
 	background-color: var(--background);
 }
+
+.hide-code-header [data-streamdown='code-block-header'] {
+	display: none;
+}
+
+.hide-code-header [data-streamdown='code-block'],
+.hide-code-header pre {
+	border: none;
+	border-radius: 0;
+}

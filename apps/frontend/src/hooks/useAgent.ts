@@ -2,14 +2,14 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useEffect, useRef, useCallback } from 'react';
 import { Chat as Agent, useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { useCurrent } from './useCurrent';
 import { useMemoObject } from './useMemoObject';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { UIMessage } from 'backend/chat';
 import { useChatQuery } from '@/queries/useChatQuery';
 import { trpc } from '@/main';
-import { agentService } from '@/lib/agents';
+import { agentService } from '@/lib/agents.service';
 import { checkIsRunning } from '@/lib/ai';
 
 export type AgentHelpers = {
@@ -30,14 +30,13 @@ export const useAgent = (): AgentHelpers => {
 	const chatIdRef = useCurrent(chatId);
 
 	const agentInstance = useMemo(() => {
-		const originalChatId = chatId ?? 'new-chat';
-		const existingAgent = agentService.getAgent(originalChatId);
+		let agentId = chatId ?? 'new-chat';
+		const existingAgent = agentService.getAgent(agentId);
 		if (existingAgent) {
 			return existingAgent;
 		}
 
 		const newAgent = new Agent<UIMessage>({
-			id: originalChatId,
 			transport: new DefaultChatTransport({
 				api: '/api/chat/agent',
 				prepareSendMessagesRequest: (options) => {
@@ -49,16 +48,17 @@ export const useAgent = (): AgentHelpers => {
 					};
 				},
 			}),
-			onData: (chunk) => {
-				const newChat = chunk.data;
-
+			onData: ({ data: newChat }) => {
 				// Move the chat instance to the new chat id
-				agentService.moveAgent(originalChatId, newChat.id);
+				agentService.moveAgent(agentId, newChat.id);
+
+				// Update the agent id after moving the instance
+				agentId = newChat.id;
 
 				// Update the query data
 				queryClient.setQueryData(trpc.chat.get.queryKey({ chatId: newChat.id }), {
-					...chunk.data,
-					messages: agentInstance.messages,
+					...newChat,
+					messages: newAgent.messages,
 				});
 				queryClient.setQueryData(trpc.chat.list.queryKey(), (old) => ({
 					chats: [newChat, ...(old?.chats || [])],
@@ -67,11 +67,9 @@ export const useAgent = (): AgentHelpers => {
 				// Navigate to the new chat id
 				navigate({ to: '/$chatId', params: { chatId: newChat.id } });
 			},
-			sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 			onFinish: () => {
-				// Dispose instances that are not open to free up memory
-				if (chatIdRef.current !== agentInstance.id) {
-					agentService.disposeAgent(agentInstance.id);
+				if (chatIdRef.current !== agentId) {
+					agentService.disposeAgent(agentId);
 				}
 			},
 			onError: (error) => {
@@ -79,7 +77,7 @@ export const useAgent = (): AgentHelpers => {
 			},
 		});
 
-		return agentService.registerAgent(originalChatId, newAgent);
+		return agentService.registerAgent(agentId, newAgent);
 	}, [chatId, navigate, queryClient, chatIdRef]);
 
 	const agent = useChat({ chat: agentInstance });
@@ -138,12 +136,11 @@ export const useDisposeInactiveAgents = () => {
 
 	useEffect(() => {
 		try {
-			if (!chatId || !prevChatIdRef.current || chatId === prevChatIdRef.current) {
+			if (!prevChatIdRef.current || chatId === prevChatIdRef.current) {
 				return;
 			}
 
 			const agentIdToDispose = prevChatIdRef.current;
-
 			const agent = agentService.getAgent(agentIdToDispose);
 			if (!agent) {
 				return;

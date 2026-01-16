@@ -1,4 +1,4 @@
-import { type AnyToolDefinition, createTool } from './_types';
+import { type AnyToolDefinition, createTool } from '../../types/tools';
 import executeSql from './definitions/execute-sql';
 import grep from './definitions/grep';
 import list from './definitions/list';

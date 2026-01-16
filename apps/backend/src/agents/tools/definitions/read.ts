@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../_types';
+import type { ToolDefinition } from '../../../types/tools';
 import { execute } from '../functions/read';
 import { description, inputSchema, outputSchema } from '../schema/read';
 

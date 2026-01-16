@@ -36,8 +36,6 @@ export const ToolCallWrapper = ({
 	const isSettled = isToolSettled(toolPart);
 	const hasInitialized = useRef(false);
 
-	console.log('overrideError', overrideError);
-
 	const isBordered = !!actions;
 
 	useEffect(() => {

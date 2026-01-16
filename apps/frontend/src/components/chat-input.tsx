@@ -1,9 +1,11 @@
 import { ArrowUpIcon, SquareIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import type { FormEvent, KeyboardEvent } from 'react';
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from '@/components/ui/input-group';
+import { trpc } from '@/main';
 
 export interface Props {
 	onSubmit: (message: string) => void;
@@ -14,6 +16,7 @@ export interface Props {
 
 export function ChatInput({ onSubmit, onStop, isLoading, disabled = false }: Props) {
 	const chatId = useParams({ strict: false, select: (p) => p.chatId });
+	const modelProvider = useQuery(trpc.getModelProvider.queryOptions());
 	const [input, setInput] = useState('');
 
 	const handleSubmit = (e: FormEvent) => {
@@ -45,7 +48,14 @@ export function ChatInput({ onSubmit, onStop, isLoading, disabled = false }: Pro
 						onKeyDown={handleKeyDown}
 						id='chat-input'
 					/>
+
 					<InputGroupAddon align='block-end'>
+						{modelProvider.data && (
+							<div className='text-sm font-normal text-muted-foreground'>
+								{modelProvider.data === 'anthropic' ? 'Opus 4.5' : 'GPT-5.1'}
+							</div>
+						)}
+
 						{isLoading ? (
 							<InputGroupButton
 								type='button'

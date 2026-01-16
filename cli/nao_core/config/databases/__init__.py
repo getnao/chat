@@ -1,4 +1,5 @@
 from typing import Union
+
 from .base import AccessorType, DatabaseConfig, DatabaseType
 from .bigquery import BigQueryConfig
 from .duckdb import DuckDBConfig

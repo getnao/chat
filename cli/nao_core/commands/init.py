@@ -11,11 +11,11 @@ from nao_core.config import (
     AnyDatabaseConfig,
     BigQueryConfig,
     DatabaseType,
+    DuckDBConfig,
     LLMConfig,
     LLMProvider,
     NaoConfig,
     SlackConfig,
-    DuckDBConfig,
 )
 from nao_core.config.repos import RepoConfig
 
@@ -107,6 +107,7 @@ def setup_bigquery() -> BigQueryConfig:
         dataset_id=dataset_id or None,
         credentials_path=credentials_path or None,
     )
+
 
 def setup_duckdb() -> DuckDBConfig:
     """Setup a DuckDB database configuration."""

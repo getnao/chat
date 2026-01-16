@@ -6,6 +6,7 @@ from pydantic import Field
 
 from .base import DatabaseConfig
 
+
 class DuckDBConfig(DatabaseConfig):
     """DuckDB-specific configuration."""
 
@@ -15,6 +16,6 @@ class DuckDBConfig(DatabaseConfig):
     def connect(self) -> BaseBackend:
         """Create an Ibis DuckDB connection."""
         return ibis.duckdb.connect(
-			database=self.path,
-			read_only=False if self.path == ":memory:" else True,
-		)
+            database=self.path,
+            read_only=False if self.path == ":memory:" else True,
+        )

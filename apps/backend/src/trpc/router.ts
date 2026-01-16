@@ -8,6 +8,9 @@ export const trpcRouter = router({
 	hasGoogleSetup: publicProcedure.query(() => {
 		return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 	}),
+	getModelProvider: publicProcedure.query(() => {
+		return process.env.ANTHROPIC_API_KEY ? 'anthropic' : process.env.OPENAI_API_KEY ? 'openai' : undefined;
+	}),
 });
 
 export type TrpcRouter = typeof trpcRouter;

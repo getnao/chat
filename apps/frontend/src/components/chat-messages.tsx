@@ -1,5 +1,6 @@
 import { Streamdown } from 'streamdown';
 import { ToolCall } from './tool-call';
+import { ReasoningAccordion } from './reasoning-accordion';
 import { AgentMessageLoader } from './ui/agent-message-loader';
 import { MessageActions } from './message-actions';
 import type { UIMessage } from 'backend/chat';
@@ -88,9 +89,7 @@ const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
 	return (
 		<div className={cn('group rounded-2xl px-4 py-2 bg-muted flex flex-col gap-2')}>
 			{message.parts.map((p, i) => {
-				const isLastPart = i === message.parts.length - 1;
-				const isPartStreaming = isRunning && isLastPart;
-
+				const isPartStreaming = 'state' in p && p.state === 'streaming';
 				if (isToolUIPart(p)) {
 					return <ToolCall key={i} toolPart={p} />;
 				}
@@ -101,13 +100,15 @@ const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
 							<div key={i} className='px-3'>
 								<Streamdown
 									isAnimating={isPartStreaming}
-									mode={isPartStreaming ? 'streaming' : 'static'} // Turn static mode if not generating for better performance.
-									cdnUrl={null} // Streamdown makes requests to their CDN for code block languages that are not built-in.
+									mode={isPartStreaming ? 'streaming' : 'static'}
+									cdnUrl={null}
 								>
 									{p.text}
 								</Streamdown>
 							</div>
 						);
+					case 'reasoning':
+						return <ReasoningAccordion key={i} text={p.text} isStreaming={isPartStreaming} />;
 					default:
 						return null;
 				}

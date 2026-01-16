@@ -1,5 +1,6 @@
-import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, createUIMessageStream, ToolLoopAgent } from 'ai';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { convertToModelMessages, createUIMessageStream, ToolLoopAgent, ToolLoopAgentSettings } from 'ai';
 
 import { getInstructions } from '../agents/prompt';
 import { tools } from '../agents/tools';
@@ -43,10 +44,42 @@ class AgentManager {
 		private readonly _abortController: AbortController,
 	) {
 		this._agent = new ToolLoopAgent({
-			model: openai.chat('gpt-5.1'),
+			...this._chooseModelConfigBasedOnEnv(),
 			tools,
 			instructions: getInstructions(),
 		});
+	}
+
+	private _chooseModelConfigBasedOnEnv(): Pick<ToolLoopAgentSettings, 'model' | 'providerOptions'> {
+		if (process.env.ANTHROPIC_API_KEY) {
+			return {
+				model: anthropic.chat('claude-opus-4-5'),
+				providerOptions: {
+					anthropic: {
+						disableParallelToolUse: false,
+						thinking: {
+							type: 'enabled',
+							budgetTokens: 12_000,
+						},
+					} satisfies AnthropicProviderOptions,
+				},
+			};
+		}
+
+		if (process.env.OPENAI_API_KEY) {
+			return {
+				model: openai.chat('gpt-5.1'),
+				providerOptions: {
+					openai: {
+						// TODO: Add config for openai
+					} satisfies OpenAIResponsesProviderOptions,
+				},
+			};
+		}
+
+		throw new Error(
+			'No LLM API key found. You must set the ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable to use the agent.',
+		);
 	}
 
 	stream(

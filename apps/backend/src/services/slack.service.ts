@@ -4,7 +4,7 @@ import { FastifyReply } from 'fastify';
 import { User } from '../db/abstractSchema';
 import * as chatQueries from '../queries/chat.queries';
 import { getUser } from '../queries/user.queries';
-import { SlackRequest } from '../types/slack';
+import { ValidatedSlackRequest } from '../types/slack';
 import { saveSlackAgentResponse, saveSlackUserMessage, updateSlackUserMessage } from '../utils/slack';
 import { agentService } from './agent.service';
 
@@ -19,19 +19,12 @@ export class SlackService {
 	private _redirectUrl = process.env.REDIRECT_URL || '';
 	private _slackClient: WebClient;
 
-	constructor(body: SlackRequest) {
-		if (!body.event?.text || !body.event?.channel || !body.event?.ts || !body.event?.user) {
-			throw new Error('Invalid request: missing text, channel, thread timestamp, or user ID');
-		}
+	constructor(body: ValidatedSlackRequest) {
 		this._text = (body.event?.text ?? '').replace(/<@[A-Z0-9]+>/gi, '').trim();
 		this._channel = body.event.channel;
 		this._threadTs = body.event.thread_ts || body.event.ts;
 		this._slackUserId = body.event.user;
 		this._threadId = [this._channel, this._threadTs.replace('.', '')].join('/p');
-
-		if (!process.env.SLACK_BOT_TOKEN) {
-			throw new Error('SLACK_BOT_TOKEN is not defined in environment variables');
-		}
 		this._slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 	}
 

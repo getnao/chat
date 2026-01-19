@@ -20,10 +20,16 @@ class PostgresConfig(DatabaseConfig):
 
     def connect(self) -> BaseBackend:
         """Create an Ibis PostgreSQL connection."""
+
+        kwargs: dict = {"host": self.host, 
+                        "port": self.port, 
+                        "database": self.database, 
+                        "user": self.user, 
+                        "password": self.password}
+        
+        if self.schema_name:
+            kwargs["schema"] = self.schema_name
+
         return ibis.postgres.connect(
-            host=self.host,
-            port=self.port,
-            database=self.database,
-            user=self.user,
-            password=self.password,
+            **kwargs,
         )

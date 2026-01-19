@@ -1,6 +1,6 @@
 from typing import Annotated, Union
 
-from typing_extensions import Discriminator, Tag
+from pydantic import Discriminator, Tag
 
 from .base import AccessorType, DatabaseConfig, DatabaseType
 from .bigquery import BigQueryConfig
@@ -15,7 +15,7 @@ AnyDatabaseConfig = Annotated[
         Annotated[BigQueryConfig, Tag("bigquery")],
         Annotated[PostgresConfig, Tag("postgres")],
     ],
-    Discriminator(lambda x: x.get("type", "bigquery")),
+    Discriminator("type"),
 ]
 
 

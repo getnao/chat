@@ -118,6 +118,8 @@ def setup_postgres() -> PostgresConfig:
     host = Prompt.ask("[bold]Host[/bold]", default="localhost")
 
     port = Prompt.ask("[bold]Port[/bold]", default="5432")
+    if not port.isdigit():
+        raise InitError("Port must be a valid integer.")
 
     database = Prompt.ask("[bold]Database name[/bold]")
     if not database:

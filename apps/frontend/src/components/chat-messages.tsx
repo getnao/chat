@@ -1,4 +1,7 @@
 import { Streamdown } from 'streamdown';
+import { useEffect, useMemo, useRef } from 'react';
+import { useParams } from '@tanstack/react-router';
+import { useStickToBottomContext } from 'use-stick-to-bottom';
 import { ToolCall } from './tool-call';
 import { ReasoningAccordion } from './reasoning-accordion';
 import { AgentMessageLoader } from './ui/agent-message-loader';
@@ -12,28 +15,82 @@ import {
 } from '@/components/ui/conversation';
 import { checkIsGenerating, isToolUIPart } from '@/lib/ai';
 import { cn } from '@/lib/utils';
-import { useAgentContext } from '@/contexts/agentProvider';
+import { useAgentContext } from '@/contexts/agent.provider';
+import { useHeight } from '@/hooks/use-height';
+import { groupMessages } from '@/lib/messages.utils';
+import { MessageGroup } from '@/types/messages';
 
 const DEBUG_MESSAGES = false;
 
 export function ChatMessages() {
-	const { messages, status, isRunning } = useAgentContext();
-	const isGenerating = checkIsGenerating(status, messages);
+	const chatId = useParams({ strict: false }).chatId;
+	const contentRef = useRef<HTMLDivElement>(null);
+	const containerHeight = useHeight(contentRef, [chatId]);
 
 	return (
-		<Conversation>
-			<ConversationContent className='w-full md:w-full lg:w-full xl:w-full 2xl:w-1/2 mx-auto'>
-				{messages.length === 0 ? (
-					<ConversationEmptyState />
-				) : (
-					messages.map((message) => <MessageBlock key={message.id} message={message} />)
-				)}
+		<div
+			className='h-full min-h-0 flex animate-fade-in'
+			ref={contentRef}
+			style={{ '--container-height': `${containerHeight}px` } as React.CSSProperties}
+			key={chatId}
+		>
+			<Conversation>
+				<ConversationContent className='max-w-3xl mx-auto'>
+					<ChatMessagesContent />
+				</ConversationContent>
 
-				{!isGenerating && isRunning && <AgentMessageLoader />}
-			</ConversationContent>
+				<ConversationScrollButton />
+			</Conversation>
+		</div>
+	);
+}
 
-			<ConversationScrollButton />
-		</Conversation>
+const ChatMessagesContent = () => {
+	const { messages, status, isRunning, registerScrollDown } = useAgentContext();
+	const { scrollToBottom } = useStickToBottomContext();
+	const isGenerating = checkIsGenerating(status, messages);
+
+	useEffect(() => {
+		// Register the scroll down fn so the agent context has access to it.
+		const scrollDownSubscription = registerScrollDown(scrollToBottom);
+		return () => {
+			scrollDownSubscription.dispose();
+		};
+	}, [registerScrollDown, scrollToBottom]);
+
+	const messageGroups = useMemo(() => groupMessages(messages), [messages]);
+
+	return (
+		<>
+			{messageGroups.length === 0 ? (
+				<ConversationEmptyState />
+			) : (
+				messageGroups.map((group, idx) => {
+					const isLast = idx === messageGroups.length - 1;
+					return (
+						<MessageGroup
+							key={group.user.id}
+							group={group}
+							showResponseLoader={isLast && isRunning && !isGenerating}
+						/>
+					);
+				})
+			)}
+		</>
+	);
+};
+
+function MessageGroup({ group, showResponseLoader }: { group: MessageGroup; showResponseLoader: boolean }) {
+	return (
+		<div className='flex flex-col gap-8 last:min-h-[calc(var(--container-height)-48px)] group/message'>
+			<MessageBlock message={group.user} />
+
+			{showResponseLoader ? (
+				<AgentMessageLoader />
+			) : (
+				group.response.map((message) => <MessageBlock key={message.id} message={message} />)
+			)}
+		</div>
 	);
 }
 
@@ -66,12 +123,12 @@ function MessageBlock({ message }: { message: UIMessage }) {
 
 const UserMessageBlock = ({ message }: { message: UIMessage }) => {
 	return (
-		<div className={cn('rounded-3xl px-4 py-2 bg-primary text-primary-foreground ml-auto')}>
+		<div className={cn('rounded-3xl px-4 py-2 bg-card text-card-foreground ml-auto max-w-xl border')}>
 			{message.parts.map((p, i) => {
 				switch (p.type) {
 					case 'text':
 						return (
-							<span key={i} className='whitespace-pre-wrap'>
+							<span key={i} className='whitespace-pre-wrap wrap-break-word'>
 								{p.text}
 							</span>
 						);
@@ -87,7 +144,7 @@ const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
 	const { isRunning } = useAgentContext();
 
 	return (
-		<div className={cn('group rounded-2xl px-4 py-2 bg-muted flex flex-col gap-2')}>
+		<div className={cn('group px-4 flex flex-col gap-2 bg-transparent')}>
 			{message.parts.map((p, i) => {
 				const isPartStreaming = 'state' in p && p.state === 'streaming';
 				if (isToolUIPart(p)) {
@@ -97,15 +154,14 @@ const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
 				switch (p.type) {
 					case 'text':
 						return (
-							<div key={i} className='px-3'>
-								<Streamdown
-									isAnimating={isPartStreaming}
-									mode={isPartStreaming ? 'streaming' : 'static'}
-									cdnUrl={null}
-								>
-									{p.text}
-								</Streamdown>
-							</div>
+							<Streamdown
+								key={i}
+								isAnimating={isPartStreaming}
+								mode={isPartStreaming ? 'streaming' : 'static'}
+								cdnUrl={null}
+							>
+								{p.text}
+							</Streamdown>
 						);
 					case 'reasoning':
 						return <ReasoningAccordion key={i} text={p.text} isStreaming={isPartStreaming} />;
@@ -117,7 +173,7 @@ const AssistantMessageBlock = ({ message }: { message: UIMessage }) => {
 			{!isRunning && (
 				<MessageActions
 					message={message}
-					className='opacity-0 group-last:opacity-100 group-hover:opacity-100 transition-opacity duration-200'
+					className='opacity-0 group-last/message:opacity-100 group-hover:opacity-100 transition-opacity duration-200'
 				/>
 			)}
 		</div>

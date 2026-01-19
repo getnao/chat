@@ -1,11 +1,10 @@
 import { FileSearch, AlertCircle } from 'lucide-react';
-import { ToolCallProvider, useToolCallContext } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import { ToolCallWrapper } from './tool-call-wrapper';
-import type { ToolCallProps } from './context';
 import type { grepSchemas } from 'backend/tools';
 import { isToolSettled } from '@/lib/ai';
 
-const GrepContent = () => {
+export const GrepToolCall = () => {
 	const { toolPart } = useToolCallContext();
 	const output = toolPart.output as grepSchemas.Output | undefined;
 	const input = toolPart.input as grepSchemas.Input | undefined;
@@ -159,12 +158,4 @@ const HighlightedLine = ({ content, pattern }: { content: string; pattern?: stri
 		// If the pattern is not a valid regex for JS, just show the content
 		return <span>{content}</span>;
 	}
-};
-
-export const GrepToolCall = ({ toolPart }: ToolCallProps) => {
-	return (
-		<ToolCallProvider toolPart={toolPart}>
-			<GrepContent />
-		</ToolCallProvider>
-	);
 };

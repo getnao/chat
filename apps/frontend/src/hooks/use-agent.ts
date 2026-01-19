@@ -5,6 +5,7 @@ import { Chat as Agent, useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useCurrent } from './useCurrent';
 import { useMemoObject } from './useMemoObject';
+import type { ScrollToBottom, ScrollToBottomOptions } from 'use-stick-to-bottom';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { UIMessage } from 'backend/chat';
 import { useChatQuery } from '@/queries/useChatQuery';
@@ -20,6 +21,7 @@ export type AgentHelpers = {
 	isRunning: boolean;
 	isReadyForNewMessages: boolean;
 	stopAgent: () => Promise<void>;
+	registerScrollDown: (fn: ScrollToBottom) => { dispose: () => void };
 };
 
 export const useAgent = (): AgentHelpers => {
@@ -28,6 +30,7 @@ export const useAgent = (): AgentHelpers => {
 	const chat = useChatQuery({ chatId });
 	const queryClient = useQueryClient();
 	const chatIdRef = useCurrent(chatId);
+	const scrollDownService = useScrollDownCallbackService();
 
 	const agentInstance = useMemo(() => {
 		let agentId = chatId ?? 'new-chat';
@@ -101,14 +104,26 @@ export const useAgent = (): AgentHelpers => {
 
 	const isRunning = agent.status === 'streaming' || agent.status === 'submitted';
 
+	const sendMessage = useCallback(
+		async (args: Parameters<UseChatHelpers<UIMessage>['sendMessage']>[0]) => {
+			if (isRunning) {
+				return;
+			}
+			scrollDownService.scrollDown({ animation: 'smooth' }); // TODO: 'smooth' doesn't work
+			return agent.sendMessage(args);
+		},
+		[isRunning, agent.sendMessage, scrollDownService.scrollDown], // eslint-disable-line
+	);
+
 	return useMemoObject({
 		messages: agent.messages,
 		setMessages: agent.setMessages,
-		sendMessage: agent.sendMessage,
+		sendMessage,
 		status: agent.status,
 		isRunning,
 		isReadyForNewMessages: chatId ? !!chat.data && !isRunning : true,
 		stopAgent,
+		registerScrollDown: scrollDownService.register,
 	});
 };
 
@@ -160,4 +175,31 @@ export const useDisposeInactiveAgents = () => {
 			prevChatIdRef.current = chatId;
 		}
 	}, [chatId]);
+};
+
+const useScrollDownCallbackService = () => {
+	const scrollDownCallbackRef = useRef<ScrollToBottom | null>(null);
+
+	const scrollDown = useCallback(
+		(options?: ScrollToBottomOptions) => {
+			if (scrollDownCallbackRef.current) {
+				scrollDownCallbackRef.current(options);
+			}
+		},
+		[scrollDownCallbackRef],
+	);
+
+	const register = useCallback((callback: ScrollToBottom) => {
+		scrollDownCallbackRef.current = callback;
+		return {
+			dispose: () => {
+				scrollDownCallbackRef.current = null;
+			},
+		};
+	}, []);
+
+	return {
+		scrollDown,
+		register,
+	};
 };

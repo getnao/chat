@@ -43,7 +43,7 @@ function AccordionContent({ className, children, ...props }: React.ComponentProp
 		>
 			<div
 				className={cn(
-					'pt-0 pb-4 group-data-[state=open]:animate-fade-in-down group-data-[state=closed]:animate-fade-out',
+					'pt-0 pb-4 group-data-[state=open]:animate-fade-in group-data-[state=closed]:animate-fade-out',
 					className,
 				)}
 			>

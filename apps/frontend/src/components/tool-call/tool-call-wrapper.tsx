@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { useToolCallContext } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import type { ReactNode } from 'react';
 import { isToolSettled } from '@/lib/ai';
 import { cn } from '@/lib/utils';
@@ -75,13 +75,10 @@ export const ToolCallWrapper = ({
 			onValueChange={handleValueChange}
 			disabled={!canExpand}
 		>
-			<AccordionItem value='tool-content' className={cn('border-b-0', !isBordered && 'px-3')}>
+			<AccordionItem value='tool-content' className={cn('border-b-0')} style={{ padding: 0 }} id={'hey'}>
 				{isBordered ? (
 					<div
-						className={cn(
-							'flex items-center justify-between gap-2 px-3 py-2',
-							canExpand && 'cursor-pointer',
-						)}
+						className={cn('flex items-center justify-between gap-2 py-2', canExpand && 'cursor-pointer')}
 						onClick={() => canExpand && setIsExpanded(!isExpanded)}
 					>
 						<AccordionTrigger

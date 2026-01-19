@@ -1,12 +1,11 @@
 import { ChevronRight } from 'lucide-react';
-import { ToolCallProvider, useToolCallContext } from './context';
-import type { ToolCallProps } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import { getToolName, isToolSettled } from '@/lib/ai';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
-const DefaultToolCallContent = () => {
+export const DefaultToolCall = () => {
 	const { toolPart, isExpanded, setIsExpanded } = useToolCallContext();
 	const canExpand = !!toolPart.errorText || !!toolPart.output;
 	const isSettled = isToolSettled(toolPart);
@@ -57,13 +56,5 @@ const DefaultToolCallContent = () => {
 				</AccordionContent>
 			</AccordionItem>
 		</Accordion>
-	);
-};
-
-export const DefaultToolCall = ({ toolPart }: ToolCallProps) => {
-	return (
-		<ToolCallProvider toolPart={toolPart}>
-			<DefaultToolCallContent />
-		</ToolCallProvider>
 	);
 };

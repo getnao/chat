@@ -1,10 +1,9 @@
-import { ToolCallProvider, useToolCallContext } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import { ToolCallWrapper } from './tool-call-wrapper';
-import type { ToolCallProps } from './context';
 import type { readFileSchemas } from 'backend/tools';
 import { isToolSettled } from '@/lib/ai';
 
-const ReadContent = () => {
+export const ReadToolCall = () => {
 	const { toolPart } = useToolCallContext();
 	const output = toolPart.output as readFileSchemas.Output | undefined;
 	const input = toolPart.input as readFileSchemas.Input | undefined;
@@ -49,13 +48,5 @@ const ReadContent = () => {
 				</>
 			)}
 		</ToolCallWrapper>
-	);
-};
-
-export const ReadToolCall = ({ toolPart }: ToolCallProps) => {
-	return (
-		<ToolCallProvider toolPart={toolPart}>
-			<ReadContent />
-		</ToolCallProvider>
 	);
 };

@@ -19,5 +19,5 @@ function RouteComponent() {
 		);
 	}
 
-	return <ChatMessages key={chatId} />;
+	return <ChatMessages />;
 }

@@ -1,7 +1,6 @@
 import { File, Folder, Link } from 'lucide-react';
-import { ToolCallProvider, useToolCallContext } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import { ToolCallWrapper } from './tool-call-wrapper';
-import type { ToolCallProps } from './context';
 import type { listSchemas } from 'backend/tools';
 import { formatBytes } from '@/lib/utils';
 import { isToolSettled } from '@/lib/ai';
@@ -17,7 +16,7 @@ const getIcon = (type?: string) => {
 	}
 };
 
-const ListContent = () => {
+export const ListToolCall = () => {
 	const { toolPart } = useToolCallContext();
 	const output = toolPart.output as listSchemas.Output | undefined;
 	const input = toolPart.input as listSchemas.Input | undefined;
@@ -72,13 +71,5 @@ const ListContent = () => {
 				</div>
 			)}
 		</ToolCallWrapper>
-	);
-};
-
-export const ListToolCall = ({ toolPart }: ToolCallProps) => {
-	return (
-		<ToolCallProvider toolPart={toolPart}>
-			<ListContent />
-		</ToolCallProvider>
 	);
 };

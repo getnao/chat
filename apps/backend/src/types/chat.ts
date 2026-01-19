@@ -46,7 +46,9 @@ export type UIMessagePart = UIGenericMessagePart<MessageCustomDataParts, UITools
 /** Tools that are statically defined in the code (e.g. built-in tools) */
 export type UIStaticToolPart = ToolUIPartType<UITools>;
 
-export type StaticToolName = `tool-${keyof UITools}`;
+export type StaticToolName = keyof UITools;
+
+export type UIStaticToolCallPartType = `tool-${StaticToolName}`;
 
 /** Either a static or dynamic tool part (e.g. MCP tools) */
 export type UIToolPart = UIStaticToolPart | DynamicToolUIPart;

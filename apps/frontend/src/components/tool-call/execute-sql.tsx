@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { Code, Copy, Table } from 'lucide-react';
-import { ToolCallProvider, useToolCallContext } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import { ToolCallWrapper } from './tool-call-wrapper';
-import type { ToolCallProps } from './context';
 import type { executeSqlSchemas } from 'backend/tools';
 import { isToolSettled } from '@/lib/ai';
 
 type ViewMode = 'results' | 'query';
 
-const ExecuteSqlContent = () => {
+export const ExecuteSqlToolCall = () => {
 	const { toolPart } = useToolCallContext();
 	const [viewMode, setViewMode] = useState<ViewMode>('results');
 	const input = toolPart.input as executeSqlSchemas.Input | undefined;
@@ -96,13 +95,5 @@ const ExecuteSqlContent = () => {
 				<div className='p-4 text-center text-foreground/50 text-sm'>Executing query...</div>
 			)}
 		</ToolCallWrapper>
-	);
-};
-
-export const ExecuteSqlToolCall = ({ toolPart }: ToolCallProps) => {
-	return (
-		<ToolCallProvider toolPart={toolPart}>
-			<ExecuteSqlContent />
-		</ToolCallProvider>
 	);
 };

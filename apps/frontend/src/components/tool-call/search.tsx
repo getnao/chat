@@ -1,12 +1,11 @@
 import { File } from 'lucide-react';
-import { ToolCallProvider, useToolCallContext } from './context';
+import { useToolCallContext } from '../../contexts/tool-call.context';
 import { ToolCallWrapper } from './tool-call-wrapper';
-import type { ToolCallProps } from './context';
 import type { searchFilesSchemas } from 'backend/tools';
 import { formatBytes } from '@/lib/utils';
 import { isToolSettled } from '@/lib/ai';
 
-const SearchContent = () => {
+export const SearchToolCall = () => {
 	const { toolPart } = useToolCallContext();
 	const output = toolPart.output as searchFilesSchemas.Output | undefined;
 	const input = toolPart.input as searchFilesSchemas.Input | undefined;
@@ -60,13 +59,5 @@ const SearchContent = () => {
 				</div>
 			)}
 		</ToolCallWrapper>
-	);
-};
-
-export const SearchToolCall = ({ toolPart }: ToolCallProps) => {
-	return (
-		<ToolCallProvider toolPart={toolPart}>
-			<SearchContent />
-		</ToolCallProvider>
 	);
 };

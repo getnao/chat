@@ -5,7 +5,7 @@ import { useParams } from '@tanstack/react-router';
 import { NegativeFeedbackDialog } from './negative-feedback-dialog';
 import type { UIMessage } from 'backend/chat';
 import { Button } from '@/components/ui/button';
-import { serializeMessageForCopy } from '@/lib/message-utils';
+import { serializeMessageForCopy } from '@/lib/messages.utils';
 import { trpc } from '@/main';
 import { cn } from '@/lib/utils';
 
@@ -70,7 +70,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
 
 	return (
 		<>
-			<div className={cn('flex items-center gap-1 mt-2', className)}>
+			<div className={cn('flex items-center gap-1', className)}>
 				<Button
 					variant='ghost'
 					size='icon-sm'

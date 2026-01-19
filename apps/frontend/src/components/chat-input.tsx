@@ -6,6 +6,7 @@ import type { FormEvent, KeyboardEvent } from 'react';
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from '@/components/ui/input-group';
 import { trpc } from '@/main';
+import { useAgentContext } from '@/contexts/agent.provider';
 
 export interface Props {
 	onSubmit: (message: string) => void;
@@ -14,17 +15,18 @@ export interface Props {
 	disabled?: boolean;
 }
 
-export function ChatInput({ onSubmit, onStop, isLoading, disabled = false }: Props) {
+export function ChatInput() {
+	const { sendMessage, isRunning, stopAgent, isReadyForNewMessages } = useAgentContext();
 	const chatId = useParams({ strict: false, select: (p) => p.chatId });
 	const modelProvider = useQuery(trpc.getModelProvider.queryOptions());
 	const [input, setInput] = useState('');
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault();
-		if (!input.trim() || isLoading) {
+		if (!input.trim() || isRunning) {
 			return;
 		}
-		onSubmit(input);
+		sendMessage({ text: input });
 		setInput('');
 	};
 
@@ -36,8 +38,8 @@ export function ChatInput({ onSubmit, onStop, isLoading, disabled = false }: Pro
 	};
 
 	return (
-		<div className='p-4 pt-0 backdrop-blur-sm dark:bg-slate-900/50'>
-			<form onSubmit={handleSubmit} className='mx-auto max-w-3xl'>
+		<div className='p-4 pt-0 max-w-3xl w-full mx-auto'>
+			<form onSubmit={handleSubmit} className='mx-auto'>
 				<InputGroup htmlFor='chat-input'>
 					<InputGroupTextarea
 						key={chatId}
@@ -56,13 +58,13 @@ export function ChatInput({ onSubmit, onStop, isLoading, disabled = false }: Pro
 							</div>
 						)}
 
-						{isLoading ? (
+						{isRunning ? (
 							<InputGroupButton
 								type='button'
 								variant='destructive'
 								className='rounded-full ml-auto'
 								size='icon-xs'
-								onClick={onStop}
+								onClick={stopAgent}
 							>
 								<SquareIcon />
 								<span className='sr-only'>Stop</span>
@@ -73,7 +75,7 @@ export function ChatInput({ onSubmit, onStop, isLoading, disabled = false }: Pro
 								variant='default'
 								className='rounded-full ml-auto'
 								size='icon-xs'
-								disabled={disabled || !input}
+								disabled={!isReadyForNewMessages || !input}
 							>
 								<ArrowUpIcon />
 								<span className='sr-only'>Send</span>

@@ -14,6 +14,7 @@ from nao_core.config import (
     LLMConfig,
     LLMProvider,
     NaoConfig,
+    PostgresConfig,
     SlackConfig,
 )
 from nao_core.config.repos import RepoConfig
@@ -108,6 +109,42 @@ def setup_bigquery() -> BigQueryConfig:
     )
 
 
+def setup_postgres() -> PostgresConfig:
+    """Setup a PostgreSQL database configuration."""
+    console.print("\n[bold cyan]PostgreSQL Configuration[/bold cyan]\n")
+
+    name = Prompt.ask("[bold]Connection name[/bold]", default="postgres-prod")
+
+    host = Prompt.ask("[bold]Host[/bold]", default="localhost")
+
+    port = Prompt.ask("[bold]Port[/bold]", default="5432")
+
+    database = Prompt.ask("[bold]Database name[/bold]")
+    if not database:
+        raise InitError("Database name cannot be empty.")
+
+    user = Prompt.ask("[bold]Username[/bold]")
+    if not user:
+        raise InitError("Username cannot be empty.")
+
+    password = Prompt.ask("[bold]Password[/bold]", password=True)
+
+    schema_name = Prompt.ask(
+        "[bold]Default schema[/bold] [dim](optional, uses 'public' if empty)[/dim]",
+        default="",
+    )
+
+    return PostgresConfig(
+        name=name,
+        host=host,
+        port=int(port),
+        database=database,
+        user=user,
+        password=password,
+        schema_name=schema_name or None,
+    )
+
+
 def setup_databases() -> list[AnyDatabaseConfig]:
     """Setup database configurations."""
     databases: list[AnyDatabaseConfig] = []
@@ -129,6 +166,10 @@ def setup_databases() -> list[AnyDatabaseConfig]:
 
         if db_type == DatabaseType.BIGQUERY.value:
             db_config = setup_bigquery()
+            databases.append(db_config)
+            console.print(f"\n[bold green]✓[/bold green] Added database [cyan]{db_config.name}[/cyan]")
+        elif db_type == DatabaseType.POSTGRES.value:
+            db_config = setup_postgres()
             databases.append(db_config)
             console.print(f"\n[bold green]✓[/bold green] Added database [cyan]{db_config.name}[/cyan]")
 

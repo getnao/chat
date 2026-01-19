@@ -11,12 +11,12 @@ class SnowflakeConfig(DatabaseConfig):
     """Snowflake-specific configuration."""
 
     type: Literal["snowflake"] = "snowflake"
-    user: str = Field(description="Snowflake username")
+    username: str = Field(description="Snowflake username")
     account_id: str = Field(description="Snowflake account identifier (e.g., 'xy12345.us-east-1')")
     password: str = Field(description="Snowflake password")
-    database: str = Field(description="Default Snowflake database")
-    schema: str = Field(description="Default Snowflake schema")
-    warehouse: str | None = Field(default=None, description="Snowflake warehouse to use")
+    database: str = Field(description="Snowflake database")
+    schema: str | None = Field(default=None, description="Snowflake schema (optional)")
+    warehouse: str | None = Field(default=None, description="Snowflake warehouse to use (optional)")
     private_key_path: str | None = Field(
         default=None,
         description="Path to private key file for key-pair authentication",
@@ -29,18 +29,23 @@ class SnowflakeConfig(DatabaseConfig):
 
     def connect(self) -> BaseBackend:
         """Create an Ibis Snowflake connection."""
-        kwargs: dict = {"user": self.user}
-        kwargs["password"] = self.password
-        kwargs["account_id"] = self.account_id
-        kwargs["database"] = self.database
-        kwargs["schema"] = self.schema
+        kwargs: dict = {"user": self.username}
+        kwargs["account"] = self.account_id
+
+        if self.database and self.schema:
+            kwargs["database"] = f"{self.database}/{self.schema}"
+        elif self.database:
+            kwargs["database"] = self.database
+
+        if self.warehouse:
+            kwargs["warehouse"] = self.warehouse
 
         if self.key_pair_auth:
             with open(self.private_key_path, "rb") as key_file:
                 kwargs["private_key"] = key_file.read()
-            kwargs["warehouse"] = self.warehouse
-
-        if self.sso:
+        elif self.sso:
             kwargs["authenticator"] = "externalbrowser"
+        else:
+            kwargs["password"] = self.password
 
         return ibis.snowflake.connect(**kwargs)

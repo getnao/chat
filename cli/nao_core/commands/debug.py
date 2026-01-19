@@ -4,11 +4,12 @@ from rich.console import Console
 from rich.table import Table
 
 from nao_core.config import NaoConfig
+from nao_core.config.databases import AnyDatabaseConfig
 
 console = Console()
 
 
-def test_database_connection(db_config) -> tuple[bool, str]:
+def test_database_connection(db_config: AnyDatabaseConfig) -> tuple[bool, str]:
     """Test connectivity to a database.
 
     Returns:
@@ -17,7 +18,7 @@ def test_database_connection(db_config) -> tuple[bool, str]:
     try:
         conn = db_config.connect()
         # Run a simple query to verify the connection works
-        if db_config.dataset_id:
+        if hasattr(db_config, 'dataset_id') and db_config.dataset_id:
             # If dataset is specified, list tables in that dataset
             tables = conn.list_tables()
             table_count = len(tables)

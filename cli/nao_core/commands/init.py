@@ -108,6 +108,41 @@ def setup_bigquery() -> BigQueryConfig:
         credentials_path=credentials_path or None,
     )
 
+def setup_snowflake() -> SnowflakeConfig:
+    """Setup a Snowflake database configuration."""
+    console.print("\n[bold cyan]Snowflake Configuration[/bold cyan]\n")
+
+    name = Prompt.ask("[bold]Connection name[/bold]", default="snowflake-prod")
+
+    username = Prompt.ask("[bold]Snowflake username[/bold]")
+    if not username:
+        raise InitError("Snowflake username cannot be empty.")
+    
+    password = Prompt.ask("[bold]Snowflake password[/bold]", password=True)
+    if not password:
+        raise InitError("Snowflake password cannot be empty.")
+    
+    account_id = Prompt.ask("[bold]Snowflake account identifier[/bold]")
+    if not account_id:
+        raise InitError("Snowflake account identifier cannot be empty.")
+    
+    database = Prompt.ask("[bold]Snowflake database[/bold]")
+    if not database:
+        raise InitError("Snowflake database cannot be empty.")
+
+    warehouse = Prompt.ask("[bold]Snowflake warehouse[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+    schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+    return SnowflakeConfig(
+        name=name,
+        username=username,
+        password=password,
+        account_id=account_id,
+        database=database,
+        warehouse=warehouse,
+        schema=schema,
+    )
+
 
 def setup_databases() -> list[AnyDatabaseConfig]:
     """Setup database configurations."""
@@ -130,6 +165,11 @@ def setup_databases() -> list[AnyDatabaseConfig]:
 
         if db_type == DatabaseType.BIGQUERY.value:
             db_config = setup_bigquery()
+            databases.append(db_config)
+            console.print(f"\n[bold green]✓[/bold green] Added database [cyan]{db_config.name}[/cyan]")
+
+        elif db_type == DatabaseType.SNOWFLAKE.value:
+            db_config = setup_snowflake()
             databases.append(db_config)
             console.print(f"\n[bold green]✓[/bold green] Added database [cyan]{db_config.name}[/cyan]")
 

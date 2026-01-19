@@ -2,20 +2,20 @@ from .base import AccessorType, DatabaseConfig, DatabaseType
 from .bigquery import BigQueryConfig
 from .snowflake import SnowflakeConfig
 
+from typing import Annotated, Union
+from pydantic import Discriminator, Tag
+
 # =============================================================================
 # Database Config Registry
 # =============================================================================
 
-# When adding more backends, convert this to a discriminated union:
-# AnyDatabaseConfig = Annotated[
-#     Union[
-#         Annotated[BigQueryConfig, Tag("bigquery")],
-#         Annotated[PostgresConfig, Tag("postgres")],
-#     ],
-#     Discriminator(lambda x: x.get("type", "bigquery")),
-# ]
-
-AnyDatabaseConfig = BigQueryConfig
+AnyDatabaseConfig = Annotated[
+    Union[
+        Annotated[BigQueryConfig, Tag("bigquery")],
+        Annotated[SnowflakeConfig, Tag("snowflake")],
+    ],
+    Discriminator("type"),
+]
 
 
 def parse_database_config(data: dict) -> DatabaseConfig:

@@ -10,12 +10,12 @@ from rich.prompt import Confirm, Prompt
 from nao_core.config import (
     AnyDatabaseConfig,
     BigQueryConfig,
-    SnowflakeConfig,
     DatabaseType,
     LLMConfig,
     LLMProvider,
     NaoConfig,
     SlackConfig,
+    SnowflakeConfig,
 )
 from nao_core.config.repos import RepoConfig
 
@@ -108,6 +108,7 @@ def setup_bigquery() -> BigQueryConfig:
         credentials_path=credentials_path or None,
     )
 
+
 def setup_snowflake() -> SnowflakeConfig:
     """Setup a Snowflake database configuration."""
     console.print("\n[bold cyan]Snowflake Configuration[/bold cyan]\n")
@@ -117,15 +118,15 @@ def setup_snowflake() -> SnowflakeConfig:
     username = Prompt.ask("[bold]Snowflake username[/bold]")
     if not username:
         raise InitError("Snowflake username cannot be empty.")
-    
+
     account_id = Prompt.ask("[bold]Snowflake account identifier[/bold]")
     if not account_id:
         raise InitError("Snowflake account identifier cannot be empty.")
-    
+
     database = Prompt.ask("[bold]Snowflake database[/bold]")
     if not database:
         raise InitError("Snowflake database cannot be empty.")
-    
+
     warehouse = Prompt.ask("[bold]Snowflake warehouse[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
 
     schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
@@ -136,7 +137,11 @@ def setup_snowflake() -> SnowflakeConfig:
         private_key_path = Prompt.ask("[bold]Path to private key file[/bold]")
         if not private_key_path:
             raise InitError("Path to private key file cannot be empty.")
-        passphrase = Prompt.ask("[bold]Passphrase for the private key[/bold] [dim](optional, press Enter to skip)[/dim]", default=None, password=True)
+        passphrase = Prompt.ask(
+            "[bold]Passphrase for the private key[/bold] [dim](optional, press Enter to skip)[/dim]",
+            default=None,
+            password=True,
+        )
     else:
         password = Prompt.ask("[bold]Snowflake password[/bold]", password=True)
         if not password:

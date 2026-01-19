@@ -1,10 +1,10 @@
 from typing import Literal
 
 import ibis
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from ibis import BaseBackend
 from pydantic import Field
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
 
 from .base import DatabaseConfig
 
@@ -23,10 +23,14 @@ class SnowflakeConfig(DatabaseConfig):
         default=None,
         description="Path to private key file for key-pair authentication",
     )
-    passphrase: str | None = Field(default=None, description="Passphrase for the private key if it is encrypted",)
+    passphrase: str | None = Field(
+        default=None,
+        description="Passphrase for the private key if it is encrypted",
+    )
 
     key_pair_auth: bool = Field(
-        default=False, description="Use key-pair authentication instead of password",
+        default=False,
+        description="Use key-pair authentication instead of password",
     )
     sso: bool = Field(default=False, description="Use Single Sign-On (SSO) for authentication")
 
@@ -48,13 +52,13 @@ class SnowflakeConfig(DatabaseConfig):
                 private_key = serialization.load_pem_private_key(
                     key_file.read(),
                     password=self.passphrase.encode() if self.passphrase else None,
-                    backend=default_backend()
+                    backend=default_backend(),
                 )
                 # Convert to DER format which Snowflake expects
                 kwargs["private_key"] = private_key.private_bytes(
                     encoding=serialization.Encoding.DER,
                     format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption()
+                    encryption_algorithm=serialization.NoEncryption(),
                 )
         elif self.sso:
             kwargs["authenticator"] = "externalbrowser"

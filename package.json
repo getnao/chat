@@ -13,6 +13,8 @@
 		"lint:fix": "npm run lint:fix -w backend && npm run lint:fix -w frontend",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
+		"cli:fix": "cd cli && uv run ruff check --fix . && uv run ruff format .",
+		"cli:check": "cd cli && uv run ruff check --select I . && uv run ruff format --check .",
 		"publish": "f() { cd cli && python build.py --bump ${1:-patch} -f && uv publish dist/*; }; f",
 		"prepare": "husky",
 		"pg:start": "docker compose up -d",

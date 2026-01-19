@@ -84,6 +84,7 @@ def sync_bigquery(
 
     return datasets_synced, tables_synced
 
+
 def sync_snowflake(
     db_config,
     base_path: Path,

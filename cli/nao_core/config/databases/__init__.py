@@ -1,9 +1,10 @@
+from typing import Annotated, Union
+
+from pydantic import Discriminator, Tag
+
 from .base import AccessorType, DatabaseConfig, DatabaseType
 from .bigquery import BigQueryConfig
 from .snowflake import SnowflakeConfig
-
-from typing import Annotated, Union
-from pydantic import Discriminator, Tag
 
 # =============================================================================
 # Database Config Registry

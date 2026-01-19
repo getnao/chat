@@ -1,6 +1,6 @@
 # nao Chat
 
-nao Chat is a chat interface for nao. It is a monorepo that contains the frontend, backend and CLI for nao Chat.
+nao Chat is a chat interface for nao. It is a monorepo that contains the frontend, backend, and CLI for nao Chat.
 
 ## Installation
 

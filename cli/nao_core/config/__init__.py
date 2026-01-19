@@ -1,5 +1,5 @@
 from .base import NaoConfig
-from .databases import AccessorType, AnyDatabaseConfig, BigQueryConfig, DatabaseType, SnowflakeConfig
+from .databases import AccessorType, AnyDatabaseConfig, BigQueryConfig, DatabaseType, DatabricksConfig, SnowflakeConfig
 from .llm import LLMConfig, LLMProvider
 from .slack import SlackConfig
 
@@ -8,6 +8,7 @@ __all__ = [
     "AccessorType",
     "AnyDatabaseConfig",
     "BigQueryConfig",
+    "DatabricksConfig",
     "SnowflakeConfig",
     "DatabaseType",
     "LLMConfig",

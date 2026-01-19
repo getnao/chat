@@ -10,6 +10,7 @@ class DatabaseType(str, Enum):
     """Supported database types."""
 
     BIGQUERY = "bigquery"
+    DATABRICKS = "databricks"
     SNOWFLAKE = "snowflake"
 
 

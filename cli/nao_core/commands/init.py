@@ -11,6 +11,7 @@ from nao_core.config import (
     AnyDatabaseConfig,
     BigQueryConfig,
     DatabaseType,
+    DatabricksConfig,
     LLMConfig,
     LLMProvider,
     NaoConfig,
@@ -109,6 +110,38 @@ def setup_bigquery() -> BigQueryConfig:
     )
 
 
+def setup_databricks() -> DatabricksConfig:
+    """Setup a Databricks database configuration."""
+    console.print("\n[bold cyan]Databricks Configuration[/bold cyan]\n")
+
+    name = Prompt.ask("[bold]Connection name[/bold]", default="databricks-prod")
+
+    server_hostname = Prompt.ask("[bold]Server hostname[/bold] [dim](e.g., adb-xxxx.azuredatabricks.net)[/dim]")
+    if not server_hostname:
+        raise InitError("Server hostname cannot be empty.")
+
+    http_path = Prompt.ask("[bold]HTTP path[/bold] [dim](e.g., /sql/1.0/warehouses/xxxx)[/dim]")
+    if not http_path:
+        raise InitError("HTTP path cannot be empty.")
+
+    access_token = Prompt.ask("[bold]Access token[/bold]", password=True)
+    if not access_token:
+        raise InitError("Access token cannot be empty.")
+
+    catalog = Prompt.ask("[bold]Catalog[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+    schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+    return DatabricksConfig(
+        name=name,
+        server_hostname=server_hostname,
+        http_path=http_path,
+        access_token=access_token,
+        catalog=catalog,
+        schema=schema,
+    )
+
+
 def setup_snowflake() -> SnowflakeConfig:
     """Setup a Snowflake database configuration."""
     console.print("\n[bold cyan]Snowflake Configuration[/bold cyan]\n")
@@ -182,6 +215,11 @@ def setup_databases() -> list[AnyDatabaseConfig]:
 
         if db_type == DatabaseType.BIGQUERY.value:
             db_config = setup_bigquery()
+            databases.append(db_config)
+            console.print(f"\n[bold green]✓[/bold green] Added database [cyan]{db_config.name}[/cyan]")
+
+        elif db_type == DatabaseType.DATABRICKS.value:
+            db_config = setup_databricks()
             databases.append(db_config)
             console.print(f"\n[bold green]✓[/bold green] Added database [cyan]{db_config.name}[/cyan]")
 

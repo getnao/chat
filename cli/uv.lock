@@ -914,6 +914,7 @@ name = "nao-core"
 version = "0.0.29"
 source = { editable = "." }
 dependencies = [
+    { name = "cryptography" },
     { name = "cyclopts" },
     { name = "fastapi" },
     { name = "ibis-framework", extra = ["bigquery", "snowflake"] },
@@ -932,6 +933,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=46.0.3" },
     { name = "cyclopts", specifier = ">=4.4.4" },
     { name = "fastapi", specifier = ">=0.128.0" },
     { name = "ibis-framework", extras = ["bigquery", "snowflake"], specifier = ">=9.0.0" },

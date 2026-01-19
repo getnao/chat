@@ -118,10 +118,6 @@ def setup_snowflake() -> SnowflakeConfig:
     if not username:
         raise InitError("Snowflake username cannot be empty.")
     
-    password = Prompt.ask("[bold]Snowflake password[/bold]", password=True)
-    if not password:
-        raise InitError("Snowflake password cannot be empty.")
-    
     account_id = Prompt.ask("[bold]Snowflake account identifier[/bold]")
     if not account_id:
         raise InitError("Snowflake account identifier cannot be empty.")
@@ -129,18 +125,34 @@ def setup_snowflake() -> SnowflakeConfig:
     database = Prompt.ask("[bold]Snowflake database[/bold]")
     if not database:
         raise InitError("Snowflake database cannot be empty.")
-
+    
     warehouse = Prompt.ask("[bold]Snowflake warehouse[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
     schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+    key_pair_auth = Confirm.ask("[bold]Use key-pair authentication for authentication?[/bold]", default=False)
+
+    if key_pair_auth:
+        private_key_path = Prompt.ask("[bold]Path to private key file[/bold]")
+        if not private_key_path:
+            raise InitError("Path to private key file cannot be empty.")
+        passphrase = Prompt.ask("[bold]Passphrase for the private key[/bold] [dim](optional, press Enter to skip)[/dim]", default=None, password=True)
+    else:
+        password = Prompt.ask("[bold]Snowflake password[/bold]", password=True)
+        if not password:
+            raise InitError("Snowflake password cannot be empty.")
 
     return SnowflakeConfig(
         name=name,
         username=username,
-        password=password,
+        password=password if not key_pair_auth else None,
         account_id=account_id,
         database=database,
         warehouse=warehouse,
         schema=schema,
+        key_pair_auth=key_pair_auth,
+        private_key_path=private_key_path if key_pair_auth else None,
+        passphrase=passphrase if key_pair_auth else None,
     )
 
 

@@ -894,28 +894,27 @@ bigquery = [
     { name = "pydata-google-auth" },
     { name = "rich" },
 ]
-<<<<<<< HEAD
-postgres = [
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "psycopg" },
-=======
 databricks = [
     { name = "databricks-sql-connector-core" },
     { name = "numpy" },
     { name = "pandas" },
->>>>>>> origin
     { name = "pyarrow" },
     { name = "pyarrow-hotfix" },
     { name = "rich" },
 ]
-<<<<<<< HEAD
-=======
 duckdb = [
     { name = "duckdb" },
     { name = "numpy" },
     { name = "packaging" },
     { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "pyarrow-hotfix" },
+    { name = "rich" },
+]
+postgres = [
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "psycopg" },
     { name = "pyarrow" },
     { name = "pyarrow-hotfix" },
     { name = "rich" },
@@ -928,7 +927,6 @@ snowflake = [
     { name = "rich" },
     { name = "snowflake-connector-python" },
 ]
->>>>>>> origin
 
 [[package]]
 name = "idna"
@@ -1227,11 +1225,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "cyclopts" },
     { name = "fastapi" },
-<<<<<<< HEAD
-    { name = "ibis-framework", extra = ["bigquery", "postgres"] },
-=======
-    { name = "ibis-framework", extra = ["bigquery", "databricks", "duckdb", "snowflake"] },
->>>>>>> origin
+    { name = "ibis-framework", extra = ["bigquery", "databricks", "duckdb", "postgres", "snowflake"] },
     { name = "openai" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -1250,11 +1244,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=46.0.3" },
     { name = "cyclopts", specifier = ">=4.4.4" },
     { name = "fastapi", specifier = ">=0.128.0" },
-<<<<<<< HEAD
-    { name = "ibis-framework", extras = ["bigquery", "postgres"], specifier = ">=9.0.0" },
-=======
-    { name = "ibis-framework", extras = ["bigquery", "duckdb", "databricks", "snowflake"], specifier = ">=9.0.0" },
->>>>>>> origin
+    { name = "ibis-framework", extras = ["bigquery", "duckdb", "databricks", "snowflake", "postgres"], specifier = ">=9.0.0" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },

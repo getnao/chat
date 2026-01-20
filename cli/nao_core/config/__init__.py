@@ -6,9 +6,10 @@ from .databases import (
     DatabaseType,
     DatabricksConfig,
     DuckDBConfig,
+    PostgresConfig,
     SnowflakeConfig,
 )
-from .exceptions import InitError, PostgresConfig
+from .exceptions import InitError
 from .llm import LLMConfig, LLMProvider
 from .slack import SlackConfig
 
@@ -20,10 +21,10 @@ __all__ = [
     "DuckDBConfig",
     "DatabricksConfig",
     "SnowflakeConfig",
+    "PostgresConfig",
     "DatabaseType",
     "LLMConfig",
     "LLMProvider",
-    "PostgresConfig",
     "SlackConfig",
     "InitError",
 ]

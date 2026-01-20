@@ -1,14 +1,117 @@
-# nao Chat
+<p align="center">
+  <a href="https://getnao.io">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/images/Icon_template_IOS.svg" />
+      <img src=".github/images/Icon_template_IOS.svg" height="128" alt="nao logo" />
+    </picture>
+  </a>
+</p>
 
-nao Chat is a chat interface for nao. It is a monorepo that contains the frontend, backend and CLI for nao Chat.
+<h1 align="center">nao</h1>
 
-## Installation
+<h3 align="center">
+  The #1 Open-Source Analytics Agent
+</h3>
 
-```bash
-pip install nao-core
-```
+<p align="center">
+  🌐 <a href="https://getnao.io">Website</a> · 📚 <a href="https://docs.getnao.io">Documentation</a> · 💬 <a href="https://join.slack.com/t/naolabs/shared_invite/zt-3cgdql4up-Az9FxGkTb8Qr34z2Dxp9TQ">Slack</a>
+</p>
 
-## Usage
+<br/>
+
+<p align="center">
+  <a href="https://getnao.io">
+    <img src=".github/images/nao_UI.png" alt="nao Chat Interface" />
+  </a>
+</p>
+
+<br/>
+
+## What is nao?
+
+nao is a framework to build and deploy analytics agent. <br/>
+Create the context of your analytics agent with nao-core cli: data, metadata, modeling, rules, etc. <br/>
+Deploy a UI for anyone to chat with your agent and run analytics on your data.
+
+## Key Features
+
+For **data teams**:
+
+- 🧱 **Open Context Builder** — Create a file-system like context for your agent. Add anything you want in the context: data, metadata, docs, tools, MCPs. No limit.
+- 🏳️ **Data Stack Agnostic** — Works with any data warehouse, stack, type of context, LLM.
+- 🕵🏻‍♀️ **Agent Reliability Visibility** — Unit test your agent performance before deploying it to users. Version the context and track the performance of your agent over time. Get users feedbacks to improve the agent and track their usage.
+- 🔒 **Self-hosted & secure** — Self-host your analytics agent and use your own LLM keys to guarantee maximum security for your data.
+
+For **business users**:
+
+- 🤖 **Natural Language to Insights** — Ask questions in plain English, get analytics straight away
+- 📊 **Native Data Visualization** — Create and customize visualizations directly in the chat interface
+- 🧊 **Transparent Reasoning** — See the agent reasoning and sources clearly
+- 👍 **Easy Feedback** — Send feedback to the data team when a answer is right or wrong
+
+## ⚡️ Quickstart your agent in 1 minute
+
+- **Step 1**: Install nao-core package
+
+    ```bash
+    pip install nao-core
+    ```
+
+<br/>
+
+- **Step 2**: Initialize a nao project
+
+    ```bash
+    nao init
+    ```
+
+    It will ask you:
+    - To name your project
+    - If you want to connect a database _(optional)_
+    - If you want to add a repo in agent context _(optional)_
+    - To add an LLM key _(optional)_
+    - If you want to setup a Slack connection _(optional)_
+
+    💡 You can skip any optional question and configure them later in your `nao_config.yaml` file.
+
+    This will create:
+    - A new folder with your project name
+    - An architecture for your context files
+    - A `nao_config.yaml` configuration file
+    - A `RULES.md` file
+
+<br/>
+
+- **Step 3**: Verify your setup
+
+    cd to the project folder and run:
+
+    ```bash
+    nao debug
+    ```
+
+<br/>
+
+- **Step 4**: Synchronize your context
+
+    ```bash
+    nao sync
+    ```
+
+    This will populate your context folder with your context files (data, metadata, repos, etc.)
+
+<br/>
+
+- **Step 5**: Launch the chat and ask questions
+
+    ```bash
+    nao chat
+    ```
+
+    This will start the nao chat UI. It will open the chat interface in your browser at `http://localhost:5005`.
+    From there, you can start asking questions to your agent.
+
+## Commands
 
 ```bash
 nao --help
@@ -17,52 +120,18 @@ Usage: nao COMMAND
 ╭─ Commands ────────────────────────────────────────────────────────────────╮
 │ chat         Start the nao chat UI.                                       │
 │ init         Initialize a new nao project.                                │
+│ sync         Sync context from your context sources (databases, repos)    │
+│ debug        Debug and troubleshoot your nao setup.                       │
 │ --help (-h)  Display this message and exit.                               │
 │ --version    Display application version.                                 │
 ╰───────────────────────────────────────────────────────────────────────────╯
 ```
 
-### Initialize a new nao project
+## 👩🏻‍💻 Development
 
-```bash
-nao init
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, commands, and guidelines.
 
-This will create a new nao project in the current directory. It will prompt you for a project name and ask you if you want to set up an LLM configuration.
-
-### Start the nao chat UI
-
-```bash
-nao chat
-```
-
-This will start the nao chat UI. It will open the chat interface in your browser at `http://localhost:5005`.
-
-## Development
-
-### Running the project
-
-At the root of the project, run:
-
-```bash
-npm run dev
-```
-
-This will start the project in development mode. It will start the frontend and backend in development mode.
-
-### Publishing to PyPI
-
-```bash
-npm run publish
-```
-
-By default, this will publish a patch version. You can specify a different version bump with:
-
-```bash
-npm run publish <major|minor|patch>
-```
-
-## What do we use?
+## 📒 Stack
 
 ### Backend
 
@@ -75,3 +144,11 @@ npm run publish <major|minor|patch>
 - tRPC client: https://trpc.io/docs/client/tanstack-react-query/usage
 - Tanstack Query: https://tanstack.com/query/latest/docs/framework/react/overview
 - Shadcn: https://ui.shadcn.com/docs/components
+
+## ⛹️‍♀️ Join the Community
+
+- Star the repo
+- Subscribe to releases (Watch → Custom → Releases)
+- Follow us on [LinkedIn](https://www.linkedin.com/company/getnao)
+- Join our [Slack](https://join.slack.com/t/naolabs/shared_invite/zt-3cgdql4up-Az9FxGkTb8Qr34z2Dxp9TQ)
+- Contribute to the repo!

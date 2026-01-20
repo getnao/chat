@@ -5,8 +5,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from ibis import BaseBackend
 from pydantic import Field
+from rich.prompt import Confirm, Prompt
 
-from .base import DatabaseConfig
+from .base import DatabaseConfig, console
 
 
 class SnowflakeConfig(DatabaseConfig):
@@ -27,6 +28,59 @@ class SnowflakeConfig(DatabaseConfig):
         default=None,
         description="Passphrase for the private key if it is encrypted",
     )
+
+    @classmethod
+    def promptConfig(cls) -> "SnowflakeConfig":
+        """Interactively prompt the user for Snowflake configuration."""
+        console.print("\n[bold cyan]Snowflake Configuration[/bold cyan]\n")
+
+        name = Prompt.ask("[bold]Connection name[/bold]", default="snowflake-prod")
+
+        username = Prompt.ask("[bold]Snowflake username[/bold]")
+        if not username:
+            raise ValueError("Snowflake username cannot be empty.")
+
+        account_id = Prompt.ask("[bold]Snowflake account identifier[/bold]")
+        if not account_id:
+            raise ValueError("Snowflake account identifier cannot be empty.")
+
+        database = Prompt.ask("[bold]Snowflake database[/bold]")
+        if not database:
+            raise ValueError("Snowflake database cannot be empty.")
+
+        warehouse = Prompt.ask(
+            "[bold]Snowflake warehouse[/bold] [dim](optional, press Enter to skip)[/dim]", default=None
+        )
+
+        schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+        key_pair_auth = Confirm.ask("[bold]Use key-pair authentication for authentication?[/bold]", default=False)
+
+        if key_pair_auth:
+            private_key_path = Prompt.ask("[bold]Path to private key file[/bold]")
+            if not private_key_path:
+                raise ValueError("Path to private key file cannot be empty.")
+            passphrase = Prompt.ask(
+                "[bold]Passphrase for the private key[/bold] [dim](optional, press Enter to skip)[/dim]",
+                default=None,
+                password=True,
+            )
+        else:
+            password = Prompt.ask("[bold]Snowflake password[/bold]", password=True)
+            if not password:
+                raise ValueError("Snowflake password cannot be empty.")
+
+        return SnowflakeConfig(
+            name=name,
+            username=username,
+            password=password if not key_pair_auth else None,
+            account_id=account_id,
+            database=database,
+            warehouse=warehouse,
+            schema=schema,
+            private_key_path=private_key_path if key_pair_auth else None,
+            passphrase=passphrase if key_pair_auth else None,
+        )
 
     def connect(self) -> BaseBackend:
         """Create an Ibis Snowflake connection."""

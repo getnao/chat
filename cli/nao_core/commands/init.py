@@ -88,121 +88,22 @@ def setup_project_name(force: bool = False) -> tuple[str, Path]:
 
 def setup_bigquery() -> BigQueryConfig:
     """Setup a BigQuery database configuration."""
-    console.print("\n[bold cyan]BigQuery Configuration[/bold cyan]\n")
-
-    name = Prompt.ask("[bold]Connection name[/bold]", default="bigquery-prod")
-
-    project_id = Prompt.ask("[bold]GCP Project ID[/bold]")
-    if not project_id:
-        raise InitError("GCP Project ID cannot be empty.")
-
-    dataset_id = Prompt.ask("[bold]Default dataset[/bold] [dim](optional, press Enter to skip)[/dim]", default="")
-
-    credentials_path = Prompt.ask(
-        "[bold]Service account JSON path[/bold] [dim](optional, uses ADC if empty)[/dim]",
-        default="",
-    )
-
-    return BigQueryConfig(
-        name=name,
-        project_id=project_id,
-        dataset_id=dataset_id or None,
-        credentials_path=credentials_path or None,
-    )
+    return BigQueryConfig.promptConfig()
 
 
 def setup_duckdb() -> DuckDBConfig:
     """Setup a DuckDB database configuration."""
-    console.print("\n[bold cyan]DuckDB Configuration[/bold cyan]\n")
-
-    name = Prompt.ask("[bold]Connection name[/bold]", default="duckdb-memory")
-
-    path = Prompt.ask("[bold]Path to the DuckDB database file[/bold]", default=":memory:")
-
-    return DuckDBConfig(name=name, path=path)
+    return DuckDBConfig.promptConfig()
 
 
 def setup_databricks() -> DatabricksConfig:
     """Setup a Databricks database configuration."""
-    console.print("\n[bold cyan]Databricks Configuration[/bold cyan]\n")
-
-    name = Prompt.ask("[bold]Connection name[/bold]", default="databricks-prod")
-
-    server_hostname = Prompt.ask("[bold]Server hostname[/bold] [dim](e.g., adb-xxxx.azuredatabricks.net)[/dim]")
-    if not server_hostname:
-        raise InitError("Server hostname cannot be empty.")
-
-    http_path = Prompt.ask("[bold]HTTP path[/bold] [dim](e.g., /sql/1.0/warehouses/xxxx)[/dim]")
-    if not http_path:
-        raise InitError("HTTP path cannot be empty.")
-
-    access_token = Prompt.ask("[bold]Access token[/bold]", password=True)
-    if not access_token:
-        raise InitError("Access token cannot be empty.")
-
-    catalog = Prompt.ask("[bold]Catalog[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
-
-    schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
-
-    return DatabricksConfig(
-        name=name,
-        server_hostname=server_hostname,
-        http_path=http_path,
-        access_token=access_token,
-        catalog=catalog,
-        schema=schema,
-    )
+    return DatabricksConfig.promptConfig()
 
 
 def setup_snowflake() -> SnowflakeConfig:
     """Setup a Snowflake database configuration."""
-    console.print("\n[bold cyan]Snowflake Configuration[/bold cyan]\n")
-
-    name = Prompt.ask("[bold]Connection name[/bold]", default="snowflake-prod")
-
-    username = Prompt.ask("[bold]Snowflake username[/bold]")
-    if not username:
-        raise InitError("Snowflake username cannot be empty.")
-
-    account_id = Prompt.ask("[bold]Snowflake account identifier[/bold]")
-    if not account_id:
-        raise InitError("Snowflake account identifier cannot be empty.")
-
-    database = Prompt.ask("[bold]Snowflake database[/bold]")
-    if not database:
-        raise InitError("Snowflake database cannot be empty.")
-
-    warehouse = Prompt.ask("[bold]Snowflake warehouse[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
-
-    schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
-
-    key_pair_auth = Confirm.ask("[bold]Use key-pair authentication for authentication?[/bold]", default=False)
-
-    if key_pair_auth:
-        private_key_path = Prompt.ask("[bold]Path to private key file[/bold]")
-        if not private_key_path:
-            raise InitError("Path to private key file cannot be empty.")
-        passphrase = Prompt.ask(
-            "[bold]Passphrase for the private key[/bold] [dim](optional, press Enter to skip)[/dim]",
-            default=None,
-            password=True,
-        )
-    else:
-        password = Prompt.ask("[bold]Snowflake password[/bold]", password=True)
-        if not password:
-            raise InitError("Snowflake password cannot be empty.")
-
-    return SnowflakeConfig(
-        name=name,
-        username=username,
-        password=password if not key_pair_auth else None,
-        account_id=account_id,
-        database=database,
-        warehouse=warehouse,
-        schema=schema,
-        private_key_path=private_key_path if key_pair_auth else None,
-        passphrase=passphrase if key_pair_auth else None,
-    )
+    return SnowflakeConfig.promptConfig()
 
 
 def setup_databases() -> list[AnyDatabaseConfig]:

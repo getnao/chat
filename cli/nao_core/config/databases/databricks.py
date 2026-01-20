@@ -3,8 +3,9 @@ from typing import Literal
 import ibis
 from ibis import BaseBackend
 from pydantic import Field
+from rich.prompt import Prompt
 
-from .base import DatabaseConfig
+from .base import DatabaseConfig, console
 
 
 class DatabricksConfig(DatabaseConfig):
@@ -16,6 +17,38 @@ class DatabricksConfig(DatabaseConfig):
     access_token: str = Field(description="Databricks personal access token")
     catalog: str | None = Field(default=None, description="Unity Catalog name (optional)")
     schema: str | None = Field(default=None, description="Default schema (optional)")
+
+    @classmethod
+    def promptConfig(cls) -> "DatabricksConfig":
+        """Interactively prompt the user for Databricks configuration."""
+        console.print("\n[bold cyan]Databricks Configuration[/bold cyan]\n")
+
+        name = Prompt.ask("[bold]Connection name[/bold]", default="databricks-prod")
+
+        server_hostname = Prompt.ask("[bold]Server hostname[/bold] [dim](e.g., adb-xxxx.azuredatabricks.net)[/dim]")
+        if not server_hostname:
+            raise ValueError("Server hostname cannot be empty.")
+
+        http_path = Prompt.ask("[bold]HTTP path[/bold] [dim](e.g., /sql/1.0/warehouses/xxxx)[/dim]")
+        if not http_path:
+            raise ValueError("HTTP path cannot be empty.")
+
+        access_token = Prompt.ask("[bold]Access token[/bold]", password=True)
+        if not access_token:
+            raise ValueError("Access token cannot be empty.")
+
+        catalog = Prompt.ask("[bold]Catalog[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+        schema = Prompt.ask("[bold]Default schema[/bold] [dim](optional, press Enter to skip)[/dim]", default=None)
+
+        return DatabricksConfig(
+            name=name,
+            server_hostname=server_hostname,
+            http_path=http_path,
+            access_token=access_token,
+            catalog=catalog,
+            schema=schema,
+        )
 
     def connect(self) -> BaseBackend:
         """Create an Ibis Databricks connection."""

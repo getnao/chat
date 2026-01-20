@@ -3,8 +3,9 @@ from typing import Literal
 import ibis
 from ibis import BaseBackend
 from pydantic import Field
+from rich.prompt import Prompt
 
-from .base import DatabaseConfig
+from .base import DatabaseConfig, console
 
 
 class BigQueryConfig(DatabaseConfig):
@@ -19,6 +20,31 @@ class BigQueryConfig(DatabaseConfig):
     )
     sso: bool = Field(default=False, description="Use Single Sign-On (SSO) for authentication")
     location: str | None = Field(default=None, description="BigQuery location")
+
+    @classmethod
+    def promptConfig(cls) -> "BigQueryConfig":
+        """Interactively prompt the user for BigQuery configuration."""
+        console.print("\n[bold cyan]BigQuery Configuration[/bold cyan]\n")
+
+        name = Prompt.ask("[bold]Connection name[/bold]", default="bigquery-prod")
+
+        project_id = Prompt.ask("[bold]GCP Project ID[/bold]")
+        if not project_id:
+            raise ValueError("GCP Project ID cannot be empty.")
+
+        dataset_id = Prompt.ask("[bold]Default dataset[/bold] [dim](optional, press Enter to skip)[/dim]", default="")
+
+        credentials_path = Prompt.ask(
+            "[bold]Service account JSON path[/bold] [dim](optional, uses ADC if empty)[/dim]",
+            default="",
+        )
+
+        return BigQueryConfig(
+            name=name,
+            project_id=project_id,
+            dataset_id=dataset_id or None,
+            credentials_path=credentials_path or None,
+        )
 
     def connect(self) -> BaseBackend:
         """Create an Ibis BigQuery connection."""

@@ -152,3 +152,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, commands, and guid
 - Follow us on [LinkedIn](https://www.linkedin.com/company/getnao)
 - Join our [Slack](https://join.slack.com/t/naolabs/shared_invite/zt-3cgdql4up-Az9FxGkTb8Qr34z2Dxp9TQ)
 - Contribute to the repo!
+
+## 🫰🏻 Partners
+
+nao Labs is a proud Y Combinator company!
+
+<a href="https://ycombinator.com/">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Y_Combinator_logo.svg/1200px-Y_Combinator_logo.svg.png" alt="YCombinator" style="padding: 10px" width="70px">
+</a>
+
+## 📄 License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.

@@ -28,12 +28,6 @@ class SnowflakeConfig(DatabaseConfig):
         description="Passphrase for the private key if it is encrypted",
     )
 
-    key_pair_auth: bool = Field(
-        default=False,
-        description="Use key-pair authentication instead of password",
-    )
-    sso: bool = Field(default=False, description="Use Single Sign-On (SSO) for authentication")
-
     def connect(self) -> BaseBackend:
         """Create an Ibis Snowflake connection."""
         kwargs: dict = {"user": self.username}
@@ -47,7 +41,7 @@ class SnowflakeConfig(DatabaseConfig):
         if self.warehouse:
             kwargs["warehouse"] = self.warehouse
 
-        if self.key_pair_auth:
+        if self.private_key_path:
             with open(self.private_key_path, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
                     key_file.read(),
@@ -60,9 +54,6 @@ class SnowflakeConfig(DatabaseConfig):
                     format=serialization.PrivateFormat.PKCS8,
                     encryption_algorithm=serialization.NoEncryption(),
                 )
-        elif self.sso:
-            kwargs["authenticator"] = "externalbrowser"
-        else:
-            kwargs["password"] = self.password
+        kwargs["password"] = self.password
 
         return ibis.snowflake.connect(**kwargs)

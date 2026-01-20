@@ -200,7 +200,6 @@ def setup_snowflake() -> SnowflakeConfig:
         database=database,
         warehouse=warehouse,
         schema=schema,
-        key_pair_auth=key_pair_auth,
         private_key_path=private_key_path if key_pair_auth else None,
         passphrase=passphrase if key_pair_auth else None,
     )

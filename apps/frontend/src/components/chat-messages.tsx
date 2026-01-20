@@ -7,6 +7,7 @@ import { ReasoningAccordion } from './reasoning-accordion';
 import { AgentMessageLoader } from './ui/agent-message-loader';
 import { MessageActions } from './message-actions';
 import type { UIMessage } from 'backend/chat';
+import type { MessageGroup } from '@/types/messages';
 import {
 	Conversation,
 	ConversationContent,
@@ -18,7 +19,6 @@ import { cn } from '@/lib/utils';
 import { useAgentContext } from '@/contexts/agent.provider';
 import { useHeight } from '@/hooks/use-height';
 import { groupMessages } from '@/lib/messages.utils';
-import { MessageGroup } from '@/types/messages';
 
 const DEBUG_MESSAGES = false;
 

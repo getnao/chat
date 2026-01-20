@@ -1,5 +1,13 @@
 from .base import NaoConfig
-from .databases import AccessorType, AnyDatabaseConfig, BigQueryConfig, DatabaseType, DuckDBConfig, DatabricksConfig, SnowflakeConfig
+from .databases import (
+    AccessorType,
+    AnyDatabaseConfig,
+    BigQueryConfig,
+    DatabaseType,
+    DatabricksConfig,
+    DuckDBConfig,
+    SnowflakeConfig,
+)
 from .llm import LLMConfig, LLMProvider
 from .slack import SlackConfig
 

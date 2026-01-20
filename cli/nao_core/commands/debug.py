@@ -23,11 +23,14 @@ def test_database_connection(db_config: AnyDatabaseConfig) -> tuple[bool, str]:
             tables = conn.list_tables()
             table_count = len(tables)
             return True, f"Connected successfully ({table_count} tables found)"
+        elif list_databases := getattr(conn, "list_databases", None):
+            # If no dataset, list schemas in the database instead
+            schemas = list_databases()
+            schema_count = len(schemas)
+            return True, f"Connected successfully ({schema_count} schemas found)"
         else:
-            # If no dataset, list datasets in the project instead
-            datasets = conn.list_databases()
-            dataset_count = len(datasets)
-            return True, f"Connected successfully ({dataset_count} datasets found)"
+            # Fallback for backends that don't support list_tables and list_databases
+            return True, "Connected but unable to list neither datasets nor schemas"
     except Exception as e:
         return False, str(e)
 

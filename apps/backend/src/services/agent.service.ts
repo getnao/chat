@@ -1,11 +1,18 @@
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { convertToModelMessages, createUIMessageStream, ToolLoopAgent, ToolLoopAgentSettings } from 'ai';
+import {
+	convertToModelMessages,
+	createUIMessageStream,
+	StreamTextResult,
+	ToolLoopAgent,
+	ToolLoopAgentSettings,
+} from 'ai';
 
 import { getInstructions } from '../agents/prompt';
 import { tools } from '../agents/tools';
 import * as chatQueries from '../queries/chat.queries';
 import { UIChat, UIMessage } from '../types/chat';
+import { convertToTokenUsage } from '../utils/chat';
 
 type AgentChat = UIChat & {
 	userId: string;
@@ -89,6 +96,7 @@ class AgentManager {
 		},
 	): ReadableStream {
 		let error: unknown = undefined;
+		let result: StreamTextResult<typeof tools, never>;
 		return createUIMessageStream<UIMessage>({
 			generateId: () => crypto.randomUUID(),
 			execute: async ({ writer }) => {
@@ -104,7 +112,7 @@ class AgentManager {
 					});
 				}
 
-				const result = await this._agent.stream({
+				result = await this._agent.stream({
 					messages: await convertToModelMessages(messages),
 					abortSignal: this._abortController.signal,
 				});
@@ -117,10 +125,12 @@ class AgentManager {
 			},
 			onFinish: async (e) => {
 				const stopReason = e.isAborted ? 'interrupted' : e.finishReason;
+				const tokenUsage = convertToTokenUsage(await result.totalUsage);
 				await chatQueries.upsertMessage(e.responseMessage, {
 					chatId: this.chat.id,
 					stopReason,
 					error,
+					tokenUsage,
 				});
 				this._onDispose();
 			},

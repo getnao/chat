@@ -1,9 +1,12 @@
+from typing import Union
+
 from typing import Annotated, Union
 
 from pydantic import Discriminator, Tag
 
 from .base import AccessorType, DatabaseConfig, DatabaseType
 from .bigquery import BigQueryConfig
+from .duckdb import DuckDBConfig
 from .databricks import DatabricksConfig
 from .snowflake import SnowflakeConfig
 
@@ -16,6 +19,7 @@ AnyDatabaseConfig = Annotated[
         Annotated[BigQueryConfig, Tag("bigquery")],
         Annotated[DatabricksConfig, Tag("databricks")],
         Annotated[SnowflakeConfig, Tag("snowflake")],
+        Annotated[DuckDBConfig, Tag("duckdb")],
     ],
     Discriminator("type"),
 ]
@@ -26,6 +30,8 @@ def parse_database_config(data: dict) -> DatabaseConfig:
     db_type = data.get("type")
     if db_type == "bigquery":
         return BigQueryConfig.model_validate(data)
+    elif db_type == "duckdb":
+        return DuckDBConfig.model_validate(data)
     elif db_type == "databricks":
         return DatabricksConfig.model_validate(data)
     elif db_type == "snowflake":
@@ -37,7 +43,7 @@ def parse_database_config(data: dict) -> DatabaseConfig:
 __all__ = [
     "AccessorType",
     "AnyDatabaseConfig",
-    "BigQueryConfig",
+    "BigQueryConfig", "DuckDBConfig",
     "DatabaseConfig",
     "DatabaseType",
     "DatabricksConfig",

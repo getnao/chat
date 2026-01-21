@@ -10,7 +10,7 @@ export const ThemeSelector = () => {
 				onClick={() => setTheme('light')}
 				className={`
           flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium
-          transition-all
+          transition-all cursor-pointer
           ${
 				theme === 'light'
 					? 'bg-primary text-primary-foreground shadow-sm'
@@ -26,7 +26,7 @@ export const ThemeSelector = () => {
 				onClick={() => setTheme('dark')}
 				className={`
           flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium
-          transition-all
+          transition-all cursor-pointer
           ${
 				theme === 'dark'
 					? 'bg-primary text-primary-foreground shadow-sm'
@@ -42,7 +42,7 @@ export const ThemeSelector = () => {
 				onClick={() => setTheme('system')}
 				className={`
           flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium
-          transition-all
+          transition-all cursor-pointer
           ${
 				theme === 'system'
 					? 'bg-primary text-primary-foreground shadow-sm'

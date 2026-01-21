@@ -1,5 +1,4 @@
 import './styles.css';
-
 import { StrictMode } from 'react';
 import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client';
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query';
@@ -7,6 +6,7 @@ import { RouterProvider, createRouter } from '@tanstack/react-router';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import superjson from 'superjson';
+import { ThemeProvider } from './contexts/themeProvider';
 import { routeTree } from './routeTree.gen';
 import reportWebVitals from './reportWebVitals';
 import type { TrpcRouter } from 'backend/trpc';
@@ -61,9 +61,11 @@ if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
 	root.render(
 		<StrictMode>
-			<QueryClientProvider client={queryClient}>
-				<RouterProvider router={router} />
-			</QueryClientProvider>
+			<ThemeProvider>
+				<QueryClientProvider client={queryClient}>
+					<RouterProvider router={router} />
+				</QueryClientProvider>
+			</ThemeProvider>
 		</StrictMode>,
 	);
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Folder, Key, LogOut, Pen } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,10 @@ function UserPage() {
 	const { data: session } = useSession();
 	const user = session?.user;
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const queryClient = useQueryClient();
 
 	const handleSignOut = async () => {
+		queryClient.clear();
 		await signOut({
 			fetchOptions: {
 				onSuccess: () => {

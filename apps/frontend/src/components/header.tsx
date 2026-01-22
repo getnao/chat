@@ -1,4 +1,5 @@
 import { useNavigate, Link } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { LogOut } from 'lucide-react';
 import { ButtonConnection } from './ui/button';
 import { useSession, signOut } from '@/lib/auth-client';
@@ -6,9 +7,11 @@ import { useSession, signOut } from '@/lib/auth-client';
 export const Header = () => {
 	const { data: session } = useSession();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 
 	const handleSignOut = async (e: React.FormEvent) => {
 		e.preventDefault();
+		queryClient.clear();
 		await signOut();
 		navigate({ to: '/login' });
 	};

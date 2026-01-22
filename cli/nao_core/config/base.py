@@ -1,5 +1,8 @@
+import os
+import re
 from pathlib import Path
 
+import dotenv
 import yaml
 from ibis import BaseBackend
 from pydantic import BaseModel, Field, model_validator
@@ -8,6 +11,8 @@ from .databases import AnyDatabaseConfig, parse_database_config
 from .llm import LLMConfig
 from .repos import RepoConfig
 from .slack import SlackConfig
+
+dotenv.load_dotenv()
 
 
 class NaoConfig(BaseModel):
@@ -43,8 +48,10 @@ class NaoConfig(BaseModel):
     def load(cls, path: Path) -> "NaoConfig":
         """Load the configuration from a YAML file."""
         config_file = path / "nao_config.yaml"
-        with config_file.open() as f:
-            data = yaml.safe_load(f)
+        content = config_file.read_text()
+
+        content = cls._process_env_vars(content)
+        data = yaml.safe_load(content)
         return cls.model_validate(data)
 
     def get_connection(self, name: str) -> BaseBackend:
@@ -76,3 +83,13 @@ class NaoConfig(BaseModel):
     def json_schema(cls) -> dict:
         """Generate JSON schema for the configuration."""
         return cls.model_json_schema()
+
+    @staticmethod
+    def _process_env_vars(content: str) -> str:
+        regex = re.compile(r"\$\{\{\s*env\(['\"]([^'\"]+)['\"]\)\s*\}\}")
+
+        def replacer(match: re.Match[str]) -> str:
+            env_var = match.group(1)
+            return os.environ.get(env_var, "")
+
+        return regex.sub(replacer, content)

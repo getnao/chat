@@ -29,6 +29,7 @@ dependencies = [
     "fastapi>=0.128.0",
     "uvicorn>=0.40.0",
     "cryptography>=46.0.3",
+    "dotenv>=0.9.9",
 ]
 
 [project.scripts]

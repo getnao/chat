@@ -17,6 +17,7 @@ CREATE TABLE "project_llm_config" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX "project_llm_config_unique" ON "project_llm_config" USING btree ("id","project_id","provider");--> statement-breakpoint
 CREATE TABLE "project_member" (
 	"project_id" text NOT NULL,
 	"user_id" text NOT NULL,

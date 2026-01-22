@@ -19,6 +19,7 @@ CREATE TABLE `project_llm_config` (
 );
 --> statement-breakpoint
 CREATE INDEX `project_llm_config_projectId_idx` ON `project_llm_config` (`project_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `project_llm_config_unique` ON `project_llm_config` (`id`,`project_id`,`provider`);--> statement-breakpoint
 CREATE TABLE `project_member` (
 	`project_id` text NOT NULL,
 	`user_id` text NOT NULL,

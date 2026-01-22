@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ae8f8d52-6c63-427b-8595-bbf4198aabe1",
+  "id": "f3d2ed6f-87b1-4625-a704-af5c5148e987",
   "prevId": "8583309a-ef40-453d-9478-43e01efe86b0",
   "tables": {
     "account": {
@@ -718,6 +718,15 @@
             "project_id"
           ],
           "isUnique": false
+        },
+        "project_llm_config_unique": {
+          "name": "project_llm_config_unique",
+          "columns": [
+            "id",
+            "project_id",
+            "provider"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {

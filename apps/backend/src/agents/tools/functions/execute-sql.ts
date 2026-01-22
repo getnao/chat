@@ -21,5 +21,9 @@ export const execute = async ({ sql_query, database_id }: Input): Promise<Output
 		throw new Error(`Error executing SQL query: ${JSON.stringify(errorData.detail)}`);
 	}
 
-	return response.json();
+	const data = await response.json();
+	return {
+		...data,
+		id: `query_${crypto.randomUUID().slice(0, 8)}`,
+	};
 };

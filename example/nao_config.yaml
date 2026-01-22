@@ -2,7 +2,7 @@ project_name: example
 databases:
     - name: duckdb-jaffle-shop
       type: duckdb
-      path: '.././example/jaffle_shop.duckdb'
+      path: ../example/jaffle_shop.duckdb
       accessors:
           - columns
           - preview

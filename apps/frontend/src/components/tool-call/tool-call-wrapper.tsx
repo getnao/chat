@@ -45,15 +45,15 @@ export const ToolCallWrapper = ({
 		}
 	}, [isBordered, canExpand, defaultExpanded, setIsExpanded]);
 
-	const handleValueChange = (value: string) => {
-		setIsExpanded(value === 'tool-content');
+	const handleValueChange = () => {
+		setIsExpanded(!isExpanded);
 	};
 
 	const hasError = !!toolPart.errorText;
 	const showChevron = isSettled && (!hasError || isHovering);
 
 	const statusIcon = (
-		<div className={cn('size-3 flex items-center justify-center', isBordered && 'flex-shrink-0')}>
+		<div className={cn('size-3 flex items-center justify-center', isBordered && 'shrink-0')}>
 			{showChevron ? (
 				<ChevronRight
 					size={12}
@@ -67,20 +67,24 @@ export const ToolCallWrapper = ({
 		</div>
 	);
 
-	const accordionContent = (
+	return (
 		<Accordion
 			type='single'
 			collapsible
-			value={isBordered ? (isExpanded ? 'tool-content' : '') : undefined}
+			value={isExpanded ? 'tool-content' : ''}
 			onValueChange={handleValueChange}
 			disabled={!canExpand}
+			className={cn(
+				isBordered && 'border border-border rounded-xl overflow-hidden bg-backgroundSecondary/30 -mx-3',
+			)}
 		>
-			<AccordionItem value='tool-content' className={cn('border-b-0')} style={{ padding: 0 }} id={'hey'}>
+			<AccordionItem value='tool-content' className={cn('border-b-0')} style={{ padding: 0 }}>
 				{isBordered ? (
 					<div
 						className={cn(
-							'flex items-center justify-between gap-2 px-3 py-2',
+							'flex items-center justify-between gap-2 py-2',
 							canExpand && 'cursor-pointer',
+							isBordered && 'px-3',
 						)}
 						onClick={() => canExpand && setIsExpanded(!isExpanded)}
 					>
@@ -99,13 +103,13 @@ export const ToolCallWrapper = ({
 							<span className={cn('flex-1 font-medium truncate min-w-0', !isSettled && 'text-shimmer')}>
 								{title}
 							</span>
-							{badge && <span className='text-xs opacity-50 flex-shrink-0'>{badge}</span>}
+							{badge && <span className='text-xs opacity-50 shrink-0'>{badge}</span>}
 						</AccordionTrigger>
 
 						{actions && actions.length > 0 && (
 							<div
 								className={cn(
-									'flex items-center gap-1 flex-shrink-0',
+									'flex items-center gap-1 shrink-0',
 									isExpanded || isHovering ? 'opacity-100' : 'opacity-0',
 								)}
 							>
@@ -134,7 +138,7 @@ export const ToolCallWrapper = ({
 				) : (
 					<AccordionTrigger
 						className={cn(
-							'select-none flex items-center gap-2 px-3 py-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [&_*]:overflow-hidden [&_*]:text-ellipsis [&_*]:whitespace-nowrap transition-opacity duration-150 hover:no-underline [&>svg:last-child]:hidden',
+							'select-none flex items-center gap-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap **:overflow-hidden **:text-ellipsis **:whitespace-nowrap transition-opacity duration-150 py-0 hover:no-underline [&>svg:last-child]:hidden',
 							isExpanded ? 'opacity-100' : 'opacity-50',
 							canExpand && !isExpanded
 								? 'cursor-pointer hover:opacity-75'
@@ -153,7 +157,7 @@ export const ToolCallWrapper = ({
 					{isBordered ? (
 						<div className='border-t border-border'>
 							{toolPart.errorText && !overrideError ? (
-								<pre className='p-3 overflow-auto max-h-80 m-0 text-red-400 whitespace-pre-wrap break-words'>
+								<pre className='p-3 overflow-auto max-h-80 m-0 text-red-400 whitespace-pre-wrap wrap-break-word'>
 									{toolPart.errorText}
 								</pre>
 							) : (
@@ -176,14 +180,4 @@ export const ToolCallWrapper = ({
 			</AccordionItem>
 		</Accordion>
 	);
-
-	if (isBordered) {
-		return (
-			<div className='border border-border rounded-lg overflow-hidden bg-backgroundSecondary/30'>
-				{accordionContent}
-			</div>
-		);
-	}
-
-	return accordionContent;
 };

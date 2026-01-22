@@ -49,7 +49,6 @@ class NaoConfig(BaseModel):
         """Load the configuration from a YAML file."""
         config_file = path / "nao_config.yaml"
         content = config_file.read_text()
-
         content = cls._process_env_vars(content)
         data = yaml.safe_load(content)
         return cls.model_validate(data)

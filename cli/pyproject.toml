@@ -30,6 +30,7 @@ dependencies = [
     "uvicorn>=0.40.0",
     "cryptography>=46.0.3",
     "dotenv>=0.9.9",
+    "pytest>=9.0.2",
 ]
 
 [project.scripts]
@@ -64,3 +65,9 @@ exclude = ["**/example/**"]
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

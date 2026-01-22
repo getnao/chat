@@ -166,7 +166,6 @@ def chat():
 
         fastapi_process = subprocess.Popen(
             [sys.executable, str(fastapi_path)],
-            cwd=str(fastapi_path.parent),
             env=env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

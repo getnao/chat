@@ -7,6 +7,9 @@ import os
 import sys
 import numpy as np
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 cli_path = Path(__file__).parent.parent.parent / "cli"
 sys.path.insert(0, str(cli_path))
@@ -126,4 +129,7 @@ async def execute_sql(request: ExecuteSQLRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
+    nao_project_folder = os.getenv('NAO_PROJECT_FOLDER')
+    if nao_project_folder:
+        os.chdir(nao_project_folder)
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

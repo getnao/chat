@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useQueryClient, useQuery  } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Sidebar } from '@/components/sidebar';
 import { signOut, useSession } from '@/lib/auth-client';

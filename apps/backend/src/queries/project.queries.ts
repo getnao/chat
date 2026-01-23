@@ -2,7 +2,6 @@ import { and, eq } from 'drizzle-orm';
 
 import s, { DBProject, DBProjectMember, NewProject, NewProjectMember } from '../db/abstractSchema';
 import { db } from '../db/db';
-import * as llmConfigQueries from './project-llm-config.queries';
 import * as userQueries from './user.queries';
 
 export const getProjectByPath = async (path: string): Promise<DBProject | null> => {
@@ -94,21 +93,6 @@ export const initializeDefaultProjectForFirstUser = async (userId: string): Prom
 		type: 'local',
 		path: projectPath,
 	});
-
-	const openaiKey = process.env.OPENAI_API_KEY;
-	const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-	if (openaiKey) {
-		await llmConfigQueries.upsertProjectLlmConfig({ projectId: project.id, provider: 'openai', apiKey: openaiKey });
-	}
-
-	if (anthropicKey) {
-		await llmConfigQueries.upsertProjectLlmConfig({
-			projectId: project.id,
-			provider: 'anthropic',
-			apiKey: anthropicKey,
-		});
-	}
 
 	await addProjectMember({
 		projectId: project.id,

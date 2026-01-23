@@ -1,5 +1,9 @@
 from pathlib import Path
+from unittest.mock import patch
 
+import pytest
+
+from nao_core.commands.chat import chat
 from nao_core.config.base import NaoConfig
 
 
@@ -21,3 +25,16 @@ def test_returns_config_when_nao_config_file_is_valid(tmp_path: Path):
 
     assert cfg is not None
     assert isinstance(cfg, NaoConfig)
+
+
+def test_chat_exits_when_no_config_found(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    with patch("nao_core.commands.chat.console") as mock_console:
+        with pytest.raises(SystemExit) as exc_info:
+            chat()
+
+        assert exc_info.value.code == 1
+        mock_console.print.assert_any_call(
+            "[bold red]✗No nao_config.yaml found in current directory. Please move to a nao project directory.[/bold red]"
+        )

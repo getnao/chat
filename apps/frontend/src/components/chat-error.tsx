@@ -39,9 +39,7 @@ export function ChatError({ className }: Props) {
 
 			<div className='flex-1 min-w-0 text-sm break-words'>
 				{parsed.error && <span className='font-medium'>{parsed.error}</span>}
-				{parsed.message && (
-					<p className='text-red-400 mt-0.5 leading-relaxed'>{parsed.message}</p>
-				)}
+				{parsed.message && <p className='text-red-400 mt-0.5 leading-relaxed'>{parsed.message}</p>}
 			</div>
 		</div>
 	);

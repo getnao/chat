@@ -114,6 +114,7 @@ export const useAgent = (): AgentHelpers => {
 			if (isRunning) {
 				return;
 			}
+			setError(null);
 			scrollDownService.scrollDown({ animation: 'smooth' }); // TODO: 'smooth' doesn't work
 			return agent.sendMessage(args);
 		},

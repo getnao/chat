@@ -16,6 +16,9 @@ declare module '@tanstack/react-router' {
 	interface Register {
 		router: typeof router;
 	}
+	interface HistoryState {
+		fromMessageSend?: boolean;
+	}
 }
 
 // Create a new router instance

@@ -1,6 +1,6 @@
 import { Streamdown } from 'streamdown';
 import { useEffect, useMemo, useRef } from 'react';
-import { useParams } from '@tanstack/react-router';
+import { useParams, useRouterState } from '@tanstack/react-router';
 import { useStickToBottomContext } from 'use-stick-to-bottom';
 import { ToolCall } from './tool-call';
 import { ToolCallsGroup } from './tool-call/tool-calls-group';
@@ -30,9 +30,12 @@ export function ChatMessages() {
 	const contentRef = useRef<HTMLDivElement>(null);
 	const containerHeight = useHeight(contentRef, [chatId]);
 
+	// Skip fade-in animation when navigating from home after sending a message
+	const fromMessageSend = useRouterState({ select: (state) => state.location.state.fromMessageSend });
+
 	return (
 		<div
-			className='h-full min-h-0 flex animate-fade-in'
+			className={cn('h-full min-h-0 flex', !fromMessageSend && 'animate-fade-in')}
 			ref={contentRef}
 			style={{ '--container-height': `${containerHeight}px` } as React.CSSProperties}
 			key={chatId}

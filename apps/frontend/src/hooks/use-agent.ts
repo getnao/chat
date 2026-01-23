@@ -78,7 +78,7 @@ export const useAgent = (): AgentHelpers => {
 				}));
 
 				// Navigate to the new chat id
-				navigate({ to: '/$chatId', params: { chatId: newChat.id } });
+				navigate({ to: '/$chatId', params: { chatId: newChat.id }, state: { fromMessageSend: true } });
 			},
 			onFinish: () => {
 				if (chatIdRef.current !== agentId) {

@@ -1,13 +1,16 @@
 name: Deploy to GCP instance
 
 on:
+    push:
+        branches:
+            - '*docker'
     workflow_run:
         workflows: ['Docker Build & Push']
         types:
             - completed
         branches:
             - main
-            - '**docker'
+            - '*docker'
 
 jobs:
     deploy:
@@ -25,12 +28,13 @@ jobs:
               uses: appleboy/ssh-action@master
               with:
                   host: ${{ secrets.VM_HOST }}
-                  username: github-action
+                  username: github-actions-demo
                   key: ${{ secrets.PRIVATE_KEY }}
                   script: |
                       docker pull getnao/nao:${{ github.event.workflow_run.head_sha }}
                       docker rm -f nao-chat 2>/dev/null || true
                       docker run -p 5005:5005 \
+                        -e DB_URI=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:${{ secrets.POSTGRES_PORT }}/${{ secrets.POSTGRES_DB }} \
                         -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
                         -e BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }} \
                         -e NAO_DEFAULT_PROJECT_PATH=/app/example \

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { Chat as Agent, useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useCurrent } from './useCurrent';
@@ -22,6 +22,8 @@ export type AgentHelpers = {
 	isReadyForNewMessages: boolean;
 	stopAgent: () => Promise<void>;
 	registerScrollDown: (fn: ScrollToBottom) => { dispose: () => void };
+	error: Error | null;
+	clearError: () => void;
 };
 
 export const useAgent = (): AgentHelpers => {
@@ -31,6 +33,7 @@ export const useAgent = (): AgentHelpers => {
 	const queryClient = useQueryClient();
 	const chatIdRef = useCurrent(chatId);
 	const scrollDownService = useScrollDownCallbackService();
+	const [error, setError] = useState<Error | null>(null);
 
 	const agentInstance = useMemo(() => {
 		let agentId = chatId ?? 'new-chat';
@@ -83,13 +86,13 @@ export const useAgent = (): AgentHelpers => {
 					agentService.disposeAgent(agentId);
 				}
 			},
-			onError: (error) => {
-				console.error(error);
+			onError: (messageError: Error) => {
+				setError(messageError);
 			},
 		});
 
 		return agentService.registerAgent(agentId, newAgent);
-	}, [chatId, navigate, queryClient, chatIdRef]);
+	}, [chatId, navigate, queryClient, chatIdRef, setError]);
 
 	const agent = useChat({ chat: agentInstance });
 
@@ -126,6 +129,8 @@ export const useAgent = (): AgentHelpers => {
 		isReadyForNewMessages: chatId ? !!chat.data && !isRunning : true,
 		stopAgent,
 		registerScrollDown: scrollDownService.register,
+		error,
+		clearError: () => setError(null),
 	});
 };
 

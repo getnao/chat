@@ -1,6 +1,7 @@
 import type { App } from '../app';
 import { slackAuthMiddleware } from '../middleware/slack.middleware';
 import * as chatQueries from '../queries/chat.queries';
+import * as slackConfigQueries from '../queries/project-slack-config.queries';
 import { agentService } from '../services/agent.service';
 import { SlackService } from '../services/slack.service';
 import { SlackInteractionBodySchema, SlackInteractionPayloadSchema, SlackRequestSchema } from '../types/slack';
@@ -11,7 +12,7 @@ export const slackRoutes = async (app: App) => {
 	app.addHook('preHandler', slackAuthMiddleware);
 
 	app.post(
-		'/app_mention',
+		'/:projectId/app_mention',
 		{
 			config: { rawBody: true },
 			schema: { body: SlackRequestSchema },
@@ -23,8 +24,10 @@ export const slackRoutes = async (app: App) => {
 				return reply.send({ challenge: body.challenge });
 			}
 
-			if (!process.env.SLACK_BOT_TOKEN) {
-				return reply.status(400).send({ error: 'SLACK_BOT_TOKEN is not defined in environment variables' });
+			const slackConfig = await slackConfigQueries.getSlackConfig();
+
+			if (!slackConfig) {
+				return reply.status(400).send({ error: 'Slack is not configured' });
 			}
 
 			if (!body.event) {
@@ -37,13 +40,14 @@ export const slackRoutes = async (app: App) => {
 					.send({ error: 'Invalid request: missing text, channel, thread timestamp, or user ID' });
 			}
 
-			const slackService = new SlackService(body.event);
+			const slackService = new SlackService(body.event, slackConfig);
+			reply.send({ ok: true });
 			await slackService.handleWorkFlow(reply);
 		},
 	);
 
 	app.post(
-		'/interactions',
+		'/:projectId/interactions',
 		{
 			config: { rawBody: true },
 			schema: { body: SlackInteractionBodySchema },

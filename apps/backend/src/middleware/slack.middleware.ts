@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
+import * as slackConfigQueries from '../queries/project-slack-config.queries';
+
 function verifySlackSignature(signingSecret: string, requestSignature: string, timestamp: string, rawBody: string) {
 	const currentTime = Math.floor(Date.now() / 1000);
 	if (Math.abs(currentTime - parseInt(timestamp)) > 300) {
@@ -18,8 +20,10 @@ export async function slackAuthMiddleware(request: FastifyRequest, reply: Fastif
 	const timestamp = request.headers['x-slack-request-timestamp'];
 	const signature = request.headers['x-slack-signature'];
 
-	if (!process.env.SLACK_SIGNING_SECRET) {
-		return reply.status(400).send('SLACK_SIGNING_SECRET is not defined in environment variables');
+	const slackConfig = await slackConfigQueries.getSlackConfig();
+
+	if (!slackConfig) {
+		return reply.status(400).send('Slack is not configured');
 	}
 
 	if (!rawBody || !timestamp || !signature) {
@@ -30,7 +34,7 @@ export async function slackAuthMiddleware(request: FastifyRequest, reply: Fastif
 		return reply.status(400).send('Invalid types for headers or body');
 	}
 
-	if (!verifySlackSignature(process.env.SLACK_SIGNING_SECRET!, signature, timestamp, rawBody)) {
+	if (!verifySlackSignature(slackConfig.signingSecret, signature, timestamp, rawBody)) {
 		return reply.status(403).send('Invalid signature');
 	}
 }

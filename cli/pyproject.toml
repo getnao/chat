@@ -29,6 +29,8 @@ dependencies = [
     "fastapi>=0.128.0",
     "uvicorn>=0.40.0",
     "cryptography>=46.0.3",
+    "dotenv>=0.9.9",
+    "pytest>=9.0.2",
     "python-dotenv>=1.2.1",
 ]
 
@@ -64,3 +66,9 @@ exclude = ["**/example/**"]
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

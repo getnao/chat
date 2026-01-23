@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
 import { db } from './db/db';
 import dbConfig, { Dialect } from './db/dbConfig';
+import * as projectQueries from './queries/project.queries';
 
 export const auth = betterAuth({
 	secret: process.env.BETTER_AUTH_SECRET,
@@ -18,6 +19,16 @@ export const auth = betterAuth({
 			prompt: 'select_account',
 			clientId: process.env.GOOGLE_CLIENT_ID as string,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+		},
+	},
+	databaseHooks: {
+		user: {
+			create: {
+				async after(user) {
+					// Handle first user signup: create default project and add user as admin
+					await projectQueries.initializeDefaultProjectForFirstUser(user.id);
+				},
+			},
 		},
 	},
 });

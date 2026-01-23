@@ -39,7 +39,7 @@ export const ExecuteSqlToolCall = () => {
 
 	return (
 		<ToolCallWrapper
-			defaultExpanded
+			defaultExpanded={false}
 			overrideError={viewMode === 'query'}
 			title={
 				<span>

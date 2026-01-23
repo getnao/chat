@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { useStickToBottomContext } from 'use-stick-to-bottom';
 import { ToolCall } from './tool-call';
-import { ReasoningAccordion } from './reasoning-accordion';
+import { ReasoningAccordion } from './chat-message-reasoning-accordion';
 import { AgentMessageLoader } from './ui/agent-message-loader';
-import { MessageActions } from './message-actions';
+import { MessageActions } from './chat-message-actions';
 import type { UIMessage } from 'backend/chat';
 import type { MessageGroup } from '@/types/messages';
 import {

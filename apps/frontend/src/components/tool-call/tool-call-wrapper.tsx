@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { useToolCallContext } from '../../contexts/tool-call.context';
 import type { ReactNode } from 'react';
 import { isToolSettled } from '@/lib/ai';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { Expandable } from '@/components/ui/expandable';
 
 interface ActionButton {
 	id: string;
@@ -45,139 +44,69 @@ export const ToolCallWrapper = ({
 		}
 	}, [isBordered, canExpand, defaultExpanded, setIsExpanded]);
 
-	const handleValueChange = () => {
-		setIsExpanded(!isExpanded);
-	};
-
 	const hasError = !!toolPart.errorText;
 	const showChevron = isSettled && (!hasError || isHovering);
 
-	const statusIcon = (
-		<div className={cn('size-3 flex items-center justify-center', isBordered && 'shrink-0')}>
-			{showChevron ? (
-				<ChevronRight
-					size={12}
-					className={cn('transition-transform duration-200', isExpanded && 'rotate-90')}
-				/>
-			) : hasError ? (
-				<div className='size-2 rounded-full bg-red-500' />
-			) : (
-				<Spinner className='size-3 opacity-50' />
-			)}
-		</div>
+	const statusIcon = showChevron ? undefined : hasError ? (
+		<div className='size-2 rounded-full bg-red-500' />
+	) : (
+		<Spinner className='size-3 opacity-50' />
 	);
 
-	return (
-		<Accordion
-			type='single'
-			collapsible
-			value={isExpanded ? 'tool-content' : ''}
-			onValueChange={handleValueChange}
-			disabled={!canExpand}
-			className={cn(
-				isBordered && 'border border-border rounded-xl overflow-hidden bg-backgroundSecondary/30 -mx-3',
-			)}
-		>
-			<AccordionItem value='tool-content' className={cn('border-b-0')} style={{ padding: 0 }}>
-				{isBordered ? (
-					<div
-						className={cn(
-							'flex items-center justify-between gap-2 py-2',
-							canExpand && 'cursor-pointer',
-							isBordered && 'px-3',
-						)}
-						onClick={() => canExpand && setIsExpanded(!isExpanded)}
-					>
-						<AccordionTrigger
-							className={cn(
-								'flex-1 select-none flex items-center gap-2 py-0 overflow-hidden transition-opacity duration-150 hover:no-underline',
-								isExpanded ? 'opacity-100' : 'opacity-70',
-								canExpand && !isExpanded
-									? 'cursor-pointer hover:opacity-90'
-									: canExpand
-										? 'cursor-pointer'
-										: '',
-							)}
-						>
-							{statusIcon}
-							<span className={cn('flex-1 font-medium truncate min-w-0', !isSettled && 'text-shimmer')}>
-								{title}
-							</span>
-							{badge && <span className='text-xs opacity-50 shrink-0'>{badge}</span>}
-						</AccordionTrigger>
-
-						{actions && actions.length > 0 && (
-							<div
-								className={cn(
-									'flex items-center gap-1 shrink-0',
-									isExpanded || isHovering ? 'opacity-100' : 'opacity-0',
-								)}
-							>
-								{actions.map((action) => (
-									<button
-										key={action.id}
-										type='button'
-										onClick={(e) => {
-											e.stopPropagation();
-											if (!isExpanded) {
-												setIsExpanded(true);
-											}
-											action.onClick();
-										}}
-										className={cn(
-											'px-1 py-1 text-xs rounded transition-colors cursor-pointer',
-											action.isActive ? 'bg-primary text-primary-foreground' : '',
-										)}
-									>
-										{action.label}
-									</button>
-								))}
-							</div>
-						)}
-					</div>
-				) : (
-					<AccordionTrigger
-						className={cn(
-							'select-none flex items-center gap-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap **:overflow-hidden **:text-ellipsis **:whitespace-nowrap transition-opacity duration-150 py-0 hover:no-underline [&>svg:last-child]:hidden',
-							isExpanded ? 'opacity-100' : 'opacity-50',
-							canExpand && !isExpanded
-								? 'cursor-pointer hover:opacity-75'
-								: canExpand
-									? 'cursor-pointer'
-									: '',
-						)}
-					>
-						{statusIcon}
-						<span className={cn(!isSettled && 'text-shimmer')}>{title}</span>
-						{badge && <span className='text-xs opacity-50'>{badge}</span>}
-					</AccordionTrigger>
+	const actionsContent =
+		actions && actions.length > 0 ? (
+			<div
+				className={cn(
+					'flex items-center gap-1 shrink-0',
+					isExpanded || isHovering ? 'opacity-100' : 'opacity-0',
 				)}
+			>
+				{actions.map((action) => (
+					<button
+						key={action.id}
+						type='button'
+						onClick={(e) => {
+							e.stopPropagation();
+							if (!isExpanded) {
+								setIsExpanded(true);
+							}
+							action.onClick();
+						}}
+						className={cn(
+							'px-1 py-1 text-xs rounded transition-colors cursor-pointer',
+							action.isActive ? 'bg-primary text-primary-foreground' : '',
+						)}
+					>
+						{action.label}
+					</button>
+				))}
+			</div>
+		) : undefined;
 
-				<AccordionContent className={cn('pb-0', !isBordered && 'pt-1.5')}>
-					{isBordered ? (
-						<div className='border-t border-border'>
-							{toolPart.errorText && !overrideError ? (
-								<pre className='p-3 overflow-auto max-h-80 m-0 text-red-400 whitespace-pre-wrap wrap-break-word'>
-									{toolPart.errorText}
-								</pre>
-							) : (
-								children
-							)}
-						</div>
-					) : (
-						<div className='pl-5 bg-backgroundSecondary relative'>
-							<div className='h-full border-l border-l-border absolute top-0 left-[6px]' />
-							<div>
-								{toolPart.errorText && !overrideError ? (
-									<pre className='p-2 overflow-auto max-h-80 m-0'>{toolPart.errorText}</pre>
-								) : (
-									children
-								)}
-							</div>
-						</div>
-					)}
-				</AccordionContent>
-			</AccordionItem>
-		</Accordion>
+	const errorContent = isBordered ? (
+		<pre className='p-3 overflow-auto max-h-80 m-0 text-red-400 whitespace-pre-wrap wrap-break-word'>
+			{toolPart.errorText}
+		</pre>
+	) : (
+		<pre className='p-2 overflow-auto max-h-80 m-0'>{toolPart.errorText}</pre>
+	);
+
+	const contentToShow = toolPart.errorText && !overrideError ? errorContent : children;
+
+	return (
+		<Expandable
+			title={title}
+			badge={badge}
+			expanded={isExpanded}
+			onExpandedChange={setIsExpanded}
+			disabled={!canExpand}
+			isLoading={!isSettled}
+			leadingIcon={statusIcon}
+			variant={isBordered ? 'bordered' : 'inline'}
+			trailingContent={actionsContent}
+			className={cn(isBordered && '-mx-3')}
+		>
+			{contentToShow}
+		</Expandable>
 	);
 };

@@ -9,7 +9,7 @@ interface ToolCallContextValue {
 	setIsExpanded: (expanded: boolean) => void;
 }
 
-const ToolCallContext = createContext<ToolCallContextValue | null>(null);
+export const ToolCallContext = createContext<ToolCallContextValue | null>(null);
 
 export const useToolCallContext = () => {
 	const context = useContext(ToolCallContext);

@@ -13,6 +13,7 @@ import {
 	ConversationContent,
 	ConversationEmptyState,
 	ConversationScrollButton,
+	ConversationHistoryIndicator,
 } from '@/components/ui/conversation';
 import { checkIsAgentGenerating, isToolUIPart } from '@/lib/ai';
 import { cn, isLast } from '@/lib/utils';
@@ -26,6 +27,7 @@ export function ChatMessages() {
 	const chatId = useParams({ strict: false }).chatId;
 	const contentRef = useRef<HTMLDivElement>(null);
 	const containerHeight = useHeight(contentRef, [chatId]);
+	const { messages } = useAgentContext();
 
 	return (
 		<div
@@ -39,6 +41,7 @@ export function ChatMessages() {
 					<ChatMessagesContent />
 				</ConversationContent>
 
+				<ConversationHistoryIndicator hasHistory={messages.length > 2} />
 				<ConversationScrollButton />
 			</Conversation>
 		</div>

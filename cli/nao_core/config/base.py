@@ -78,7 +78,8 @@ class NaoConfig(BaseModel):
         try:
             os.chdir(path)
             return cls.load(path)
-        except (FileNotFoundError, ValueError, yaml.YAMLError):
+        except (FileNotFoundError, ValueError, yaml.YAMLError) as e:
+            raise e
             return None
 
     @classmethod
@@ -88,7 +89,8 @@ class NaoConfig(BaseModel):
 
     @staticmethod
     def _process_env_vars(content: str) -> str:
-        regex = re.compile(r"\$\{\{\s*env\(['\"]([^'\"]+)['\"]\)\s*\}\}")
+        # Support both ${{ env('VAR') }} and {{ env('VAR') }} formats
+        regex = re.compile(r"\$?\{\{\s*env\(['\"]([^'\"]+)['\"]\)\s*\}\}")
 
         def replacer(match: re.Match[str]) -> str:
             env_var = match.group(1)

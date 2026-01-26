@@ -15,7 +15,6 @@ import {
 	ConversationContent,
 	ConversationEmptyState,
 	ConversationScrollButton,
-	ConversationHistoryIndicator,
 } from '@/components/ui/conversation';
 import { isToolUIPart, checkIsAgentGenerating, groupToolCalls, isToolGroupPart } from '@/lib/ai';
 import { cn, isLast } from '@/lib/utils';
@@ -50,7 +49,6 @@ export function ChatMessages() {
 					<ChatMessagesContent isAgentGenerating={isAgentGenerating} />
 				</ConversationContent>
 
-				<ConversationHistoryIndicator hasHistory={messages.length > 2} />
 				<ConversationScrollButton />
 			</Conversation>
 		</div>

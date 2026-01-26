@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { NegativeFeedbackDialog } from './negative-feedback-dialog';
+import { NegativeFeedbackDialog } from './chat-negative-feedback-dialog';
 import type { UIMessage } from 'backend/chat';
 import { Button } from '@/components/ui/button';
 import { serializeMessageForCopy } from '@/lib/messages.utils';

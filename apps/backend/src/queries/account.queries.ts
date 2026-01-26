@@ -7,7 +7,7 @@ export const createAccount = async (account: NewAccount): Promise<void> => {
 	await db.insert(s.account).values(account).returning().execute();
 };
 
-export const getUserAccount = async (userId: string): Promise<{ id: string; password: string | null } | null> => {
+export const getAccountById = async (userId: string): Promise<{ id: string; password: string | null } | null> => {
 	const [account] = await db
 		.select({ id: s.account.id, password: s.account.password })
 		.from(s.account)

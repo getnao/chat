@@ -35,7 +35,7 @@ export const userRoutes = {
 			}
 
 			if (input.previousPassword && input.newPassword) {
-				const account = await accountQueries.getUserAccount(input.userId);
+				const account = await accountQueries.getAccountById(input.userId);
 
 				if (!account) {
 					throw new TRPCError({

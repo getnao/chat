@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, EllipsisVertical } from 'lucide-react';
-import { DisplayNewUserInfo } from './settings-display-newUser-info';
+import { DisplayNewUserInfo } from './settings-display-newUser';
 import { trpc } from '@/main';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

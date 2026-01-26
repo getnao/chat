@@ -76,3 +76,8 @@ class PostgresConfig(DatabaseConfig):
         return ibis.postgres.connect(
             **kwargs,
         )
+
+    def get_database_name(self) -> str:
+        """Get the database name for Postgres."""
+
+        return self.database

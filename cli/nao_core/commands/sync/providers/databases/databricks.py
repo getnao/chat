@@ -24,8 +24,8 @@ def sync_databricks(
             DatabaseSyncState with sync results and tracked paths
     """
     conn = db_config.connect()
-    catalog = db_config.catalog or "main"
-    db_path = base_path / "type=databricks" / f"database={catalog}"
+    db_name = db_config.get_database_name()
+    db_path = base_path / "type=databricks" / f"database={db_name}"
     state = DatabaseSyncState(db_path=db_path)
 
     if db_config.schema:

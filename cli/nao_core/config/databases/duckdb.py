@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 import ibis
@@ -31,3 +32,10 @@ class DuckDBConfig(DatabaseConfig):
             database=self.path,
             read_only=False if self.path == ":memory:" else True,
         )
+
+    def get_database_name(self) -> str:
+        """Get the database name for DuckDB."""
+
+        if self.path == ":memory:":
+            return "memory"
+        return Path(self.path).stem

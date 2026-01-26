@@ -77,3 +77,9 @@ class DatabaseConfig(BaseModel, ABC):
                 return False
 
         return True
+
+    @abstractmethod
+    def get_database_name(self) -> str:
+        """Get the database name for this database type."""
+
+        ...

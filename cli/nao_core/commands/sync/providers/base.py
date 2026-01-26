@@ -85,3 +85,12 @@ class SyncProvider(ABC):
                 True if there are items to sync
         """
         return len(self.get_items(config)) > 0
+
+    def pre_sync(self, config: NaoConfig, output_path: Path) -> None:
+        """For preparation before sync.
+
+        Args:
+            config: The loaded nao configuration.
+            output_path: Base directory where the preparation should be applied.
+        """
+        pass

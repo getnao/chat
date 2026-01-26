@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 from nao_core.commands.sync.accessors import DataAccessor
-from nao_core.commands.sync.cleanup import DatabaseSyncState, cleanup_stale_paths
+from nao_core.commands.sync.cleanup import DatabaseSyncState, cleanup_stale_databases, cleanup_stale_paths
 from nao_core.commands.sync.registry import get_accessors
 from nao_core.config import AnyDatabaseConfig, NaoConfig
 
@@ -44,6 +44,12 @@ class DatabaseSyncProvider(SyncProvider):
     @property
     def default_output_dir(self) -> str:
         return "databases"
+
+    def pre_sync(self, config: NaoConfig, output_path: Path) -> None:
+        """
+        Always run before syncing.
+        """
+        cleanup_stale_databases(config.databases, output_path, verbose=True)
 
     def get_items(self, config: NaoConfig) -> list[AnyDatabaseConfig]:
         return config.databases

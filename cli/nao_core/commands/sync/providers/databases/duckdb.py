@@ -25,12 +25,7 @@ def sync_duckdb(
     """
     conn = db_config.connect()
 
-    # Derive database name from path
-    if db_config.path == ":memory:":
-        db_name = "memory"
-    else:
-        db_name = Path(db_config.path).stem
-
+    db_name = db_config.get_database_name()
     db_path = base_path / "type=duckdb" / f"database={db_name}"
     state = DatabaseSyncState(db_path=db_path)
 

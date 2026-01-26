@@ -24,7 +24,8 @@ def sync_snowflake(
             DatabaseSyncState with sync results and tracked paths
     """
     conn = db_config.connect()
-    db_path = base_path / "type=snowflake" / f"database={db_config.database}"
+    db_name = db_config.get_database_name()
+    db_path = base_path / "type=snowflake" / f"database={db_name}"
     state = DatabaseSyncState(db_path=db_path)
 
     if db_config.schema:

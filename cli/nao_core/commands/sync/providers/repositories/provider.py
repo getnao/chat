@@ -6,6 +6,7 @@ from typing import Any
 
 from rich.console import Console
 
+from nao_core.commands.sync.cleanup import cleanup_stale_repos
 from nao_core.config import NaoConfig
 from nao_core.config.repos import RepoConfig
 
@@ -94,6 +95,13 @@ class RepositorySyncProvider(SyncProvider):
     @property
     def default_output_dir(self) -> str:
         return "repos"
+
+    def pre_sync(self, config: NaoConfig, output_path: Path) -> None:
+        """
+        Always run before syncing.
+        """
+
+        cleanup_stale_repos(config.repos, output_path, verbose=True)
 
     def get_items(self, config: NaoConfig) -> list[RepoConfig]:
         return config.repos

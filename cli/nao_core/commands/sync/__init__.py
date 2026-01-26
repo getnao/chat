@@ -7,10 +7,7 @@ from rich.console import Console
 
 from nao_core.config import NaoConfig
 
-from .cleanup import cleanup_stale_databases, cleanup_stale_repos
 from .providers import SyncProvider, SyncResult, get_all_providers
-from .providers.databases.provider import DatabaseSyncProvider
-from .providers.repositories.provider import RepositorySyncProvider
 
 console = Console()
 
@@ -55,13 +52,12 @@ def sync(
         output_dir = output_dirs.get(provider.name, provider.default_output_dir)
         output_path = Path(output_dir)
 
-        if isinstance(provider, DatabaseSyncProvider):
-            cleanup_stale_databases(config.databases, output_path, verbose=True)
+        if config is None:
+            continue
 
-        if isinstance(provider, RepositorySyncProvider):
-            cleanup_stale_repos(config.repos, output_path, verbose=True)
+        provider.pre_sync(config, output_path)
 
-        if config is None or not provider.should_sync(config):
+        if not provider.should_sync(config):
             continue
 
         # Get items and sync

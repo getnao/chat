@@ -68,3 +68,8 @@ class BigQueryConfig(DatabaseConfig):
             kwargs["credentials"] = credentials
 
         return ibis.bigquery.connect(**kwargs)
+
+    def get_database_name(self) -> str:
+        """Get the database name for BigQuery."""
+
+        return self.project_id

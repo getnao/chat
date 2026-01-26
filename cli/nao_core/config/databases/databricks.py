@@ -67,3 +67,8 @@ class DatabricksConfig(DatabaseConfig):
             kwargs["schema"] = self.schema
 
         return ibis.databricks.connect(**kwargs)
+
+    def get_database_name(self) -> str:
+        """Get the database name for Databricks."""
+
+        return self.catalog or "main"

@@ -114,7 +114,7 @@ def cleanup_stale_databases(active_databases: List, base_path: Path, verbose: bo
 
     for db in active_databases:
         type_folder = f"type={db.type}"
-        db_identifier = get_database_identifier(db)
+        db_identifier = db.get_database_name()
         db_folder = f"database={db_identifier}"
 
         valid_db_folders_by_type[type_folder].add(db_folder)
@@ -143,25 +143,6 @@ def cleanup_stale_databases(active_databases: List, base_path: Path, verbose: bo
                 shutil.rmtree(db_dir)
                 if verbose:
                     console.print(f"\n[yellow] Removed unused database:[/yellow] {type_folder_name}/{db_dir.name}")
-
-
-def get_database_identifier(db):
-    if db.type == "bigquery":
-        return db.project_id
-
-    elif db.type == "duckdb":
-        if db.path == ":memory:":
-            return "memory"
-        return Path(db.path).stem
-
-    elif db.type == "databricks":
-        return db.catalog or "main"
-
-    elif db.type == "snowflake":
-        return db.database
-
-    elif db.type == "postgres":
-        return db.database
 
 
 def cleanup_stale_repos(config_repos: list, base_path: Path, verbose: bool = False) -> None:

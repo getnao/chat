@@ -113,3 +113,8 @@ class SnowflakeConfig(DatabaseConfig):
         kwargs["password"] = self.password
 
         return ibis.snowflake.connect(**kwargs)
+
+    def get_database_name(self) -> str:
+        """Get the database name for Snowflake."""
+
+        return self.database

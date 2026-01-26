@@ -22,6 +22,8 @@ export type AgentHelpers = {
 	isReadyForNewMessages: boolean;
 	stopAgent: () => Promise<void>;
 	registerScrollDown: (fn: ScrollToBottom) => { dispose: () => void };
+	error: Error | undefined;
+	clearError: UseChatHelpers<UIMessage>['clearError'];
 };
 
 export const useAgent = (): AgentHelpers => {
@@ -83,8 +85,9 @@ export const useAgent = (): AgentHelpers => {
 					agentService.disposeAgent(agentId);
 				}
 			},
-			onError: (error) => {
-				console.error(error);
+			onError: (_error) => {
+				// Keep this to remember that we can handle errors here
+				// console.error(error);
 			},
 		});
 
@@ -111,10 +114,11 @@ export const useAgent = (): AgentHelpers => {
 			if (isRunning) {
 				return;
 			}
+			agent.clearError();
 			scrollDownService.scrollDown({ animation: 'smooth' }); // TODO: 'smooth' doesn't work
 			return agent.sendMessage(args);
 		},
-		[isRunning, agent.sendMessage, scrollDownService.scrollDown], // eslint-disable-line
+		[isRunning, agent.sendMessage, agent.clearError, scrollDownService.scrollDown], // eslint-disable-line
 	);
 
 	return useMemoObject({
@@ -126,6 +130,8 @@ export const useAgent = (): AgentHelpers => {
 		isReadyForNewMessages: chatId ? !!chat.data && !isRunning : true,
 		stopAgent,
 		registerScrollDown: scrollDownService.register,
+		error: agent.error,
+		clearError: agent.clearError,
 	});
 };
 

@@ -6,6 +6,7 @@ import { ToolCall } from './tool-call';
 import { ReasoningAccordion } from './chat-message-reasoning-accordion';
 import { AgentMessageLoader } from './ui/agent-message-loader';
 import { MessageActions } from './chat-message-actions';
+import { ChatError } from './chat-error';
 import type { UIMessage } from 'backend/chat';
 import type { MessageGroup } from '@/types/messages';
 import {
@@ -89,6 +90,8 @@ function MessageGroup({ group, showResponseLoader }: { group: MessageGroup; show
 			))}
 
 			{showResponseLoader && !group.responses.length && <AgentMessageLoader className='p-0' />}
+
+			<ChatError />
 		</div>
 	);
 }

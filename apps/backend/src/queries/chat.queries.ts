@@ -2,9 +2,10 @@ import { and, desc, eq } from 'drizzle-orm';
 
 import s, { DBChat, DBChatMessage, DBMessagePart, MessageFeedback, NewChat } from '../db/abstractSchema';
 import { db } from '../db/db';
-import { ListChatResponse, StopReason, TokenUsage, UIChat, UIMessage } from '../types/chat';
+import { ListChatResponse, LlmProvider, StopReason, TokenUsage, UIChat, UIMessage } from '../types/chat';
 import { convertDBPartToUIPart, mapDBPartsToUIParts, mapUIPartsToDBParts } from '../utils/chatMessagePartMappings';
 import { getErrorMessage } from '../utils/utils';
+import * as llmConfigQueries from './project-llm-config.queries';
 
 export const listUserChats = async (userId: string): Promise<ListChatResponse> => {
 	const chats = await db
@@ -49,7 +50,8 @@ export const loadChat = async (
 		return [];
 	}
 
-	const messages = aggregateChatMessagParts(result);
+	const provider = await llmConfigQueries.getProjectModelProvider(chat.projectId);
+	const messages = aggregateChatMessagParts(result, provider);
 	return [
 		{
 			id: chatId,
@@ -70,10 +72,11 @@ const aggregateChatMessagParts = (
 		message_part: DBMessagePart;
 		message_feedback?: MessageFeedback | null;
 	}[],
+	provider?: LlmProvider,
 ) => {
 	const messagesMap = result.reduce(
 		(acc, row) => {
-			const uiPart = convertDBPartToUIPart(row.message_part);
+			const uiPart = convertDBPartToUIPart(row.message_part, provider);
 			if (!uiPart) {
 				return acc;
 			}
@@ -111,6 +114,7 @@ export const createChat = async (newChat: NewChat, message: UIMessage): Promise<
 
 		const dbParts = mapUIPartsToDBParts(message.parts, savedMessage.id);
 		const savedParts = await t.insert(s.messagePart).values(dbParts).returning().execute();
+		const provider = await llmConfigQueries.getProjectModelProvider(newChat.projectId);
 
 		return {
 			id: savedChat.id,
@@ -121,7 +125,7 @@ export const createChat = async (newChat: NewChat, message: UIMessage): Promise<
 				{
 					id: savedMessage.id,
 					role: savedMessage.role,
-					parts: mapDBPartsToUIParts(savedParts),
+					parts: mapDBPartsToUIParts(savedParts, provider),
 				},
 			],
 		};

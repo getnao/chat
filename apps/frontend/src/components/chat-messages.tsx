@@ -32,7 +32,7 @@ export function ChatMessages() {
 	const { messages, status } = useAgentContext();
 	const isAgentGenerating = checkIsAgentGenerating({ status, messages });
 	const lastMessageRole = messages.at(-1)?.role;
-	const shouldSmoothResize = !isAgentGenerating && lastMessageRole === 'user';
+	const shouldResizeSmoothly = !isAgentGenerating && lastMessageRole === 'user';
 
 	// Skip fade-in animation when navigating from home after sending a message
 	const fromMessageSend = useRouterState({ select: (state) => state.location.state.fromMessageSend });
@@ -44,9 +44,9 @@ export function ChatMessages() {
 			style={{ '--container-height': `${containerHeight}px` } as React.CSSProperties}
 			key={chatId}
 		>
-			<Conversation resize={shouldSmoothResize ? 'smooth' : 'instant'}>
+			<Conversation resize={shouldResizeSmoothly ? 'smooth' : 'instant'}>
 				<ConversationContent className='max-w-3xl mx-auto'>
-					<ChatMessagesContent />
+					<ChatMessagesContent isAgentGenerating={isAgentGenerating} />
 				</ConversationContent>
 
 				<ConversationScrollButton />
@@ -55,10 +55,9 @@ export function ChatMessages() {
 	);
 }
 
-const ChatMessagesContent = () => {
-	const { messages, status, isRunning, registerScrollDown } = useAgentContext();
+const ChatMessagesContent = ({ isAgentGenerating }: { isAgentGenerating: boolean }) => {
+	const { messages, isRunning, registerScrollDown } = useAgentContext();
 	const { scrollToBottom } = useStickToBottomContext();
-	const isAgentGenerating = checkIsAgentGenerating({ status, messages });
 
 	useEffect(() => {
 		// Register the scroll down fn so the agent context has access to it.
@@ -70,6 +69,7 @@ const ChatMessagesContent = () => {
 
 	const messageGroups = useMemo(() => groupMessages(messages), [messages]);
 
+	// isRunning is status-based; isAgentGenerating means content/tool activity on the last message.
 	/** `true` when the agent is running but it's not yet streaming content (text, reasoning or tool calls) */
 	const isWaitingForAgentContentGeneration = isRunning && !isAgentGenerating;
 

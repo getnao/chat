@@ -38,6 +38,15 @@ nao chat
 
 This will start the nao chat UI. It will open the chat interface in your browser at `http://localhost:5005`.
 
+### BigQuery service account permissions
+
+When you connect BigQuery during `nao init`, the service account used by `credentials_path`/ADC must be able to list datasets and run read-only queries to generate docs. Grant the account:
+
+- Project: `roles/bigquery.jobUser` (or `roles/bigquery.user`) so the CLI can submit queries
+- Each dataset you sync: `roles/bigquery.dataViewer` (or higher) to read tables
+
+The combination above mirrors the typical "BigQuery User" setup and is sufficient for nao's metadata and preview pulls.
+
 ## Development
 
 ### Building the package

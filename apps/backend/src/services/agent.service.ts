@@ -147,9 +147,7 @@ class AgentService {
 		return {
 			model: openai.responses(modelId),
 			providerOptions: {
-				openai: {
-					// TODO: Add config for openai
-				} satisfies OpenAIResponsesProviderOptions,
+				openai: {} satisfies OpenAIResponsesProviderOptions,
 			},
 		};
 	}

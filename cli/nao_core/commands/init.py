@@ -264,11 +264,12 @@ def create_empty_structure(project_path: Path) -> tuple[list[str], list[CreatedF
         "repos",
         "agent/tools",
         "agent/mcps",
+        "tests",
     ]
 
     FILES = [
         CreatedFile(path=Path("RULES.md"), content=None),
-        CreatedFile(path=Path(".naoignore"), content="templates/\n"),
+        CreatedFile(path=Path(".naoignore"), content="templates/\ntests/\n"),
     ]
 
     created_folders = []
@@ -350,6 +351,9 @@ def init(
 
 [cyan]nao chat[/cyan]    - Start the nao chat interface
               Launch the web UI to chat with your data
+
+[cyan]nao test[/cyan]    - Run unit tests for agent SQL generation
+              Test agent reliability on use cases in text folder
 """
         console.print(Panel(help_content, border_style="cyan", title="🚀 Get Started", title_align="left"))
         console.print()

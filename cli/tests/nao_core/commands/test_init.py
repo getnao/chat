@@ -74,6 +74,7 @@ class TestCreateEmptyStructure:
             "repos",
             "agent/tools",
             "agent/mcps",
+            "tests",
         ]
 
         for folder in expected_folders:

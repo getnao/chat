@@ -96,6 +96,7 @@ class ExecuteSQLResponse(BaseModel):
     data: list[dict]
     row_count: int
     columns: list[str]
+    bytes_processed: int | None = None  # Bytes scanned by the query (warehouse-dependent)
 
 
 class RefreshResponse(BaseModel):
@@ -223,6 +224,12 @@ async def execute_sql(request: ExecuteSQLRequest):
         # Use raw_sql to execute arbitrary SQL (including CTEs)
         cursor = connection.raw_sql(request.sql)
 
+        # Extract bytes_processed if available (warehouse-dependent)
+        bytes_processed = None
+        if hasattr(cursor, "total_bytes_processed"):
+            # BigQuery RowIterator exposes this directly
+            bytes_processed = cursor.total_bytes_processed
+
         # Handle different cursor types from different backends
         if hasattr(cursor, "fetchdf"):
             # DuckDB returns a cursor with fetchdf()
@@ -254,6 +261,7 @@ async def execute_sql(request: ExecuteSQLRequest):
             data=data,
             row_count=len(data),
             columns=[str(c) for c in df.columns.tolist()],
+            bytes_processed=bytes_processed,
         )
     except HTTPException:
         raise

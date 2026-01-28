@@ -1,0 +1,6 @@
+name: churn_last_month
+prompt: What's the percentage of users who churned last month?
+sql:
+schema_output:
+  - churned_users
+  - churn_percentage

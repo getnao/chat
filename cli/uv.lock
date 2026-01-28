@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version < '3.11'",
@@ -40,6 +40,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5ec9c3402f9f51bf748cec26dde048a2f973a4eea7f5/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89", size = 16081, upload-time = "2024-05-20T21:33:25.928Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53", size = 13643, upload-time = "2024-05-20T21:33:24.1Z" },
+]
+
+[[package]]
+name = "anthropic"
+version = "0.76.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "docstring-parser" },
+    { name = "httpx" },
+    { name = "jiter" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6e/be/d11abafaa15d6304826438170f7574d750218f49a106c54424a40cef4494/anthropic-0.76.0.tar.gz", hash = "sha256:e0cae6a368986d5cf6df743dfbb1b9519e6a9eee9c6c942ad8121c0b34416ffe", size = 495483, upload-time = "2026-01-13T18:41:14.908Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/70/7b0fd9c1a738f59d3babe2b4212031c34ab7d0fda4ffef15b58a55c5bcea/anthropic-0.76.0-py3-none-any.whl", hash = "sha256:81efa3113901192af2f0fe977d3ec73fdadb1e691586306c4256cd6d5ccc331c", size = 390309, upload-time = "2026-01-13T18:41:13.483Z" },
 ]
 
 [[package]]
@@ -1266,6 +1285,7 @@ name = "nao-core"
 version = "0.0.34"
 source = { editable = "." }
 dependencies = [
+    { name = "anthropic" },
     { name = "apscheduler" },
     { name = "cryptography" },
     { name = "cyclopts" },
@@ -1278,6 +1298,7 @@ dependencies = [
     { name = "pytest" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "rich" },
     { name = "uvicorn" },
 ]
@@ -1290,6 +1311,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic", specifier = ">=0.40.0" },
     { name = "apscheduler", specifier = ">=3.10.0" },
     { name = "cryptography", specifier = ">=46.0.3" },
     { name = "cyclopts", specifier = ">=4.4.4" },
@@ -1302,6 +1324,7 @@ requires-dist = [
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "requests", specifier = ">=2.31.0" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "uvicorn", specifier = ">=0.40.0" },
 ]

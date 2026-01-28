@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { authRoutes } from './routes/auth';
 import { chatRoutes } from './routes/chat';
 import { slackRoutes } from './routes/slack';
+import { testRoutes } from './routes/test';
 import { TrpcRouter, trpcRouter } from './trpc/router';
 import { createContext } from './trpc/trpc';
 
@@ -57,6 +58,10 @@ app.register(authRoutes, {
 
 app.register(slackRoutes, {
 	prefix: '/api/slack/events',
+});
+
+app.register(testRoutes, {
+	prefix: '/api/test',
 });
 
 /**

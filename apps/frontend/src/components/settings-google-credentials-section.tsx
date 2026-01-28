@@ -13,7 +13,7 @@ export function GoogleConfigSection({ isAdmin }: GoogleConfigSectionProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [clientId, setClientId] = useState('');
 	const [clientSecret, setClientSecret] = useState('');
-	const [authDomains, setAuthDomains] = useState('ç');
+	const [authDomains, setAuthDomains] = useState('');
 	const [testResult, setTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
 
 	const queryClient = useQueryClient();

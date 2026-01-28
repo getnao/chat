@@ -110,9 +110,9 @@ function UserPage() {
 						)}
 					</SettingsCard>
 
-					<SettingsCard title='Google Credentials'>
+					{/* <SettingsCard title='Google Credentials'>
 						<GoogleConfigSection isAdmin={isAdmin} />
-					</SettingsCard>
+					</SettingsCard> */}
 
 					{/* Appearance Section */}
 					<SettingsCard title='Appearance'>

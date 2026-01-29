@@ -59,6 +59,9 @@ jobs:
             - name: Setup uv
               uses: astral-sh/setup-uv@v5
 
+            - name: Install Python build dependencies
+              run: uv pip install --system cyclopts
+
             - name: Install npm dependencies
               run: npm ci
               env:

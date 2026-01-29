@@ -2,6 +2,7 @@ import { hashValue } from './hash';
 
 export type RangeOptions = Record<string, { label: string }>;
 
+// TODO: make this dynamic based on the data
 export const DATE_RANGE_OPTIONS = {
 	'7d': { label: 'Last 7 days' },
 	'30d': { label: 'Last 30 days' },

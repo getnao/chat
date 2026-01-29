@@ -1,5 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react';
-import { getDefaultModelId } from 'backend/llm';
+import { getDefaultModelId } from 'backend/providers';
 import { LlmProviderIcon } from './ui/llm-provider-icon';
 import type { LlmProvider } from 'backend/llm';
 import { Button } from '@/components/ui/button';

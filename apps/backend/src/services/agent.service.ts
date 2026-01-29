@@ -1,7 +1,3 @@
-import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { createMistral } from '@ai-sdk/mistral';
-import { createOpenAI, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import {
 	convertToModelMessages,
 	createUIMessageStream,
@@ -11,11 +7,11 @@ import {
 } from 'ai';
 
 import { getInstructions } from '../agents/prompt';
+import { createProviderModel } from '../agents/providers';
 import { tools } from '../agents/tools';
 import * as chatQueries from '../queries/chat.queries';
 import * as llmConfigQueries from '../queries/project-llm-config.queries';
 import { UIChat, UIMessage } from '../types/chat';
-import { getProviderModelConfig, LlmProvider } from '../types/llm';
 import { convertToTokenUsage } from '../utils/chat';
 import { getDefaultModelId, getEnvApiKey, getEnvModelSelections, ModelSelection } from '../utils/llm';
 
@@ -95,83 +91,21 @@ class AgentService {
 		const config = await llmConfigQueries.getProjectLlmConfigByProvider(projectId, modelSelection.provider);
 
 		if (config) {
-			return this._createProviderConfig(
-				modelSelection.provider,
-				config.apiKey,
-				modelSelection.modelId,
-				config.baseUrl,
-			);
+			const settings = {
+				apiKey: config.apiKey,
+				...(config.baseUrl && { baseURL: config.baseUrl }),
+			};
+
+			return createProviderModel(modelSelection.provider, settings, modelSelection.modelId);
 		}
 
 		// No config but env var might exist - use it
 		const envApiKey = getEnvApiKey(modelSelection.provider);
 		if (envApiKey) {
-			return this._createProviderConfig(modelSelection.provider, envApiKey, modelSelection.modelId);
+			return createProviderModel(modelSelection.provider, { apiKey: envApiKey }, modelSelection.modelId);
 		}
 
 		throw Error('No model config found');
-	}
-
-	private _createProviderConfig(
-		provider: LlmProvider,
-		apiKey: string,
-		modelId: string,
-		baseUrl?: string | null,
-	): Pick<ToolLoopAgentSettings, 'model' | 'providerOptions'> {
-		if (provider === 'anthropic') {
-			const anthropic = createAnthropic({
-				apiKey,
-				...(baseUrl && { baseURL: baseUrl }),
-			});
-			return {
-				model: anthropic.chat(modelId),
-				providerOptions: {
-					anthropic: {
-						disableParallelToolUse: false,
-						thinking: {
-							type: 'enabled',
-							budgetTokens: 12_000,
-						},
-					} satisfies AnthropicProviderOptions,
-				},
-			};
-		}
-
-		if (provider === 'google') {
-			const google = createGoogleGenerativeAI({
-				apiKey,
-				...(baseUrl && { baseURL: baseUrl }),
-			});
-			return {
-				model: google.chat(modelId),
-				providerOptions: {
-					google: {
-						...getProviderModelConfig(provider, modelId),
-					} satisfies GoogleGenerativeAIProviderOptions,
-				},
-			};
-		}
-
-		if (provider === 'mistral') {
-			const mistral = createMistral({
-				apiKey,
-				...(baseUrl && { baseURL: baseUrl }),
-			});
-			return {
-				model: mistral.chat(modelId),
-			};
-		}
-
-		const openai = createOpenAI({
-			apiKey,
-			...(baseUrl && { baseURL: baseUrl }),
-		});
-		return {
-			model: openai.responses(modelId),
-			providerOptions: {
-				openai: {} satisfies OpenAIResponsesProviderOptions,
-			},
-		};
 	}
 }
 

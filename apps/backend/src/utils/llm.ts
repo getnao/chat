@@ -1,4 +1,6 @@
-import { getDefaultModelId, LLM_PROVIDERS, LlmProvider, ModelSelection } from '../types/llm';
+import { getDefaultModelId, LLM_PROVIDERS } from '../agents/providers';
+import * as projectLlmConfigQueries from '../queries/project-llm-config.queries';
+import { LlmProvider, ModelSelection } from '../types/llm';
 export { getDefaultModelId };
 export type { ModelSelection };
 
@@ -41,3 +43,30 @@ export function getEnvModelSelections(): ModelSelection[] {
 		modelId: getDefaultModelId(provider),
 	}));
 }
+
+export const getProjectAvailableModels = async (
+	projectId: string,
+): Promise<Array<{ provider: LlmProvider; modelId: string }>> => {
+	const configs = await projectLlmConfigQueries.getProjectLlmConfigs(projectId);
+	const models: Array<{ provider: LlmProvider; modelId: string }> = [];
+
+	for (const config of configs) {
+		const provider = config.provider as LlmProvider;
+		const enabledModels = config.enabledModels ?? [];
+
+		if (enabledModels.length === 0) {
+			// If no models explicitly enabled, add the default
+			models.push({ provider, modelId: getDefaultModelId(provider) });
+		} else {
+			for (const modelId of enabledModels) {
+				models.push({ provider, modelId });
+			}
+		}
+	}
+
+	// Also add env-configured providers with their defaults
+	const envSelections = getEnvModelSelections().filter((s) => !configs.some((c) => c.provider === s.provider));
+	models.push(...envSelections);
+
+	return models;
+};

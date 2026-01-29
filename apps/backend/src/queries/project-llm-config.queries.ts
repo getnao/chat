@@ -92,31 +92,3 @@ export const getProjectLlmConfigForModel = async (
 
 	return { config, modelId };
 };
-
-/** Get all available models for a project (from all configured providers) */
-export const getProjectAvailableModels = async (
-	projectId: string,
-): Promise<Array<{ provider: LlmProvider; modelId: string }>> => {
-	const configs = await getProjectLlmConfigs(projectId);
-	const models: Array<{ provider: LlmProvider; modelId: string }> = [];
-
-	for (const config of configs) {
-		const provider = config.provider as LlmProvider;
-		const enabledModels = config.enabledModels ?? [];
-
-		if (enabledModels.length === 0) {
-			// If no models explicitly enabled, add the default
-			models.push({ provider, modelId: getDefaultModelId(provider) });
-		} else {
-			for (const modelId of enabledModels) {
-				models.push({ provider, modelId });
-			}
-		}
-	}
-
-	// Also add env-configured providers with their defaults
-	const envSelections = getEnvModelSelections().filter((s) => !configs.some((c) => c.provider === s.provider));
-	models.push(...envSelections);
-
-	return models;
-};

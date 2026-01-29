@@ -1,21 +1,28 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, EllipsisVertical } from 'lucide-react';
 import { NewlyCreatedUserDialog } from './settings-display-newUser';
+import { ResetPasswordDialog } from './settings-reset-user-password';
+import {
+	DropdownMenu,
+	DropdownMenuItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+	DropdownMenuGroup,
+} from './ui/dropdown-menu';
 import { trpc } from '@/main';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CreateUserForm } from '@/components/settings-create-user-form';
 import { Badge } from '@/components/ui/badge';
+import { useUserPageContext } from '@/contexts/user.provider';
 
 interface UsersListProps {
 	isAdmin: boolean;
-	onModifyUser: (userId: string) => void;
 }
 
-export function UsersList({ isAdmin, onModifyUser }: UsersListProps) {
-	const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
-	const [newUser, setNewUser] = useState<{ email: string; password: string } | null>(null);
+export function UsersList({ isAdmin }: UsersListProps) {
+	const { setUserInfo, setIsModifyUserFormOpen, setIsCreateUserFormOpen, setIsResetUserPasswordOpen } =
+		useUserPageContext();
 
 	const usersWithRoles = useQuery(trpc.project.getAllUsersWithRoles.queryOptions());
 
@@ -24,7 +31,7 @@ export function UsersList({ isAdmin, onModifyUser }: UsersListProps) {
 			<div className='flex items-center justify-between'>
 				<span className='text-sm font-medium text-foreground'>Users</span>
 				{isAdmin && (
-					<Button variant='secondary' size='icon-sm' onClick={() => setIsCreateUserOpen(true)}>
+					<Button variant='secondary' size='icon-sm' onClick={() => setIsCreateUserFormOpen(true)}>
 						<Plus className='size-4' />
 					</Button>
 				)}
@@ -51,9 +58,43 @@ export function UsersList({ isAdmin, onModifyUser }: UsersListProps) {
 								<TableCell>{user.role && <Badge variant={user.role}>{user.role}</Badge>}</TableCell>
 								{isAdmin && (
 									<TableCell className='w-0'>
-										<Button variant='ghost' size='icon-sm' onClick={() => onModifyUser(user.id)}>
-											<EllipsisVertical className='size-4' />
-										</Button>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button variant='ghost' size='icon-sm'>
+													<EllipsisVertical className='size-4' />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+												<DropdownMenuGroup>
+													<DropdownMenuItem
+														onSelect={() => {
+															setUserInfo({
+																id: user.id,
+																role: user.role,
+																name: user.name,
+																email: user.email,
+															});
+															setIsModifyUserFormOpen(true);
+														}}
+													>
+														Edit user
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														onSelect={() => {
+															setUserInfo({
+																id: user.id,
+																role: user.role,
+																name: user.name,
+																email: user.email,
+															});
+															setIsResetUserPasswordOpen(true);
+														}}
+													>
+														Reset password
+													</DropdownMenuItem>
+												</DropdownMenuGroup>
+											</DropdownMenuContent>
+										</DropdownMenu>
 									</TableCell>
 								)}
 							</TableRow>
@@ -62,19 +103,9 @@ export function UsersList({ isAdmin, onModifyUser }: UsersListProps) {
 				</Table>
 			)}
 
-			<CreateUserForm
-				open={isCreateUserOpen}
-				onOpenChange={setIsCreateUserOpen}
-				onUserCreated={(email, password) => {
-					setNewUser({ email, password });
-				}}
-			/>
-			<NewlyCreatedUserDialog
-				open={!!newUser}
-				onOpenChange={(open) => !open && setNewUser(null)}
-				email={newUser?.email || ''}
-				password={newUser?.password || ''}
-			/>
+			<CreateUserForm />
+			<NewlyCreatedUserDialog />
+			<ResetPasswordDialog />
 		</div>
 	);
 }

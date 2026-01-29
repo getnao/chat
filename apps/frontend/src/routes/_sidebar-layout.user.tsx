@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { signOut, useSession } from '@/lib/auth-client';
 import { ModifyUserForm } from '@/components/settings-modify-user-form';
-// import { GoogleConfigSection } from '@/components/settings-google-credentials-section';
 import { ThemeSelector } from '@/components/settings-theme-selector';
 import { useGetSigninLocation } from '@/hooks/useGetSigninLocation';
 import { trpc } from '@/main';
@@ -13,17 +11,25 @@ import { SettingsCard } from '@/components/ui/settings-card';
 import { LlmProvidersSection } from '@/components/settings-llm-providers-section';
 import { SlackConfigSection } from '@/components/settings-slack-config-section';
 import { UsersList } from '@/components/settings-display-users';
+import { UserPageProvider, useUserPageContext } from '@/contexts/user.provider';
 
 export const Route = createFileRoute('/_sidebar-layout/user')({
-	component: UserPage,
+	component: RouteComponent,
 });
+
+function RouteComponent() {
+	return (
+		<UserPageProvider>
+			<UserPage />
+		</UserPageProvider>
+	);
+}
 
 function UserPage() {
 	const navigate = useNavigate();
 	const { data: session } = useSession();
 	const user = session?.user;
-	const [isModifyUserOpen, setIsModifyUserOpen] = useState(false);
-	const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+	const { setUserInfo, setIsModifyUserFormOpen } = useUserPageContext();
 	const queryClient = useQueryClient();
 	const project = useQuery(trpc.project.getCurrent.queryOptions());
 
@@ -50,8 +56,13 @@ function UserPage() {
 						name={user?.name}
 						email={user?.email}
 						onEdit={() => {
-							setSelectedUserId(user?.id || null);
-							setIsModifyUserOpen(true);
+							setUserInfo({
+								id: user?.id || '',
+								role: project.data?.userRole || 'user',
+								name: user?.name || '',
+								email: user?.email || '',
+							});
+							setIsModifyUserFormOpen(true);
 						}}
 						onSignOut={handleSignOut}
 					/>
@@ -95,13 +106,7 @@ function UserPage() {
 								</div>
 								<LlmProvidersSection isAdmin={isAdmin} />
 								<SlackConfigSection isAdmin={isAdmin} />
-								<UsersList
-									isAdmin={isAdmin}
-									onModifyUser={(userId) => {
-										setSelectedUserId(userId);
-										setIsModifyUserOpen(true);
-									}}
-								/>
+								<UsersList isAdmin={isAdmin} />
 							</div>
 						) : (
 							<p className='text-sm text-muted-foreground'>
@@ -123,12 +128,7 @@ function UserPage() {
 				</div>
 			</div>
 
-			<ModifyUserForm
-				open={isModifyUserOpen}
-				onOpenChange={setIsModifyUserOpen}
-				userId={selectedUserId}
-				isAdmin={isAdmin}
-			/>
+			<ModifyUserForm isAdmin={isAdmin} />
 		</>
 	);
 }

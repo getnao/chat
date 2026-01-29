@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import s, { DBProject, DBProjectMember, NewProject, NewProjectMember } from '../db/abstractSchema';
 import { db } from '../db/db';
-import { UserWithRole } from '../types/project';
+import { UserRole, UserWithRole } from '../types/project';
 import * as userQueries from './user.queries';
 
 export const getProjectByPath = async (path: string): Promise<DBProject | null> => {
@@ -32,6 +32,20 @@ export const getProjectMember = async (projectId: string, userId: string): Promi
 export const addProjectMember = async (member: NewProjectMember): Promise<DBProjectMember> => {
 	const [created] = await db.insert(s.projectMember).values(member).returning().execute();
 	return created;
+};
+
+export const updateProjectMemberRole = async (
+	projectId: string,
+	userId: string,
+	newRole: UserRole,
+): Promise<DBProjectMember> => {
+	const [updatedMember] = await db
+		.update(s.projectMember)
+		.set({ role: newRole })
+		.where(and(eq(s.projectMember.projectId, projectId), eq(s.projectMember.userId, userId)))
+		.returning();
+
+	return updatedMember;
 };
 
 export const listUserProjects = async (userId: string): Promise<DBProject[]> => {

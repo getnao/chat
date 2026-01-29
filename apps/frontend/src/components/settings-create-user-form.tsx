@@ -5,22 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/lib/auth-client';
 import { trpc } from '@/main';
+import { useUserPageContext } from '@/contexts/user.provider';
 
-interface ModifyUserInfoProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	onUserCreated: (email: string, password: string) => void;
-}
-
-export function CreateUserForm({ open, onOpenChange, onUserCreated }: ModifyUserInfoProps) {
-	const { refetch } = useSession();
-	const queryClient = useQueryClient();
-
+export function CreateUserForm() {
+	const { isCreateUserFormOpen, setIsCreateUserFormOpen, setNewUser, setIsNewUserDialogOpen } = useUserPageContext();
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
 	});
 	const [error, setError] = useState('');
+
+	const { refetch } = useSession();
+	const queryClient = useQueryClient();
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFormData({
@@ -36,8 +32,9 @@ export function CreateUserForm({ open, onOpenChange, onUserCreated }: ModifyUser
 				await queryClient.invalidateQueries({
 					queryKey: trpc.project.getAllUsersWithRoles.queryKey(),
 				});
-				onOpenChange(false);
-				onUserCreated(formData.email, ctx.password);
+				setIsCreateUserFormOpen(false);
+				setNewUser({ email: formData.email, password: ctx.password });
+				setIsNewUserDialogOpen(true);
 			},
 			onError: (err) => {
 				setError(err.message);
@@ -56,7 +53,7 @@ export function CreateUserForm({ open, onOpenChange, onUserCreated }: ModifyUser
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog open={isCreateUserFormOpen} onOpenChange={setIsCreateUserFormOpen}>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Create User</DialogTitle>

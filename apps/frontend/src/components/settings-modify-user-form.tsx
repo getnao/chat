@@ -1,40 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { trpc } from '@/main';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/lib/auth-client';
+import { useUserPageContext } from '@/contexts/user.provider';
 
 interface ModifyUserInfoProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	userId: string | null;
 	isAdmin: boolean;
 }
 
-export function ModifyUserForm({ open, onOpenChange, userId, isAdmin }: ModifyUserInfoProps) {
-	const { refetch } = useSession();
+export function ModifyUserForm({ isAdmin }: ModifyUserInfoProps) {
+	const { userInfo, isModifyUserFormOpen, setIsModifyUserFormOpen, setUserInfo } = useUserPageContext();
 	const [error, setError] = useState('');
-	const userQuery = useQuery(trpc.user.get.queryOptions({ userId: userId || '' }, { enabled: !!userId && open }));
-	const user = userQuery.data;
+
+	const { refetch } = useSession();
 	const queryClient = useQueryClient();
-
-	useEffect(() => {
-		if (user) {
-			setUserData({
-				name: user.name || '',
-				previousPassword: '',
-				newPassword: '',
-			});
-		}
-	}, [user]);
-
-	const [userData, setUserData] = useState({
-		name: user?.name || '',
-		previousPassword: '',
-		newPassword: '',
-	});
 
 	const modifyUser = useMutation(
 		trpc.user.modify.mutationOptions({
@@ -43,7 +27,7 @@ export function ModifyUserForm({ open, onOpenChange, userId, isAdmin }: ModifyUs
 				await queryClient.invalidateQueries({
 					queryKey: trpc.project.getAllUsersWithRoles.queryKey(),
 				});
-				onOpenChange(false);
+				setIsModifyUserFormOpen(false);
 			},
 			onError: (err) => {
 				setError(err.message || 'An error occurred while updating the profile.');
@@ -55,15 +39,14 @@ export function ModifyUserForm({ open, onOpenChange, userId, isAdmin }: ModifyUs
 		setError('');
 
 		await modifyUser.mutateAsync({
-			userId: userId || '',
-			name: userData.name,
-			previousPassword: userData.previousPassword || undefined,
-			newPassword: userData.newPassword || undefined,
+			userId: userInfo.id || '',
+			name: userInfo.name || '',
+			newRole: userInfo.role === 'admin' ? undefined : userInfo.role,
 		});
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog open={isModifyUserFormOpen} onOpenChange={setIsModifyUserFormOpen}>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Edit Profile</DialogTitle>
@@ -77,43 +60,42 @@ export function ModifyUserForm({ open, onOpenChange, userId, isAdmin }: ModifyUs
 							id='name'
 							type='text'
 							placeholder='Your name'
-							value={userData.name}
-							onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+							value={userInfo.name || ''}
+							onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
 						/>
 					</div>
+
+					{isAdmin && userInfo.role !== 'admin' && (
+						<div className='flex flex-col gap-2'>
+							<label htmlFor='role' className='text-sm font-medium text-slate-700'>
+								Role
+							</label>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant='outline' className='w-full justify-between'>
+										<span className='capitalize'>{userInfo.role}</span>
+										<ChevronDown className='h-4 w-4 opacity-50' />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align='start' className='w-full'>
+									<DropdownMenuItem
+										onClick={() => setUserInfo({ ...userInfo, role: 'user' })}
+										className={userInfo.role === 'user' ? 'bg-accent' : ''}
+									>
+										User
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => setUserInfo({ ...userInfo, role: 'viewer' })}
+										className={userInfo.role === 'viewer' ? 'bg-accent' : ''}
+									>
+										Viewer
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					)}
 				</div>
-				{isAdmin && (
-					<>
-						<div className='flex flex-col gap-4'>
-							<div className='flex flex-col gap-2'>
-								<label htmlFor='previousPassword' className='text-sm font-medium text-slate-700'>
-									Previous Password
-								</label>
-								<Input
-									id='previousPassword'
-									type='password'
-									placeholder='Your previous password'
-									value={userData.previousPassword}
-									onChange={(e) => setUserData({ ...userData, previousPassword: e.target.value })}
-								/>
-							</div>
-						</div>
-						<div className='flex flex-col gap-4'>
-							<div className='flex flex-col gap-2'>
-								<label htmlFor='newPassword' className='text-sm font-medium text-slate-700'>
-									New Password
-								</label>
-								<Input
-									id='newPassword'
-									type='password'
-									placeholder='Your new password'
-									value={userData.newPassword}
-									onChange={(e) => setUserData({ ...userData, newPassword: e.target.value })}
-								/>
-							</div>
-						</div>
-					</>
-				)}
+
 				{error && <p className='text-red-500 text-center text-base'>{error}</p>}
 				<div className='flex justify-end'>
 					<Button onClick={handleValidate}>Validate changes</Button>

@@ -1,12 +1,10 @@
 import { TRPCError } from '@trpc/server';
-import { hashPassword, verifyPassword } from 'better-auth/crypto';
+import { hashPassword } from 'better-auth/crypto';
 import { z } from 'zod/v4';
 
-import * as accountQueries from '../queries/account.queries';
 import * as projectQueries from '../queries/project.queries';
 import * as userQueries from '../queries/user.queries';
-import { regexPassword } from '../utils/utils';
-import { adminProtectedProcedure, projectProtectedProcedure, protectedProcedure, publicProcedure } from './trpc';
+import { adminProtectedProcedure, projectProtectedProcedure, publicProcedure } from './trpc';
 
 export const userRoutes = {
 	countAll: publicProcedure.query(() => {
@@ -23,47 +21,19 @@ export const userRoutes = {
 		}
 		return user;
 	}),
-	modify: protectedProcedure
+	modify: projectProtectedProcedure
 		.input(
 			z.object({
 				userId: z.string(),
 				name: z.string().optional(),
-				previousPassword: z.string().optional(),
-				newPassword: z.string().optional(),
+				newRole: z.enum(['user', 'viewer']).optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			if (input.previousPassword && input.newPassword) {
-				if (!regexPassword.test(input.newPassword)) {
-					throw new TRPCError({
-						code: 'BAD_REQUEST',
-						message:
-							'New password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
-					});
-				}
-
-				const account = await accountQueries.getAccountById(input.userId);
-				if (!account || !account.password) {
-					throw new TRPCError({
-						code: 'NOT_FOUND',
-						message: 'User account not found or user does not use password authentication.',
-					});
-				}
-
-				const isPasswordValid = await verifyPassword({
-					hash: account.password,
-					password: input.previousPassword,
-				});
-				if (!isPasswordValid) {
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'Previous password is incorrect.',
-					});
-				}
-
-				const hashedPassword = await hashPassword(input.newPassword);
-				await accountQueries.updateAccountAndUser(account.id, hashedPassword, input.userId, input.name);
-			} else if (input.name) {
+		.mutation(async ({ input, ctx }) => {
+			if (ctx.project && input.newRole && input.newRole !== ctx.userRole) {
+				await projectQueries.updateProjectMemberRole(ctx.project.id, input.userId, input.newRole);
+			}
+			if (input.name && input.name !== ctx.user.name) {
 				await userQueries.modify(input.userId, { name: input.name });
 			}
 		}),
@@ -81,8 +51,6 @@ export const userRoutes = {
 			const password = crypto.randomUUID().slice(0, 8);
 			const hashedPassword = await hashPassword(password);
 
-			const project = await projectQueries.getProjectById(ctx.project.id);
-
 			const newUser = await userQueries.create(
 				{
 					id: userId,
@@ -98,7 +66,7 @@ export const userRoutes = {
 				},
 				{
 					userId: '',
-					projectId: project?.id || '',
+					projectId: ctx.project?.id || '',
 					role: 'user',
 				},
 			);

@@ -1,0 +1,63 @@
+import { createContext, useContext, useState } from 'react';
+import type { ReactNode } from 'react';
+import type { UserWithRole } from '../../../backend/src/types/project';
+
+interface UserPageContextType {
+	userInfo: Partial<UserWithRole>;
+	setUserInfo: (userInfo: Partial<UserWithRole>) => void;
+	isModifyUserFormOpen: boolean;
+	setIsModifyUserFormOpen: (isOpen: boolean) => void;
+	isCreateUserFormOpen: boolean;
+	setIsCreateUserFormOpen: (isOpen: boolean) => void;
+	isResetUserPasswordOpen: boolean;
+	setIsResetUserPasswordOpen: (isOpen: boolean) => void;
+	newUser: { email: string; password: string } | null;
+	setNewUser: (newUser: { email: string; password: string } | null) => void;
+	isNewUserDialogOpen: boolean;
+	setIsNewUserDialogOpen: (isOpen: boolean) => void;
+}
+
+const UserPageContext = createContext<UserPageContextType | undefined>(undefined);
+
+export function UserPageProvider({ children }: { children: ReactNode }) {
+	const [userInfo, setUserInfo] = useState<Partial<UserWithRole>>({
+		id: '',
+		role: 'user',
+		name: '',
+		email: '',
+	});
+	const [isModifyUserFormOpen, setIsModifyUserFormOpen] = useState(false);
+	const [isCreateUserFormOpen, setIsCreateUserFormOpen] = useState(false);
+	const [isResetUserPasswordOpen, setIsResetUserPasswordOpen] = useState(false);
+	const [newUser, setNewUser] = useState<{ email: string; password: string } | null>(null);
+	const [isNewUserDialogOpen, setIsNewUserDialogOpen] = useState(false);
+
+	return (
+		<UserPageContext.Provider
+			value={{
+				userInfo,
+				setUserInfo,
+				isModifyUserFormOpen,
+				setIsModifyUserFormOpen,
+				isCreateUserFormOpen,
+				setIsCreateUserFormOpen,
+				isResetUserPasswordOpen,
+				setIsResetUserPasswordOpen,
+				newUser,
+				setNewUser,
+				isNewUserDialogOpen,
+				setIsNewUserDialogOpen,
+			}}
+		>
+			{children}
+		</UserPageContext.Provider>
+	);
+}
+
+export function useUserPageContext() {
+	const context = useContext(UserPageContext);
+	if (context === undefined) {
+		throw new Error('useUserPageContext must be used within a UserPageProvider');
+	}
+	return context;
+}

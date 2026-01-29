@@ -40,4 +40,9 @@ export const auth = betterAuth({
 			},
 		},
 	},
+	user: {
+		additionalFields: {
+			requiresPasswordReset: { type: 'boolean', default: false, input: false },
+		},
+	},
 });

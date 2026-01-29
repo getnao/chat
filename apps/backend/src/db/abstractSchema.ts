@@ -31,4 +31,6 @@ export type NewProjectMember = typeof sqliteSchema.projectMember.$inferInsert;
 export type DBProjectLlmConfig = typeof sqliteSchema.projectLlmConfig.$inferSelect;
 export type NewProjectLlmConfig = typeof sqliteSchema.projectLlmConfig.$inferInsert;
 
+export type UpdateUser = Partial<Omit<NewUser, 'id' | 'createdAt'>> & { id: string };
+
 export default allSchema as typeof sqliteSchema;

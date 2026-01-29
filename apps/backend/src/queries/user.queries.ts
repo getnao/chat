@@ -1,6 +1,6 @@
 import { count, eq } from 'drizzle-orm';
 
-import s, { NewAccount, NewProjectMember, NewUser, User } from '../db/abstractSchema';
+import s, { NewAccount, NewProjectMember, NewUser, UpdateUser, User } from '../db/abstractSchema';
 import { db } from '../db/db';
 
 export const get = async (identifier: { id: string } | { email: string }): Promise<User | null> => {
@@ -11,8 +11,9 @@ export const get = async (identifier: { id: string } | { email: string }): Promi
 	return user ?? null;
 };
 
-export const modify = async (id: string, data: { name?: string }): Promise<void> => {
-	await db.update(s.user).set(data).where(eq(s.user.id, id)).execute();
+export const modify = async (updates: UpdateUser): Promise<void> => {
+	const { id, ...fields } = updates;
+	await db.update(s.user).set(fields).where(eq(s.user.id, id)).execute();
 };
 
 export const countAll = async (): Promise<number> => {

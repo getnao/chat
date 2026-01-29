@@ -11,7 +11,7 @@ export function ResetPasswordDialog() {
 	const [error, setError] = useState('');
 
 	const resetUserPassword = useMutation(
-		trpc.account.modifyPassword.mutationOptions({
+		trpc.account.resetPassword.mutationOptions({
 			onSuccess: (ctx) => {
 				setNewUser({ email: userInfo.email || '', password: ctx.password });
 				setIsNewUserDialogOpen(true);

@@ -24,8 +24,12 @@ function Login() {
 				password: formData.password,
 			},
 			{
-				onSuccess: () => {
-					navigate({ to: '/' });
+				onSuccess: (ctx) => {
+					if (ctx.data.user.requiresPasswordReset) {
+						navigate({ to: '/modifyPassword' });
+					} else {
+						navigate({ to: '/' });
+					}
 				},
 				onError: (err) => {
 					setError(err.error.message);

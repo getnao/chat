@@ -34,7 +34,10 @@ export const userRoutes = {
 				await projectQueries.updateProjectMemberRole(ctx.project.id, input.userId, input.newRole);
 			}
 			if (input.name && input.name !== ctx.user.name) {
-				await userQueries.modify(input.userId, { name: input.name });
+				await userQueries.modify({
+					id: input.userId,
+					name: input.name,
+				});
 			}
 		}),
 	createUserAndAddToProject: adminProtectedProcedure
@@ -56,6 +59,7 @@ export const userRoutes = {
 					id: userId,
 					name: input.name,
 					email: input.email,
+					requiresPasswordReset: true,
 				},
 				{
 					id: accountId,

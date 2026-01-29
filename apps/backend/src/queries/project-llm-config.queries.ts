@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import s, { DBProjectLlmConfig, NewProjectLlmConfig } from '../db/abstractSchema';
 import { db } from '../db/db';
 import { LlmProvider } from '../types/llm';
-import { getDefaultEnvProvider, getDefaultModelId, getEnvModelSelections } from '../utils/llm';
+import { getDefaultEnvProvider, getDefaultModelId } from '../utils/llm';
 
 export const getProjectLlmConfigs = async (projectId: string): Promise<DBProjectLlmConfig[]> => {
 	return db.select().from(s.projectLlmConfig).where(eq(s.projectLlmConfig.projectId, projectId)).execute();

@@ -1,5 +1,3 @@
-import sys
-
 from rich.console import Console
 from rich.table import Table
 
@@ -75,12 +73,8 @@ def debug():
     console.print("\n[bold cyan]🔍 nao debug - Testing connections...[/bold cyan]\n")
 
     # Load config
-    config = NaoConfig.try_load()
-    if not config:
-        console.print("[bold red]✗[/bold red] No nao_config.yaml found in current directory")
-        console.print("[dim]Run 'nao init' to create a configuration file[/dim]")
-        sys.exit(1)
-    assert config is not None  # Help type checker after sys.exit
+    config = NaoConfig.try_load(exit_on_error=True)
+    assert config is not None  # Help type checker after exit_on_error=True
 
     console.print(f"[bold green]✓[/bold green] Loaded config: [cyan]{config.project_name}[/cyan]\n")
 

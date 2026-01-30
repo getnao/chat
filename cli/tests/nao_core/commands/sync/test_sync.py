@@ -15,7 +15,8 @@ class TestSyncCommand:
         # Ensure NAO_DEFAULT_PROJECT_PATH doesn't point to a valid config
         monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
-        with patch("nao_core.commands.sync.console") as mock_console:
+        with patch("nao_core.config.base.Console") as mock_console_cls:
+            mock_console = mock_console_cls.return_value
             with pytest.raises(SystemExit) as exc_info:
                 sync()
 
@@ -27,6 +28,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         mock_provider = MagicMock(spec=SyncProvider)
         mock_provider.should_sync.return_value = True
@@ -48,6 +50,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         mock_provider = MagicMock(spec=SyncProvider)
         mock_provider.should_sync.return_value = True
@@ -73,6 +76,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         mock_provider = MagicMock(spec=SyncProvider)
         mock_provider.should_sync.return_value = False
@@ -88,6 +92,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         mock_provider = MagicMock(spec=SyncProvider)
         mock_provider.should_sync.return_value = True
@@ -111,6 +116,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         # First provider will fail
         failing_provider = MagicMock(spec=SyncProvider)
@@ -145,6 +151,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         failing_provider = MagicMock(spec=SyncProvider)
         failing_provider.should_sync.return_value = True
@@ -178,6 +185,7 @@ class TestSyncCommand:
         config_file = tmp_path / "nao_config.yaml"
         config_file.write_text("project_name: test-project\n")
         monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NAO_DEFAULT_PROJECT_PATH", raising=False)
 
         failing_provider = MagicMock(spec=SyncProvider)
         failing_provider.should_sync.return_value = True

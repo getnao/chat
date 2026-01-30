@@ -109,6 +109,12 @@ export const checkUserHasProject = async (userId: string): Promise<DBProject | n
 	return project;
 };
 
+export const checkProjectHasMoreThanOneAdmin = async (projectId: string) => {
+	const userWithRoles = await getAllUsersWithRoles(projectId);
+	const nbAdmin = userWithRoles.filter((u) => u.role === 'admin').length;
+	return nbAdmin > 1;
+};
+
 export const initializeDefaultProjectForFirstUser = async (userId: string): Promise<void> => {
 	const projectPath = process.env.NAO_DEFAULT_PROJECT_PATH;
 	if (!projectPath) {

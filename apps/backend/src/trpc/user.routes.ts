@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
 
 import * as projectQueries from '../queries/project.queries';
 import * as userQueries from '../queries/user.queries';
-import { checkProjectHasMoreThanOneAdmin } from '../utils/utils';
+import { emailService } from '../services/email.service';
 import { adminProtectedProcedure, projectProtectedProcedure, publicProcedure } from './trpc';
 
 export const userRoutes = {
@@ -35,7 +35,7 @@ export const userRoutes = {
 			const previousName = (await userQueries.get({ id: input.userId }))?.name;
 
 			if (previousRole === 'admin' && input.newRole && input.newRole !== 'admin') {
-				const moreThanOneAdmin = await checkProjectHasMoreThanOneAdmin(ctx.project!.id);
+				const moreThanOneAdmin = await projectQueries.checkProjectHasMoreThanOneAdmin(ctx.project!.id);
 				if (!moreThanOneAdmin) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
@@ -89,9 +89,16 @@ export const userRoutes = {
 				},
 			);
 
+			await emailService.sendEmail({
+				user: newUser,
+				type: 'createUser',
+				projectName: ctx.project?.name,
+				temporaryPassword: password,
+			});
+
 			return { newUser, password };
 		}),
-	searchForUserAndAddToProject: adminProtectedProcedure
+	searchUserAndAddToProject: adminProtectedProcedure
 		.input(
 			z.object({
 				email: z.string().min(1),
@@ -116,6 +123,13 @@ export const userRoutes = {
 				projectId: ctx.project!.id,
 				role: 'user',
 			});
+
+			await emailService.sendEmail({
+				user,
+				type: 'createUser',
+				projectName: ctx.project?.name,
+			});
+
 			return { success: true, message: 'User added to project successfully.' };
 		}),
 };

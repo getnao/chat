@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -16,14 +16,16 @@ export function AddUserDialog() {
 
 	const handleClose = () => {
 		setIsAddUserFormOpen(false);
+		setNeedToCreateUser(false);
+		setDescription('');
 		setEmail('');
 		setName('');
 	};
 
 	const queryClient = useQueryClient();
 
-	const searchUserMutation = useMutation(
-		trpc.user.searchForUserAndAddToProject.mutationOptions({
+	const searchUserAndAddToProject = useMutation(
+		trpc.user.searchUserAndAddToProject.mutationOptions({
 			onSuccess: async (ctx) => {
 				if (ctx.success) {
 					await queryClient.invalidateQueries({
@@ -41,7 +43,7 @@ export function AddUserDialog() {
 		}),
 	);
 
-	const createUserMutation = useMutation(
+	const createUserAndAddToProject = useMutation(
 		trpc.user.createUserAndAddToProject.mutationOptions({
 			onSuccess: async (ctx) => {
 				await queryClient.invalidateQueries({
@@ -61,10 +63,10 @@ export function AddUserDialog() {
 		setError('');
 		setDescription('');
 
-		if (name.length === 0) {
-			await searchUserMutation.mutateAsync({ email });
+		if (needToCreateUser === false) {
+			await searchUserAndAddToProject.mutateAsync({ email });
 		} else {
-			await createUserMutation.mutateAsync({ email, name });
+			await createUserAndAddToProject.mutateAsync({ email, name });
 		}
 	};
 

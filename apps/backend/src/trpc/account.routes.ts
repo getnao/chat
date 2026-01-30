@@ -3,6 +3,8 @@ import { hashPassword } from 'better-auth/crypto';
 import { z } from 'zod/v4';
 
 import * as accountQueries from '../queries/account.queries';
+import * as userQueries from '../queries/user.queries';
+import { emailService } from '../services/email.service';
 import { regexPassword } from '../utils/utils';
 import { adminProtectedProcedure, protectedProcedure } from './trpc';
 
@@ -26,6 +28,12 @@ export const accountRoutes = {
 			const hashedPassword = await hashPassword(password);
 
 			await accountQueries.updateAccountPassword(account.id, hashedPassword, input.userId);
+
+			const user = await userQueries.get({ id: input.userId });
+
+			if (user) {
+				await emailService.sendEmail({ user, type: 'resetPassword', temporaryPassword: password });
+			}
 
 			return { password };
 		}),

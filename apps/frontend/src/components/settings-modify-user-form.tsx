@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -14,8 +13,8 @@ interface ModifyUserInfoProps {
 }
 
 export function ModifyUserForm({ isAdmin }: ModifyUserInfoProps) {
-	const { userInfo, isModifyUserFormOpen, setIsModifyUserFormOpen, setUserInfo } = useUserPageContext();
-	const [error, setError] = useState('');
+	const { userInfo, isModifyUserFormOpen, setIsModifyUserFormOpen, setUserInfo, error, setError } =
+		useUserPageContext();
 
 	const { refetch } = useSession();
 	const queryClient = useQueryClient();
@@ -23,10 +22,10 @@ export function ModifyUserForm({ isAdmin }: ModifyUserInfoProps) {
 	const modifyUser = useMutation(
 		trpc.user.modify.mutationOptions({
 			onSuccess: async () => {
-				await refetch();
 				await queryClient.invalidateQueries({
 					queryKey: trpc.project.getAllUsersWithRoles.queryKey(),
 				});
+				await refetch();
 				setIsModifyUserFormOpen(false);
 			},
 			onError: (err) => {
@@ -41,7 +40,7 @@ export function ModifyUserForm({ isAdmin }: ModifyUserInfoProps) {
 		await modifyUser.mutateAsync({
 			userId: userInfo.id || '',
 			name: userInfo.name || '',
-			newRole: userInfo.role === 'admin' ? undefined : userInfo.role,
+			newRole: userInfo.role,
 		});
 	};
 
@@ -65,7 +64,7 @@ export function ModifyUserForm({ isAdmin }: ModifyUserInfoProps) {
 						/>
 					</div>
 
-					{isAdmin && userInfo.role !== 'admin' && (
+					{isAdmin && (
 						<div className='flex flex-col gap-2'>
 							<label htmlFor='role' className='text-sm font-medium text-slate-700'>
 								Role
@@ -78,6 +77,12 @@ export function ModifyUserForm({ isAdmin }: ModifyUserInfoProps) {
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align='start' className='w-full'>
+									<DropdownMenuItem
+										onClick={() => setUserInfo({ ...userInfo, role: 'admin' })}
+										className={userInfo.role === 'admin' ? 'bg-accent' : ''}
+									>
+										Admin
+									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() => setUserInfo({ ...userInfo, role: 'user' })}
 										className={userInfo.role === 'user' ? 'bg-accent' : ''}

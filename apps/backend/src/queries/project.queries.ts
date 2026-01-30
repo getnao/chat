@@ -34,6 +34,13 @@ export const addProjectMember = async (member: NewProjectMember): Promise<DBProj
 	return created;
 };
 
+export const removeProjectMember = async (projectId: string, userId: string): Promise<void> => {
+	await db
+		.delete(s.projectMember)
+		.where(and(eq(s.projectMember.projectId, projectId), eq(s.projectMember.userId, userId)))
+		.execute();
+};
+
 export const updateProjectMemberRole = async (
 	projectId: string,
 	userId: string,

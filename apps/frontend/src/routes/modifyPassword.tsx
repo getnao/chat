@@ -62,8 +62,8 @@ function ModifyPassword() {
 
 	return (
 		<div className='container mx-auto w-full max-w-2xl p-12 my-auto'>
-			<div className='text-3xl font-bold mb-8 text-center'>Reset Your Password</div>
-
+			<div className='text-3xl font-bold mb-4 text-center'>Reset Your Password</div>
+			<div className='mb-4 text-center'>On the first login, you need to reset your password.</div>
 			<form onSubmit={handleSubmit} className='space-y-6'>
 				<Input
 					name='newPassword'

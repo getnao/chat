@@ -4,6 +4,7 @@ import { z } from 'zod/v4';
 
 import * as projectQueries from '../queries/project.queries';
 import * as userQueries from '../queries/user.queries';
+import { checkProjectHasMoreThanOneAdmin } from '../utils/utils';
 import { adminProtectedProcedure, projectProtectedProcedure, publicProcedure } from './trpc';
 
 export const userRoutes = {
@@ -26,14 +27,27 @@ export const userRoutes = {
 			z.object({
 				userId: z.string(),
 				name: z.string().optional(),
-				newRole: z.enum(['user', 'viewer']).optional(),
+				newRole: z.enum(['user', 'viewer', 'admin']).optional(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.project && input.newRole && input.newRole !== ctx.userRole) {
+			const previousRole = await projectQueries.getUserRoleInProject(ctx.project!.id, input.userId);
+			const previousName = (await userQueries.get({ id: input.userId }))?.name;
+
+			if (previousRole === 'admin' && input.newRole && input.newRole !== 'admin') {
+				const moreThanOneAdmin = await checkProjectHasMoreThanOneAdmin(ctx.project!.id);
+				if (!moreThanOneAdmin) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message: 'The project must have at least one admin user.',
+					});
+				}
+			}
+
+			if (ctx.project && input.newRole && input.newRole !== previousRole) {
 				await projectQueries.updateProjectMemberRole(ctx.project.id, input.userId, input.newRole);
 			}
-			if (input.name && input.name !== ctx.user.name) {
+			if (ctx.project && input.name && input.name !== previousName) {
 				await userQueries.modify({
 					id: input.userId,
 					name: input.name,
@@ -76,5 +90,32 @@ export const userRoutes = {
 			);
 
 			return { newUser, password };
+		}),
+	searchForUserAndAddToProject: adminProtectedProcedure
+		.input(
+			z.object({
+				email: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const user = await userQueries.get({ email: input.email });
+			if (!user) {
+				return {
+					success: false,
+					message: 'Add a name in order to create a new user, no one was found with the provided email.',
+				};
+			}
+
+			const existingMember = await projectQueries.getProjectMember(ctx.project!.id, user.id);
+			if (existingMember) {
+				throw new TRPCError({ code: 'BAD_REQUEST', message: 'User is already a member of the project' });
+			}
+
+			await projectQueries.addProjectMember({
+				userId: user.id,
+				projectId: ctx.project!.id,
+				role: 'user',
+			});
+			return { success: true, message: 'User added to project successfully.' };
 		}),
 };

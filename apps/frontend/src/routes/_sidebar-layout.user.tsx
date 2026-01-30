@@ -29,7 +29,7 @@ function UserPage() {
 	const navigate = useNavigate();
 	const { data: session } = useSession();
 	const user = session?.user;
-	const { setUserInfo, setIsModifyUserFormOpen } = useUserPageContext();
+	const { setUserInfo, setIsModifyUserFormOpen, setError } = useUserPageContext();
 	const queryClient = useQueryClient();
 	const project = useQuery(trpc.project.getCurrent.queryOptions());
 
@@ -62,6 +62,7 @@ function UserPage() {
 								name: user?.name || '',
 								email: user?.email || '',
 							});
+							setError('');
 							setIsModifyUserFormOpen(true);
 						}}
 						onSignOut={handleSignOut}

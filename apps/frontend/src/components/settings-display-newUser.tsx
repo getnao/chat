@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useUserPageContext } from '@/contexts/user.provider';
 
-export function NewlyCreatedUserDialog() {
+export function NewUserDialog() {
 	const { isNewUserDialogOpen, setIsNewUserDialogOpen, newUser } = useUserPageContext();
 	const [copied, setCopied] = useState(false);
 

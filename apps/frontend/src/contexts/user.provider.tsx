@@ -7,14 +7,18 @@ interface UserPageContextType {
 	setUserInfo: (userInfo: Partial<UserWithRole>) => void;
 	isModifyUserFormOpen: boolean;
 	setIsModifyUserFormOpen: (isOpen: boolean) => void;
-	isCreateUserFormOpen: boolean;
-	setIsCreateUserFormOpen: (isOpen: boolean) => void;
+	isAddUserFormOpen: boolean;
+	setIsAddUserFormOpen: (isOpen: boolean) => void;
 	isResetUserPasswordOpen: boolean;
 	setIsResetUserPasswordOpen: (isOpen: boolean) => void;
+	isRemoveUserFromProjectOpen: boolean;
+	setIsRemoveUserFromProjectOpen: (isOpen: boolean) => void;
 	newUser: { email: string; password: string } | null;
 	setNewUser: (newUser: { email: string; password: string } | null) => void;
 	isNewUserDialogOpen: boolean;
 	setIsNewUserDialogOpen: (isOpen: boolean) => void;
+	error: string;
+	setError: (error: string) => void;
 }
 
 const UserPageContext = createContext<UserPageContextType | undefined>(undefined);
@@ -27,10 +31,12 @@ export function UserPageProvider({ children }: { children: ReactNode }) {
 		email: '',
 	});
 	const [isModifyUserFormOpen, setIsModifyUserFormOpen] = useState(false);
-	const [isCreateUserFormOpen, setIsCreateUserFormOpen] = useState(false);
+	const [isAddUserFormOpen, setIsAddUserFormOpen] = useState(false);
 	const [isResetUserPasswordOpen, setIsResetUserPasswordOpen] = useState(false);
+	const [isRemoveUserFromProjectOpen, setIsRemoveUserFromProjectOpen] = useState(false);
 	const [newUser, setNewUser] = useState<{ email: string; password: string } | null>(null);
 	const [isNewUserDialogOpen, setIsNewUserDialogOpen] = useState(false);
+	const [error, setError] = useState('');
 
 	return (
 		<UserPageContext.Provider
@@ -39,14 +45,18 @@ export function UserPageProvider({ children }: { children: ReactNode }) {
 				setUserInfo,
 				isModifyUserFormOpen,
 				setIsModifyUserFormOpen,
-				isCreateUserFormOpen,
-				setIsCreateUserFormOpen,
+				isAddUserFormOpen,
+				setIsAddUserFormOpen,
 				isResetUserPasswordOpen,
 				setIsResetUserPasswordOpen,
+				isRemoveUserFromProjectOpen,
+				setIsRemoveUserFromProjectOpen,
 				newUser,
 				setNewUser,
 				isNewUserDialogOpen,
 				setIsNewUserDialogOpen,
+				error,
+				setError,
 			}}
 		>
 			{children}

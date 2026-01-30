@@ -1,5 +1,7 @@
 import { IncomingHttpHeaders } from 'node:http';
 
+import * as projectQueries from '../queries/project.queries';
+
 /** Convert fastify headers to basic `Headers` for better-auth. */
 export const convertHeaders = (headers: IncomingHttpHeaders) => {
 	const convertedHeaders = new Headers();
@@ -39,3 +41,9 @@ export const isEmailDomainAllowed = (userEmail: string) => {
 };
 
 export const regexPassword = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
+
+export const checkProjectHasMoreThanOneAdmin = async (projectId: string) => {
+	const userWithRoles = await projectQueries.getAllUsersWithRoles(projectId);
+	const nbAdmin = userWithRoles.filter((u) => u.role === 'admin').length;
+	return nbAdmin > 1;
+};

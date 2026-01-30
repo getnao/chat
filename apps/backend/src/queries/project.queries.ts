@@ -86,36 +86,3 @@ export const checkUserHasProject = async (userId: string): Promise<DBProject | n
 
 	return project;
 };
-
-/**
- * Create the default project for an organization.
- * Uses NAO_DEFAULT_PROJECT_PATH env var to determine project path.
- * Returns the project, or null if no path configured or project already exists.
- */
-export const createDefaultProjectForOrganization = async (orgId: string, userId: string): Promise<DBProject | null> => {
-	const projectPath = process.env.NAO_DEFAULT_PROJECT_PATH;
-	if (!projectPath) {
-		return null;
-	}
-
-	const existingProject = await getProjectByPath(projectPath);
-	if (existingProject) {
-		return null;
-	}
-
-	const projectName = projectPath.split('/').pop() || 'Default Project';
-	const project = await createProject({
-		name: projectName,
-		type: 'local',
-		path: projectPath,
-		orgId,
-	});
-
-	await addProjectMember({
-		projectId: project.id,
-		userId,
-		role: 'admin',
-	});
-
-	return project;
-};

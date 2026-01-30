@@ -13,10 +13,8 @@ export const Route = createFileRoute('/modifyPassword')({
 function ModifyPassword() {
 	const navigate = useNavigate();
 	const { data: sessionData, refetch } = useSession();
-	const [formData, setFormData] = useState({
-		newPassword: '',
-		confirmPassword: '',
-	});
+	const [newPassword, setNewPassword] = useState('');
+	const [confirmPassword, setConfirmPassword] = useState('');
 	const [error, setError] = useState('');
 
 	const modifyUserPassword = useMutation(
@@ -31,32 +29,18 @@ function ModifyPassword() {
 		}),
 	);
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const handleSubmit = async () => {
 		setError('');
-
-		if (formData.newPassword !== formData.confirmPassword) {
-			setError('Passwords do not match');
-			e.stopPropagation();
-			return;
-		}
 
 		if (!sessionData?.user?.id) {
 			setError('User not found');
-			e.stopPropagation();
 			return;
 		}
 
 		await modifyUserPassword.mutateAsync({
 			userId: sessionData.user.id,
-			newPassword: formData.newPassword,
-		});
-	};
-
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setFormData({
-			...formData,
-			[e.target.name]: e.target.value,
+			newPassword: newPassword,
+			confirmPassword: confirmPassword,
 		});
 	};
 
@@ -72,8 +56,8 @@ function ModifyPassword() {
 					name='newPassword'
 					type='password'
 					placeholder='New Password'
-					value={formData.newPassword}
-					onChange={handleChange}
+					value={newPassword}
+					onChange={(e) => setNewPassword(e.target.value)}
 					required
 					className='h-12 text-base'
 				/>
@@ -82,8 +66,8 @@ function ModifyPassword() {
 					name='confirmPassword'
 					type='password'
 					placeholder='Confirm New Password'
-					value={formData.confirmPassword}
-					onChange={handleChange}
+					value={confirmPassword}
+					onChange={(e) => setConfirmPassword(e.target.value)}
 					required
 					className='h-12 text-base'
 				/>
@@ -93,7 +77,7 @@ function ModifyPassword() {
 				<Button
 					type='submit'
 					className='w-full h-12 text-base'
-					disabled={!formData.newPassword || !formData.confirmPassword || modifyUserPassword.isPending}
+					disabled={!newPassword || !confirmPassword || modifyUserPassword.isPending}
 				>
 					{modifyUserPassword.isPending ? 'Updating...' : 'Reset Password'}
 				</Button>

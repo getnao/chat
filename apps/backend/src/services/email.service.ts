@@ -248,13 +248,11 @@ This is an automated message from nao.
 				html: email.html,
 				text: email.text,
 			});
-
-			console.log(`✉️  Email sent successfully to ${user.email}`);
 		} catch (error) {
 			console.error(`❌ Failed to send email to ${user.email}:`, error);
-			throw error;
 		}
 	}
 }
 
+// Singleton instance of the email service
 export const emailService = new EmailService();

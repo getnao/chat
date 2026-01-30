@@ -1,5 +1,3 @@
-import { z } from 'zod/v4';
-
 import { adminProtectedProcedure, publicProcedure } from './trpc';
 
 export const googleRoutes = {
@@ -13,21 +11,4 @@ export const googleRoutes = {
 			authDomains: process.env.GOOGLE_AUTH_DOMAINS || '',
 		};
 	}),
-	updateSettings: adminProtectedProcedure
-		.input(
-			z.object({
-				clientId: z.string(),
-				clientSecret: z.string(),
-				authDomains: z.string(),
-			}),
-		)
-		.mutation(({ input }) => {
-			//TO DO : Save google settings in a secure store or database
-
-			// process.env.GOOGLE_CLIENT_ID = input.clientId;
-			// process.env.GOOGLE_CLIENT_SECRET = input.clientSecret;
-			// process.env.GOOGLE_AUTH_DOMAINS = input.authDomains;
-
-			return { success: true };
-		}),
 };

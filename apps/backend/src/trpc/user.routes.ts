@@ -109,7 +109,6 @@ export const userRoutes = {
 			if (!user) {
 				return {
 					success: false,
-					message: 'Add a name in order to create a new user, no one was found with the provided email.',
 				};
 			}
 
@@ -130,6 +129,6 @@ export const userRoutes = {
 				projectName: ctx.project?.name,
 			});
 
-			return { success: true, message: 'User added to project successfully.' };
+			return { success: true };
 		}),
 };

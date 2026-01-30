@@ -10,19 +10,17 @@ export function AddUserDialog() {
 	const { isAddUserFormOpen, setIsAddUserFormOpen, setNewUser, setIsNewUserDialogOpen, error, setError } =
 		useUserPageContext();
 	const [needToCreateUser, setNeedToCreateUser] = useState(false);
-	const [description, setDescription] = useState('');
 	const [email, setEmail] = useState('');
 	const [name, setName] = useState('');
+
+	const queryClient = useQueryClient();
 
 	const handleClose = () => {
 		setIsAddUserFormOpen(false);
 		setNeedToCreateUser(false);
-		setDescription('');
 		setEmail('');
 		setName('');
 	};
-
-	const queryClient = useQueryClient();
 
 	const searchUserAndAddToProject = useMutation(
 		trpc.user.searchUserAndAddToProject.mutationOptions({
@@ -34,7 +32,6 @@ export function AddUserDialog() {
 					handleClose();
 				} else {
 					setNeedToCreateUser(true);
-					setDescription(ctx.message);
 				}
 			},
 			onError: (err) => {
@@ -61,7 +58,6 @@ export function AddUserDialog() {
 
 	const handleSubmit = async () => {
 		setError('');
-		setDescription('');
 
 		if (needToCreateUser === false) {
 			await searchUserAndAddToProject.mutateAsync({ email });
@@ -92,23 +88,27 @@ export function AddUserDialog() {
 					</div>
 				</div>
 				{needToCreateUser && (
-					<div className='flex flex-col gap-4'>
-						<div className='flex flex-col gap-2'>
-							<label htmlFor='name' className='text-sm font-medium text-slate-700'>
-								Name
-							</label>
-							<Input
-								id='name'
-								name='name'
-								type='text'
-								placeholder="Enter the user's name"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-							/>
+					<>
+						<div className='flex flex-col gap-4'>
+							<div className='flex flex-col gap-2'>
+								<label htmlFor='name' className='text-sm font-medium text-slate-700'>
+									Name
+								</label>
+								<Input
+									id='name'
+									name='name'
+									type='text'
+									placeholder="Enter the user's name"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+								/>
+							</div>
 						</div>
-					</div>
+						<div className='text-sm font-medium text-slate-700'>
+							Add a name in order to create a new user, no one was found with the provided email.
+						</div>
+					</>
 				)}
-				{description && <div className='text-sm font-medium text-slate-700'>{description}</div>}
 				{error && <p className='text-red-500 text-center text-base'>{error}</p>}
 				<div className='flex justify-end'>
 					<Button onClick={handleSubmit}>Add user</Button>

@@ -8,7 +8,6 @@ export const useEnforcePasswordReset = () => {
 
 	useEffect(() => {
 		if (!session.isPending && session.data?.user?.requiresPasswordReset) {
-			console.log('Navigating to /modifyPassword');
 			navigate({ to: '/modifyPassword' });
 		}
 	}, [session.isPending, session.data?.user?.requiresPasswordReset, navigate]);

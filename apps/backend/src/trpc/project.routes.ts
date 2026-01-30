@@ -193,6 +193,5 @@ export const projectRoutes = {
 			}
 
 			await projectQueries.removeProjectMember(ctx.project.id, input.userId);
-			return { success: true };
 		}),
 };

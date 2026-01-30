@@ -6,7 +6,7 @@ import * as accountQueries from '../queries/account.queries';
 import * as userQueries from '../queries/user.queries';
 import { emailService } from '../services/email.service';
 import { regexPassword } from '../utils/utils';
-import { adminProtectedProcedure, protectedProcedure } from './trpc';
+import { adminProtectedProcedure, projectProtectedProcedure } from './trpc';
 
 export const accountRoutes = {
 	resetPassword: adminProtectedProcedure
@@ -37,11 +37,12 @@ export const accountRoutes = {
 
 			return { password };
 		}),
-	modifyPassword: protectedProcedure
+	modifyPassword: projectProtectedProcedure
 		.input(
 			z.object({
 				userId: z.string(),
 				newPassword: z.string(),
+				confirmPassword: z.string(),
 			}),
 		)
 		.mutation(async ({ input }) => {
@@ -50,6 +51,13 @@ export const accountRoutes = {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
 					message: 'User account not found or user does not use password authentication.',
+				});
+			}
+
+			if (input.newPassword !== input.confirmPassword) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'Passwords do not match.',
 				});
 			}
 

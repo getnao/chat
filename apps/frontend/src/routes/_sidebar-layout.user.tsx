@@ -12,6 +12,7 @@ import { LlmProvidersSection } from '@/components/settings-llm-providers-section
 import { SlackConfigSection } from '@/components/settings-slack-config-section';
 import { UsersList } from '@/components/settings-display-users';
 import { UserPageProvider, useUserPageContext } from '@/contexts/user.provider';
+import { GoogleConfigSection } from '@/components/settings-google-credentials-section';
 
 export const Route = createFileRoute('/_sidebar-layout/user')({
 	component: RouteComponent,
@@ -116,9 +117,9 @@ function UserPage() {
 						)}
 					</SettingsCard>
 
-					{/* <SettingsCard title='Google Credentials'>
+					<SettingsCard title='Google Credentials'>
 						<GoogleConfigSection isAdmin={isAdmin} />
-					</SettingsCard> */}
+					</SettingsCard>
 
 					{/* Appearance Section */}
 					<SettingsCard title='Appearance'>

@@ -41,18 +41,12 @@ export const removeProjectMember = async (projectId: string, userId: string): Pr
 		.execute();
 };
 
-export const updateProjectMemberRole = async (
-	projectId: string,
-	userId: string,
-	newRole: UserRole,
-): Promise<DBProjectMember> => {
-	const [updatedMember] = await db
+export const updateProjectMemberRole = async (projectId: string, userId: string, newRole: UserRole): Promise<void> => {
+	await db
 		.update(s.projectMember)
 		.set({ role: newRole })
 		.where(and(eq(s.projectMember.projectId, projectId), eq(s.projectMember.userId, userId)))
-		.returning();
-
-	return updatedMember;
+		.execute();
 };
 
 export const listUserProjects = async (userId: string): Promise<DBProject[]> => {
@@ -109,7 +103,7 @@ export const checkUserHasProject = async (userId: string): Promise<DBProject | n
 	return project;
 };
 
-export const checkProjectHasMoreThanOneAdmin = async (projectId: string) => {
+export const checkProjectHasMoreThanOneAdmin = async (projectId: string): Promise<boolean> => {
 	const userWithRoles = await getAllUsersWithRoles(projectId);
 	const nbAdmin = userWithRoles.filter((u) => u.role === 'admin').length;
 	return nbAdmin > 1;

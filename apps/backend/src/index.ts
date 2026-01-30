@@ -1,3 +1,5 @@
+import './env';
+
 import app from './app';
 import { assignAdminToOrphanedProject } from './queries/project.queries';
 

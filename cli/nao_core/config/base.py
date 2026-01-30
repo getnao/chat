@@ -1,13 +1,16 @@
 import os
 import re
 from pathlib import Path
+from typing import cast
 
 import dotenv
 import yaml
 from ibis import BaseBackend
 from pydantic import BaseModel, Field, model_validator
 
-from .databases import AnyDatabaseConfig, parse_database_config
+from nao_core.ui import UI, ask_confirm, ask_select
+
+from .databases import DATABASE_CONFIG_CLASSES, AnyDatabaseConfig, DatabaseType, parse_database_config
 from .llm import LLMConfig
 from .notion import NotionConfig
 from .repos import RepoConfig
@@ -33,6 +36,134 @@ class NaoConfig(BaseModel):
         if "databases" in data and isinstance(data["databases"], list):
             data["databases"] = [parse_database_config(db) if isinstance(db, dict) else db for db in data["databases"]]
         return data
+
+    @classmethod
+    def promptConfig(cls, project_name: str, existing: "NaoConfig | None" = None) -> "NaoConfig":
+        """Interactively prompt the user for all nao configuration options.
+
+        If existing config is provided, shows current items and allows adding more.
+        """
+        if existing:
+            return cls._prompt_extend(existing)
+
+        return cls(
+            project_name=project_name,
+            databases=cls._prompt_databases(),
+            repos=cls._prompt_repos(),
+            llm=cls._prompt_llm(),
+            slack=cls._prompt_slack(),
+            notion=cls._prompt_notion(),
+        )
+
+    @classmethod
+    def _prompt_extend(cls, existing: "NaoConfig") -> "NaoConfig":
+        """Extend an existing config by adding more items."""
+        databases = list(existing.databases)
+        repos = list(existing.repos)
+        llm = existing.llm
+        slack = existing.slack
+        notion = existing.notion
+
+        # Show current config summary
+        UI.title("Current Configuration")
+        if databases:
+            UI.print(f"  Databases: {', '.join(db.name for db in databases)}")
+        if repos:
+            UI.print(f"  Repos: {', '.join(r.name for r in repos)}")
+        if llm:
+            UI.print(f"  LLM: {llm.provider}")
+        if slack:
+            UI.print("  Slack: configured")
+        if notion:
+            UI.print("  Notion: configured")
+        UI.print()
+
+        # Prompt for additions
+        databases.extend(cls._prompt_databases(has_existing=bool(existing.databases)))
+        repos.extend(cls._prompt_repos(has_existing=bool(existing.repos)))
+
+        if not llm:
+            llm = cls._prompt_llm()
+
+        if not slack:
+            slack = cls._prompt_slack()
+
+        if not notion:
+            notion = cls._prompt_notion()
+
+        return cls(
+            project_name=existing.project_name,
+            databases=databases,
+            repos=repos,
+            llm=llm,
+            slack=slack,
+            notion=notion,
+        )
+
+    @staticmethod
+    def _prompt_databases(has_existing: bool = False) -> list[AnyDatabaseConfig]:
+        """Prompt for database configurations using questionary."""
+        databases: list[AnyDatabaseConfig] = []
+
+        prompt = "Add more database connections?" if has_existing else "Set up database connections?"
+        if not ask_confirm(prompt, default=not has_existing):
+            return databases
+
+        while True:
+            UI.title("Database Configuration")
+
+            db_type = ask_select("Select database type:", choices=DatabaseType.choices())
+
+            config_class = DATABASE_CONFIG_CLASSES[DatabaseType(db_type)]
+            db_config = cast(AnyDatabaseConfig, config_class.promptConfig())
+            databases.append(db_config)
+
+            UI.success(f"Added database: {db_config.name}")
+
+            if not ask_confirm("Add another database?", default=False):
+                break
+
+        return databases
+
+    @staticmethod
+    def _prompt_repos(has_existing: bool = False) -> list[RepoConfig]:
+        """Prompt for repository configurations using questionary."""
+        repos: list[RepoConfig] = []
+
+        prompt = "Add more git repositories?" if has_existing else "Set up git repositories?"
+        if not ask_confirm(prompt, default=not has_existing):
+            return repos
+
+        while True:
+            repo_config = RepoConfig.promptConfig()
+            repos.append(repo_config)
+            UI.success(f"Added repository: {repo_config.name}")
+
+            if not ask_confirm("Add another repository?", default=False):
+                break
+
+        return repos
+
+    @staticmethod
+    def _prompt_llm() -> LLMConfig | None:
+        """Prompt for LLM configuration using questionary."""
+        if ask_confirm("Set up LLM configuration?", default=True):
+            return LLMConfig.promptConfig()
+        return None
+
+    @staticmethod
+    def _prompt_slack() -> SlackConfig | None:
+        """Prompt for Slack configuration using questionary."""
+        if ask_confirm("Set up Slack integration?", default=False):
+            return SlackConfig.promptConfig()
+        return None
+
+    @staticmethod
+    def _prompt_notion() -> NotionConfig | None:
+        """Prompt for Notion configuration using questionary."""
+        if ask_confirm("Set up Notion integration?", default=False):
+            return NotionConfig.promptConfig()
+        return None
 
     def save(self, path: Path) -> None:
         """Save the configuration to a YAML file."""

@@ -1,5 +1,5 @@
 {
-  "id": "2a5eca7f-12e1-41e4-88a9-630a1b6803d4",
+  "id": "9c52f067-9376-4114-8a6f-40e88b48474d",
   "prevId": "aafed8bb-ee2e-4a38-b934-8ba27f382601",
   "version": "7",
   "dialect": "postgresql",
@@ -750,20 +750,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "logo": {
           "name": "logo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "app_name": {
-          "name": "app_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -804,15 +792,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "organization_slug_unique": {
-          "name": "organization_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

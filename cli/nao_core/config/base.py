@@ -1,13 +1,15 @@
 import os
 import re
+import sys
 from pathlib import Path
 
 import dotenv
 import yaml
 from ibis import BaseBackend
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ValidationError
+from rich.console import Console
 
-from .databases import AnyDatabaseConfig, parse_database_config
+from .databases import AnyDatabaseConfig
 from .llm import LLMConfig
 from .notion import NotionConfig
 from .repos import RepoConfig
@@ -25,14 +27,6 @@ class NaoConfig(BaseModel):
     notion: NotionConfig | None = Field(default=None, description="The Notion configurations")
     llm: LLMConfig | None = Field(default=None, description="The LLM configuration")
     slack: SlackConfig | None = Field(default=None, description="The Slack configuration")
-
-    @model_validator(mode="before")
-    @classmethod
-    def parse_databases(cls, data: dict) -> dict:
-        """Parse database configs into their specific types."""
-        if "databases" in data and isinstance(data["databases"], list):
-            data["databases"] = [parse_database_config(db) if isinstance(db, dict) else db for db in data["databases"]]
-        return data
 
     def save(self, path: Path) -> None:
         """Save the configuration to a YAML file."""
@@ -67,20 +61,64 @@ class NaoConfig(BaseModel):
         return {db.name: db.connect() for db in self.databases}
 
     @classmethod
-    def try_load(cls, path: Path | None = None) -> "NaoConfig | None":
-        """Try to load config from path, returns None if not found or invalid.
+    def try_load(
+        cls,
+        path: Path | None = None,
+        *,
+        exit_on_error: bool = False,
+    ) -> "NaoConfig | None":
+        """Try to load config from path.
 
         Args:
             path: Directory containing nao_config.yaml. Defaults to NAO_DEFAULT_PROJECT_PATH
                   environment variable if set, otherwise current directory.
+            exit_on_error: If True, prints error message and calls sys.exit(1) on failure.
+                If False (default), returns None on failure.
+        Returns:
+            NaoConfig if loaded successfully, None if failed and exit_on_error=False.
+            Never returns None when exit_on_error=True (exits instead).
         """
         if path is None:
             default_path = os.environ.get("NAO_DEFAULT_PROJECT_PATH")
             path = Path(default_path) if default_path else Path.cwd()
+
+        config_file = path / "nao_config.yaml"
+
+        # Check if file exists first
+        if not config_file.exists():
+            if exit_on_error:
+                console = Console()
+                console.print("[bold red]✗[/bold red] No nao_config.yaml found in current directory")
+                sys.exit(1)
+            return None
+
         try:
             os.chdir(path)
             return cls.load(path)
-        except (FileNotFoundError, ValueError, yaml.YAMLError):
+        except yaml.YAMLError as e:
+            if exit_on_error:
+                console = Console()
+                console.print("[bold red]✗[/bold red] Failed to load nao_config.yaml:")
+                console.print(f"[red]Invalid YAML syntax: {e}[/red]")
+                sys.exit(1)
+            return None
+        except ValidationError as e:
+            if exit_on_error:
+                console = Console()
+                console.print("[bold red]✗[/bold red] Failed to load nao_config.yaml:")
+                console.print()
+                for error in e.errors():
+                    loc = " → ".join(str(x) for x in error["loc"]) if error["loc"] else "config"
+                    console.print(f"  [red]•[/red] [bold]{loc}[/bold]: {error['msg']}")
+                console.print()
+                sys.exit(1)
+            return None
+        except ValueError as e:
+            if exit_on_error:
+                console = Console()
+                console.print("[bold red]✗[/bold red] Failed to load nao_config.yaml:")
+                console.print(f"[red]{e}[/red]")
+                sys.exit(1)
             return None
 
     @classmethod

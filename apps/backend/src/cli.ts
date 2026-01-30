@@ -8,6 +8,8 @@
  *   nao-chat-server (defaults to serve)
  */
 
+import './env';
+
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';

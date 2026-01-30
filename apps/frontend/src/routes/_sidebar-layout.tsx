@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { Sidebar } from '@/components/sidebar';
+import { CommandMenu } from '@/components/command-menu';
 import { useEnforcePasswordReset } from '@/hooks/useEnforcePasswordReset';
 
 export const Route = createFileRoute('/_sidebar-layout')({
@@ -16,6 +17,7 @@ function RouteComponent() {
 	return (
 		<>
 			<Sidebar />
+			<CommandMenu />
 			<Outlet />
 		</>
 	);

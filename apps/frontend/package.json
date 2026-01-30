@@ -22,6 +22,7 @@
 		"@radix-ui/react-slot": "^1.2.4",
 		"@tailwindcss/vite": "^4.0.6",
 		"@tanstack/react-devtools": "^0.7.0",
+		"@tanstack/react-form": "^1.28.0",
 		"@tanstack/react-query": "^5.90.16",
 		"@tanstack/react-router": "^1.132.0",
 		"@tanstack/react-router-devtools": "^1.132.0",
@@ -44,7 +45,8 @@
 		"superjson": "^2.2.6",
 		"tailwind-merge": "^3.4.0",
 		"tailwindcss": "^4.0.6",
-		"use-stick-to-bottom": "^1.1.1"
+		"use-stick-to-bottom": "^1.1.1",
+		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@tanstack/devtools-vite": "^0.3.11",

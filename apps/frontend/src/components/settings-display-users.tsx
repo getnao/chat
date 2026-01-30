@@ -5,7 +5,7 @@ import { NewlyCreatedUserDialog } from './settings-display-newUser';
 import { trpc } from '@/main';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreateUserForm } from '@/components/settings-create-user-form';
+import { CreateUser } from '@/components/settings/create-user/create-user';
 import { Badge } from '@/components/ui/badge';
 
 interface UsersListProps {
@@ -61,14 +61,15 @@ export function UsersList({ isAdmin, onModifyUser }: UsersListProps) {
 					</TableBody>
 				</Table>
 			)}
-
-			<CreateUserForm
-				open={isCreateUserOpen}
-				onOpenChange={setIsCreateUserOpen}
-				onUserCreated={(email, password) => {
-					setNewUser({ email, password });
-				}}
-			/>
+			{isCreateUserOpen && (
+				<CreateUser
+					open={isCreateUserOpen}
+					onOpenChange={setIsCreateUserOpen}
+					onUserCreated={(email, password) => {
+						setNewUser({ email, password });
+					}}
+				/>
+			)}
 			<NewlyCreatedUserDialog
 				open={!!newUser}
 				onOpenChange={(open) => !open && setNewUser(null)}

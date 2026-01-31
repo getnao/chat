@@ -1,7 +1,7 @@
 import app from './app';
-import { assignAdminToOrphanedProject } from './queries/project.queries';
+import { ensureOrganizationSetup } from './queries/organization.queries';
 
-assignAdminToOrphanedProject()
+ensureOrganizationSetup()
 	.then(() => {
 		return app.listen({ host: '0.0.0.0', port: 5005 });
 	})

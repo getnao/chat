@@ -23,6 +23,10 @@ jobs:
                       platform: linux
                       arch: x64
                       wheel-tag: manylinux2014_x86_64
+                    - os: ubuntu-24.04-arm
+                      platform: linux
+                      arch: arm64
+                      wheel-tag: manylinux2014_aarch64
 
         runs-on: ${{ matrix.os }}
 

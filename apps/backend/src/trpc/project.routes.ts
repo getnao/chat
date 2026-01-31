@@ -136,7 +136,7 @@ export const projectRoutes = {
 				}
 			: null;
 
-		const baseUrl = process.env.REDIRECT_URL || '';
+		const baseUrl = process.env.BETTER_AUTH_URL || '';
 		return {
 			projectConfig,
 			hasEnvConfig,

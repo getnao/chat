@@ -75,7 +75,7 @@ export async function getSlackConfig(): Promise<SlackConfig | null> {
 
 	const botToken = project.slackBotToken || process.env.SLACK_BOT_TOKEN;
 	const signingSecret = project.slackSigningSecret || process.env.SLACK_SIGNING_SECRET;
-	const redirectUrl = process.env.REDIRECT_URL || 'http://localhost:3000/';
+	const redirectUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000/';
 
 	if (!botToken || !signingSecret) {
 		return null;

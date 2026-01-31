@@ -12,7 +12,7 @@ export const auth = betterAuth({
 		provider: dbConfig.dialect === Dialect.Postgres ? 'pg' : 'sqlite',
 		schema: dbConfig.schema,
 	}),
-	trustedOrigins: process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(',') : undefined,
+	trustedOrigins: process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : undefined,
 	emailAndPassword: {
 		enabled: true,
 	},

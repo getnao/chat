@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ModifyPasswordRouteImport } from './routes/modifyPassword'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SidebarLayoutRouteImport } from './routes/_sidebar-layout'
 import { Route as SidebarLayoutUserRouteImport } from './routes/_sidebar-layout.user'
@@ -20,6 +21,11 @@ import { Route as SidebarLayoutChatLayoutChatIdRouteImport } from './routes/_sid
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModifyPasswordRoute = ModifyPasswordRouteImport.update({
+  id: '/modifyPassword',
+  path: '/modifyPassword',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -55,6 +61,7 @@ const SidebarLayoutChatLayoutChatIdRoute =
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
+  '/modifyPassword': typeof ModifyPasswordRoute
   '/signup': typeof SignupRoute
   '/user': typeof SidebarLayoutUserRoute
   '/$chatId': typeof SidebarLayoutChatLayoutChatIdRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/modifyPassword': typeof ModifyPasswordRoute
   '/signup': typeof SignupRoute
   '/user': typeof SidebarLayoutUserRoute
   '/$chatId': typeof SidebarLayoutChatLayoutChatIdRoute
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_sidebar-layout': typeof SidebarLayoutRouteWithChildren
   '/login': typeof LoginRoute
+  '/modifyPassword': typeof ModifyPasswordRoute
   '/signup': typeof SignupRoute
   '/_sidebar-layout/_chat-layout': typeof SidebarLayoutChatLayoutRouteWithChildren
   '/_sidebar-layout/user': typeof SidebarLayoutUserRoute
@@ -79,13 +88,20 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/signup' | '/user' | '/$chatId' | '/'
+  fullPaths:
+    | '/login'
+    | '/modifyPassword'
+    | '/signup'
+    | '/user'
+    | '/$chatId'
+    | '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/signup' | '/user' | '/$chatId' | '/'
+  to: '/login' | '/modifyPassword' | '/signup' | '/user' | '/$chatId' | '/'
   id:
     | '__root__'
     | '/_sidebar-layout'
     | '/login'
+    | '/modifyPassword'
     | '/signup'
     | '/_sidebar-layout/_chat-layout'
     | '/_sidebar-layout/user'
@@ -96,6 +112,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   SidebarLayoutRoute: typeof SidebarLayoutRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ModifyPasswordRoute: typeof ModifyPasswordRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -106,6 +123,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modifyPassword': {
+      id: '/modifyPassword'
+      path: '/modifyPassword'
+      fullPath: '/modifyPassword'
+      preLoaderRoute: typeof ModifyPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -186,6 +210,7 @@ const SidebarLayoutRouteWithChildren = SidebarLayoutRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   SidebarLayoutRoute: SidebarLayoutRouteWithChildren,
   LoginRoute: LoginRoute,
+  ModifyPasswordRoute: ModifyPasswordRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport

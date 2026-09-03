@@ -45,6 +45,13 @@ const settingsNavGroups: NavGroup[] = [
 				visible: ({ isViewer }) => !isViewer,
 			},
 			{
+				label: 'User Groups',
+				to: '/settings/project/user-groups',
+				visible: ({ isAdmin }) => isAdmin,
+				badge: 'Enterprise',
+				badgeVariant: 'enterprise',
+			},
+			{
 				label: 'Agent',
 				to: '/settings/project/agent',
 				visible: ({ isViewer }) => !isViewer,

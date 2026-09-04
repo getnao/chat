@@ -1,0 +1,151 @@
+Begin on this, fetch it, work on it
+
+ #1496
+
+---
+
+First let's resolve conflicts
+
+Do main.py first, not that exclude columns guard was actually renamed to columns access per CTO's complaints
+
+---
+
+cool, now adapt the test
+And resolve bigquery, it's easy
+
+---
+
+ok good now we ready to begin user groups
+
+Have you understood fully the issue, I know it's huge
+
+---
+
+for the paid aspect, we can just gate the whole feature behind the licence, that's simpler for now
+
+We'll see once we're onto RLS, you'll ask me then
+
+First I'd like to see some page called User Groups, project level
+
+That shows the list of everybody who has access to that project (through project or org), their role, and then toggles to tons of things, as issue describes
+
+---
+
+yeah pretty much, and then there would be a detailled group creation panel where you say what you allow
+
+---
+
+Need an udpated local licence that contains all features to test this
+
+---
+
+There is a title and headline duplication here
+
+---
+
+help me setup metabase, I wanna see how they handle their group permissions UI
+https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker
+
+---
+
+no no you don't run the commands, I do
+
+---
+
+where do I see their group permissions?
+
+---
+
+ok so
+
+Plan on Context permissions
+
+project-level feature
+allow-only, not restrict of any kind
+
+
+
+3 kinds of things that can be given access to: 
+Features, Context permissions (strict, exclude columns) & RLS
+
+Will begin with Features-only
+
+
+Data model: follow exactly what issue describes
+
+
+
+
+I see one User Groups page with a big table, listing everybody that has access to the project
+That would be all project members, and all org members who inherit access to that project, perhaps separating these two teams would help
+each one's effective role should be shown
+
+
+Then I wonder if it should be one columns per group, with toggles for each, cause that doesn't scale well at all...
+
+Ok yeah for now I think we can just do a dropdown, such that for each row I can one's group by clicking and it shows in a dropdown all existing groups, with ticks to adjust that, that way instead of tons of columns, we do list all groups but for one user at a time.
+
+
+
+Then the create group page is super important since it's so vast.
+I Imagine a big popup dialog, with three tabs: Features, Context, Security.
+Add the tabs, but leave Context and Security blank for now, they're placeholders until we're done with Features.
+
+---
+
+what is this supposed to be?
+
+---
+
+no that's useless
+same for Effective Role, call it Role
+
+Then for the separation I like the small gray banners, just call em "Project Team" and "Organisation Members", and maybe a little spacing between the project team list, and org members
+
+---
+
+awful the blank space between project team list and org members
+
+Let's refine the table in such a way that project team and org members are clearly separated yet the column names are writtten once and blend well with both the tables
+
+I imagine do that with a wider columns row, equal spacing between column names row and project team banner, than with end of project team list and org members list
+Does that make sense?
+
+---
+
+ok UI is acceptable now
+
+are the features functionnal?
+
+---
+
+yeah okay, so just what exactly is done as of now regarding the issue, is it only the migration, so the DB data model, and the UI?
+
+---
+
+ok I see, so let's focus on enforcing feature grants right now
+This seems pretty much that if stories are not toggled, allowed in the user's groups, he doesn't even see the stories button in sidebar
+
+
+By the way, here I think we can improve the group list here, especially cause there's space, so we could list as many groups as we can, or add a + 3 for the rest if no space is available
+
+---
+
+still not done wtf
+
+---
+
+With stories removed, the page is not longer listed and shorctut doesn't work: good.
+But though it's still listed, in keyboards helper
+
+---
+
+What is compact mode?
+
+---
+
+ok where is its toggle
+
+---
+
+give commit message for current changes

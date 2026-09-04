@@ -12,13 +12,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SettingsCard } from '@/components/ui/settings-card';
 import { useTimeAgo } from '@/hooks/use-time-ago';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { getActiveProjectId } from '@/lib/active-project';
 import { requireAutomationsEnabled } from '@/lib/require-admin';
+import { requireUserGroupFeature } from '@/lib/require-user-group-feature';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/main';
 
 export const Route = createFileRoute('/_sidebar-layout/feed/')({
-	beforeLoad: requireAutomationsEnabled,
+	beforeLoad: async () => {
+		await requireAutomationsEnabled();
+		await requireUserGroupFeature('automations');
+	},
 	component: AutomationsPage,
 });
 
@@ -26,6 +31,7 @@ function AutomationsPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const [isCreating, setIsCreating] = useState(false);
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 
 	const automations = useQuery(trpc.automation.list.queryOptions());
 	const feed = useQuery(
@@ -63,7 +69,9 @@ function AutomationsPage() {
 					<div>
 						<h1 className='text-xl font-semibold tracking-tight'>Feed</h1>
 						<p className='text-sm text-muted-foreground'>
-							Catch up on all your activity (automations, stories). Latest first.
+							{storiesEnabled
+								? 'Catch up on all your activity (automations, stories). Latest first.'
+								: 'Catch up on your automation activity. Latest first.'}
 						</p>
 					</div>
 					<Button variant='primary-gradient' onClick={() => setIsCreating((value) => !value)}>
@@ -88,6 +96,7 @@ function AutomationsPage() {
 							items={feedItems}
 							isLoading={feed.isLoading}
 							hasAutomations={automationItems.length > 0}
+							storiesEnabled={storiesEnabled}
 							lastSeenAt={lastSeenAt}
 							onCancelRun={handleCancelRun}
 							cancellingRunId={cancelRun.isPending ? (cancelRun.variables?.runId ?? null) : null}

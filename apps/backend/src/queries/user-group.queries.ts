@@ -1,16 +1,19 @@
 import { USER_GROUP_FEATURES, type UserGroupFeature } from '@nao/shared';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, or } from 'drizzle-orm';
 
 import type { DBUserGroup } from '../db/abstractSchema';
 import s from '../db/abstractSchema';
 import { db } from '../db/db';
-import type { UserWithRole } from '../types/project';
-import { listUsersWithProjectAccess } from './project.queries';
+import {
+	listUsersWithProjectAccess,
+	listUsersWithProjectAccessDetails,
+	type UserWithProjectAccessDetails,
+} from './project.queries';
 
 export const DEFAULT_USER_GROUP_NAME = 'All Users';
 
 export interface UserGroupOverview {
-	users: UserWithRole[];
+	users: UserWithProjectAccessDetails[];
 	groups: DBUserGroup[];
 	memberships: Array<{ groupId: string; userId: string }>;
 }
@@ -27,7 +30,7 @@ export class UserGroupQueryError extends Error {
 export const getUserGroupOverview = async (projectId: string): Promise<UserGroupOverview> => {
 	await ensureDefaultUserGroup(projectId);
 	const [users, groups, storedMemberships] = await Promise.all([
-		listUsersWithProjectAccess(projectId),
+		listUsersWithProjectAccessDetails(projectId),
 		listUserGroups(projectId),
 		listUserGroupMemberships(projectId),
 	]);
@@ -64,6 +67,30 @@ export const ensureDefaultUserGroup = async (projectId: string): Promise<DBUserG
 		throw new UserGroupQueryError('CONFLICT', 'The All Users group could not be created.');
 	}
 	return group;
+};
+
+export const resolveEffectiveUserGroupFeatures = async (
+	projectId: string,
+	userId: string,
+): Promise<UserGroupFeature[]> => {
+	await ensureDefaultUserGroup(projectId);
+	const groups = await db
+		.select({ featureGrants: s.userGroup.featureGrants })
+		.from(s.userGroup)
+		.leftJoin(
+			s.userGroupMember,
+			and(eq(s.userGroupMember.groupId, s.userGroup.id), eq(s.userGroupMember.userId, userId)),
+		)
+		.where(
+			and(
+				eq(s.userGroup.projectId, projectId),
+				or(eq(s.userGroup.isDefault, true), isNotNull(s.userGroupMember.userId)),
+			),
+		)
+		.orderBy(desc(s.userGroup.isDefault))
+		.execute();
+
+	return [...new Set(groups.flatMap((group) => group.featureGrants))];
 };
 
 export const listUserGroups = async (projectId: string): Promise<DBUserGroup[]> =>

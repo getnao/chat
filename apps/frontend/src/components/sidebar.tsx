@@ -29,6 +29,7 @@ import { useCommandMenuCallback } from '@/contexts/command-menu-callback';
 import { useSidebar } from '@/contexts/sidebar';
 import { brandingAssetUrl, useBranding } from '@/hooks/use-branding';
 import { useChatViewPreferences } from '@/hooks/use-chat-view-preferences';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useIsCloud } from '@/hooks/use-nao-mode';
 import { useProjectSwitch } from '@/hooks/use-project-switch';
 import { useSidebarSectionOpen } from '@/hooks/use-sidebar-section-open';
@@ -54,8 +55,10 @@ export function Sidebar() {
 	const branding = useBranding();
 	const customColor = branding.enabled ? branding.brandColor : null;
 	const { isAdmin, isContextAdmin, isViewer } = usePermissions();
+	const { storiesEnabled, automationsEnabled } = useEffectiveUserGroupFeatures();
 	const isCloud = useIsCloud();
 	const betaAutomationsEnabled = config.data?.betaAutomationsEnabled === true;
+	const showAutomations = !isViewer && betaAutomationsEnabled && automationsEnabled;
 	const { groupBy, filters, setGroupBy, toggleFilter } = useChatViewPreferences();
 
 	const locationPath = useRouterState({ select: (s) => s.location.pathname });
@@ -231,14 +234,16 @@ export function Sidebar() {
 								isCollapsed={effectiveIsCollapsed}
 								onClick={handleSearchChats}
 							/>
-							<SidebarMenuButton
-								icon={StoryIcon as unknown as LucideIcon}
-								label='Stories'
-								shortcut={getShortcutLabel('go-to-stories')}
-								isCollapsed={effectiveIsCollapsed}
-								onClick={handleNavigateStories}
-							/>
-							{!isViewer && betaAutomationsEnabled && (
+							{storiesEnabled && (
+								<SidebarMenuButton
+									icon={StoryIcon as unknown as LucideIcon}
+									label='Stories'
+									shortcut={getShortcutLabel('go-to-stories')}
+									isCollapsed={effectiveIsCollapsed}
+									onClick={handleNavigateStories}
+								/>
+							)}
+							{showAutomations && (
 								<SidebarMenuButton
 									icon={NewspaperIcon as unknown as LucideIcon}
 									label='Feed'
@@ -262,10 +267,7 @@ export function Sidebar() {
 				/>
 			) : (
 				<>
-					<SidebarAutomationsNav
-						isCollapsed={effectiveIsCollapsed}
-						enabled={!isViewer && betaAutomationsEnabled}
-					/>
+					<SidebarAutomationsNav isCollapsed={effectiveIsCollapsed} enabled={showAutomations} />
 					<SidebarChatHeader
 						isCollapsed={effectiveIsCollapsed}
 						groupBy={groupBy}

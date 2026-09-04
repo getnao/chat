@@ -28,6 +28,7 @@ import {
 	createUserGroup,
 	deleteUserGroup,
 	getUserGroupOverview,
+	resolveEffectiveUserGroupFeatures,
 	setUserGroupMembership,
 	updateUserGroup,
 	UserGroupQueryError,
@@ -86,7 +87,18 @@ describe('user group queries', () => {
 		expect(overview.users.map(({ id }) => id).sort()).toEqual(
 			[BOTH_USER_ID, DIRECT_USER_ID, INHERITED_USER_ID].sort(),
 		);
-		expect(overview.users.find(({ id }) => id === BOTH_USER_ID)?.role).toBe('viewer');
+		expect(overview.users.find(({ id }) => id === DIRECT_USER_ID)).toMatchObject({
+			role: 'admin',
+			source: 'project',
+		});
+		expect(overview.users.find(({ id }) => id === INHERITED_USER_ID)).toMatchObject({
+			role: 'user',
+			source: 'organization',
+		});
+		expect(overview.users.find(({ id }) => id === BOTH_USER_ID)).toMatchObject({
+			role: 'viewer',
+			source: 'both',
+		});
 		expect(overview.memberships.filter(({ groupId }) => groupId === defaultGroup?.id)).toHaveLength(3);
 		expect(await getUserGroupOverview(PROJECT_ID)).toMatchObject({
 			groups: [expect.objectContaining({ isDefault: true })],
@@ -127,6 +139,55 @@ describe('user group queries', () => {
 		await updateUserGroup(PROJECT_ID, defaultGroup.id, { featureGrants: ['automations'] });
 		await deleteUserGroup(PROJECT_ID, group.id);
 		expect((await getUserGroupOverview(PROJECT_ID)).groups).toHaveLength(1);
+	});
+
+	it('resolves every feature for an untouched project', async () => {
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
+			'stories',
+			'automations',
+			'compact-mode',
+		]);
+	});
+
+	it('unions grants from the default and explicit groups', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['stories'] });
+		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['automations']);
+		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
+
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
+			'stories',
+			'automations',
+		]);
+	});
+
+	it('uses a custom group when the default has no grants', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: [] });
+		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['compact-mode']);
+		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
+
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual(['compact-mode']);
+	});
+
+	it('deduplicates grants shared by multiple groups', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['stories'] });
+		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['stories', 'automations']);
+		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
+
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
+			'stories',
+			'automations',
+		]);
+	});
+
+	it('only uses the default group without explicit memberships', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['automations'] });
+		await createUserGroup(PROJECT_ID, 'Analysts', ['stories']);
+
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual(['automations']);
 	});
 });
 

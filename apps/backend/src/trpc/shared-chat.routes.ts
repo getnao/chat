@@ -13,6 +13,7 @@ import { logAnalyticsEvent } from '../utils/analytics-event';
 import { notifySharedItemRecipients } from '../utils/email';
 import { buildDownloadResponse } from '../utils/story-download';
 import { canSendProcedure, protectedProcedure, resourceProjectProcedure } from './trpc';
+import { assertUserGroupFeatureForTrpc } from './user-group-feature-access';
 
 const chatProcedure = resourceProjectProcedure('chatId', chatQueries.getChatInfo, 'Chat');
 const shareProcedure = resourceProjectProcedure('shareId', sharedChatQueries.getSharedChatInfo, 'Shared chat');
@@ -175,6 +176,7 @@ export const sharedChatRoutes = {
 		)
 		.query(async ({ input, ctx }) => {
 			const share = ctx.resource;
+			await assertUserGroupFeatureForTrpc(share.projectId, ctx.user.id, 'stories');
 
 			const version = input.versionNumber
 				? await storyQueries.getVersionByNumber(share.chatId, input.storySlug, input.versionNumber)

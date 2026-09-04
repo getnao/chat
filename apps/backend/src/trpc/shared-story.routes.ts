@@ -27,6 +27,7 @@ import {
 	protectedProcedure,
 	resourceProjectProcedure,
 } from './trpc';
+import { assertUserGroupFeatureForTrpc } from './user-group-feature-access';
 
 const chatProcedure = resourceProjectProcedure('chatId', chatQueries.getChatInfo, 'Chat');
 const shareProcedure = resourceProjectProcedure('shareId', sharedStoryQueries.getSharedStory, 'Shared story');
@@ -39,11 +40,22 @@ const shareAccessProcedure = resourceProjectProcedure(
 		item.userId === userId ||
 		sharedStoryQueries.canUserAccessSharedStory(item.id, userId),
 );
+const chatStoryProcedure = chatProcedure.use(async ({ ctx, next }) => {
+	await assertUserGroupFeatureForTrpc(ctx.resource.projectId, ctx.user.id, 'stories');
+	return next();
+});
+const shareAccessStoryProcedure = shareAccessProcedure.use(async ({ ctx, next }) => {
+	await assertUserGroupFeatureForTrpc(ctx.resource.projectId, ctx.user.id, 'stories');
+	return next();
+});
 
 export const sharedStoryRoutes = {
 	list: protectedProcedure.input(z.object({ projectId: z.string() })).query(async ({ input, ctx }) => {
 		const projects = await projectQueries.listUserProjects(ctx.user.id);
 		const projectIds = projects.map((p) => p.id);
+		if (projectIds.includes(input.projectId)) {
+			await assertUserGroupFeatureForTrpc(input.projectId, ctx.user.id, 'stories');
+		}
 		const stories = await sharedStoryQueries.listUserSharedStories(projectIds, ctx.user.id, input.projectId);
 		return stories.map((story) => ({
 			...story,
@@ -82,6 +94,7 @@ export const sharedStoryRoutes = {
 			if (storyProjectId !== ctx.project.id) {
 				throw new TRPCError({ code: 'NOT_FOUND', message: 'Story not found in this project.' });
 			}
+			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 
 			if (input.visibility === 'project') {
 				await storyFolderQueries.moveStoryToFolder(story.id, null, {
@@ -125,7 +138,7 @@ export const sharedStoryRoutes = {
 			return created;
 		}),
 
-	get: shareAccessProcedure.input(z.object({ shareId: z.string() })).query(async ({ ctx }) => {
+	get: shareAccessStoryProcedure.input(z.object({ shareId: z.string() })).query(async ({ ctx }) => {
 		const shared = ctx.resource;
 		const storyRow = await storyQueries.getStoryByChatAndSlug(shared.chatId!, shared.slug);
 		const isLive = storyRow?.isLive ?? false;
@@ -168,7 +181,7 @@ export const sharedStoryRoutes = {
 		};
 	}),
 
-	getVersionQueryData: shareAccessProcedure
+	getVersionQueryData: shareAccessStoryProcedure
 		.input(z.object({ shareId: z.string(), versionNumber: z.number().int().positive() }))
 		.query(async ({ input, ctx }) => {
 			const shared = ctx.resource;
@@ -185,13 +198,13 @@ export const sharedStoryRoutes = {
 			return { queryData };
 		}),
 
-	getLiveQueryData: chatProcedure
+	getLiveQueryData: chatStoryProcedure
 		.input(z.object({ chatId: z.string(), queryId: z.string() }))
 		.query(async ({ input }) => {
 			return executeLiveQuery(input.chatId, input.queryId);
 		}),
 
-	getFilterOptions: shareAccessProcedure
+	getFilterOptions: shareAccessStoryProcedure
 		.input(z.object({ shareId: z.string(), filterId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			assertStoryFiltersEnabled();
@@ -202,7 +215,7 @@ export const sharedStoryRoutes = {
 			return getStoryFilterOptions(shared.chatId, shared.slug, input.filterId);
 		}),
 
-	getFilteredQueryData: shareAccessProcedure
+	getFilteredQueryData: shareAccessStoryProcedure
 		.input(
 			z.object({
 				shareId: z.string(),
@@ -218,7 +231,7 @@ export const sharedStoryRoutes = {
 			return getFilteredStoryQueryData(shared.chatId, shared.slug, input.selections);
 		}),
 
-	getQuerySql: shareAccessProcedure
+	getQuerySql: shareAccessStoryProcedure
 		.input(
 			z.object({
 				shareId: z.string(),
@@ -234,7 +247,7 @@ export const sharedStoryRoutes = {
 			return getStoryQuerySql(shared.chatId, shared.slug, input.queryId, input.selections);
 		}),
 
-	refreshData: shareAccessProcedure.input(z.object({ shareId: z.string() })).mutation(async ({ ctx }) => {
+	refreshData: shareAccessStoryProcedure.input(z.object({ shareId: z.string() })).mutation(async ({ ctx }) => {
 		const shared = ctx.resource;
 		const story = await storyQueries.getStoryByChatAndSlug(shared.chatId!, shared.slug);
 		const storyOwnerId = story ? await storyQueries.getStoryOwnerId(story.id) : undefined;
@@ -283,6 +296,11 @@ export const sharedStoryRoutes = {
 			if (!story) {
 				return { shareId: null, visibility: null, allowedUserIds: [] };
 			}
+			const storyProjectId = story.projectId ?? (await storyQueries.getStoryProjectId(story.id));
+			if (storyProjectId !== ctx.project.id) {
+				return { shareId: null, visibility: null, allowedUserIds: [] };
+			}
+			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 
 			const share = await sharedStoryQueries.getSharedStoryInfo(story.id, ctx.project.id);
 			if (!share) {
@@ -303,6 +321,7 @@ export const sharedStoryRoutes = {
 			if (shared.userId !== ctx.user.id && ctx.userRole !== 'admin') {
 				throw new TRPCError({ code: 'FORBIDDEN', message: 'Only the creator or an admin can update this.' });
 			}
+			await assertUserGroupFeatureForTrpc(shared.projectId, ctx.user.id, 'stories');
 
 			const previousAllowedUserIds = await sharedStoryQueries.getSharedStoryAllowedUserIds(input.shareId);
 			await sharedStoryQueries.updateSharedStoryAllowedUsers(input.shareId, input.allowedUserIds);
@@ -335,6 +354,7 @@ export const sharedStoryRoutes = {
 					message: 'This story does not belong to the current project.',
 				});
 			}
+			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 			await sharedStoryQueries.toggleSharedStoryPin(input.sharedStoryId);
 		}),
 
@@ -342,11 +362,12 @@ export const sharedStoryRoutes = {
 		if (ctx.resource.userId !== ctx.user.id && ctx.userRole !== 'admin') {
 			throw new TRPCError({ code: 'FORBIDDEN', message: 'Only the creator or an admin can delete this.' });
 		}
+		await assertUserGroupFeatureForTrpc(ctx.resource.projectId, ctx.user.id, 'stories');
 
 		await sharedStoryQueries.deleteSharedStory(input.shareId);
 	}),
 
-	download: shareAccessProcedure
+	download: shareAccessStoryProcedure
 		.input(
 			z.object({
 				shareId: z.string(),

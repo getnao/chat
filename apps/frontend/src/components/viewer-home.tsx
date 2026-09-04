@@ -9,6 +9,7 @@ import { NoResults } from '@/components/item-card';
 import { ViewerEmptyState, ViewerGroups } from '@/components/viewer-shared-items';
 import { Spinner } from '@/components/ui/spinner';
 import { useMultiProject } from '@/hooks/use-multi-project';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useProjectSwitch } from '@/hooks/use-project-switch';
 import { VIEWER_DISPLAY_KEY, VIEWER_GROUP_KEY, filterItems, getStoredSetting, groupItems } from '@/lib/viewer-home';
 import { trpc } from '@/main';
@@ -17,12 +18,13 @@ export function ViewerHome() {
 	const project = useQuery(trpc.project.getCurrent.queryOptions());
 	const projects = useQuery(trpc.project.listForCurrentUser.queryOptions());
 	const projectId = project.data?.id;
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const switchProject = useProjectSwitch(projectId);
 	const multiProjectMode = useMultiProject();
 	const sharedChats = useQuery(trpc.sharedChat.list.queryOptions());
 	const sharedStories = useQuery({
 		...trpc.storyShare.list.queryOptions({ projectId: projectId ?? '' }),
-		enabled: !!projectId,
+		enabled: storiesEnabled && !!projectId,
 	});
 	const [searchQuery, setSearchQuery] = useState('');
 	const [displayMode, setDisplayMode] = useState<StoryPanelDisplayMode>(() =>
@@ -43,17 +45,19 @@ export function ViewerHome() {
 	}
 
 	const allItems: SharedItem[] = useMemo(() => {
-		const storyItems: SharedItem[] = (sharedStories.data ?? []).map((s) => ({
-			id: s.id,
-			kind: 'story',
-			title: s.title,
-			authorName: s.authorName,
-			createdAt: new Date(s.createdAt),
-			visibility: s.sharing.visibility,
-			sharedWithCount: s.sharing.sharedWithCount,
-			isLive: s.isLive,
-			summary: s.summary,
-		}));
+		const storyItems: SharedItem[] = storiesEnabled
+			? (sharedStories.data ?? []).map((s) => ({
+					id: s.id,
+					kind: 'story',
+					title: s.title,
+					authorName: s.authorName,
+					createdAt: new Date(s.createdAt),
+					visibility: s.sharing.visibility,
+					sharedWithCount: s.sharing.sharedWithCount,
+					isLive: s.isLive,
+					summary: s.summary,
+				}))
+			: [];
 		const chatItems: SharedItem[] = (sharedChats.data ?? [])
 			.filter((c) => c.projectId === projectId)
 			.map((c) => ({
@@ -66,12 +70,12 @@ export function ViewerHome() {
 				messageBubbles: c.messageBubbles,
 			}));
 		return [...storyItems, ...chatItems];
-	}, [sharedStories.data, sharedChats.data, projectId]);
+	}, [sharedStories.data, sharedChats.data, projectId, storiesEnabled]);
 
 	const filteredItems = useMemo(() => filterItems(allItems, searchQuery), [allItems, searchQuery]);
 	const groups = useMemo(() => groupItems(filteredItems, groupBy), [filteredItems, groupBy]);
 
-	const isLoading = sharedChats.isLoading || sharedStories.isLoading || project.isLoading;
+	const isLoading = sharedChats.isLoading || (storiesEnabled && sharedStories.isLoading) || project.isLoading;
 	const isEmpty = allItems.length === 0 && !isLoading;
 
 	const projectSelector = multiProjectMode === 'switch' && project.data && (projects.data?.length ?? 0) > 1 && (
@@ -106,7 +110,7 @@ export function ViewerHome() {
 			<div className='flex flex-col flex-1 min-w-72 overflow-hidden'>
 				<MobileHeader />
 				{standaloneProjectSelector}
-				<ViewerEmptyState />
+				<ViewerEmptyState storiesEnabled={storiesEnabled} />
 			</div>
 		);
 	}

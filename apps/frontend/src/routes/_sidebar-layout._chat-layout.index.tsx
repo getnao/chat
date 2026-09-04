@@ -10,6 +10,7 @@ import { ChatMessages } from '@/components/chat-messages/chat-messages';
 import { ProjectSwitcher } from '@/components/project-selector';
 import { ViewerHome } from '@/components/viewer-home';
 import { useAgentContext, useAgentMessages } from '@/contexts/agent.provider';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useProjectSwitch } from '@/hooks/use-project-switch';
 import { SavedPromptSuggestions } from '@/components/chat-saved-prompt-suggestions';
@@ -44,6 +45,7 @@ function HomePage() {
 	const { setAdminMode } = useAgentContext();
 	const messages = useAgentMessages();
 	const { canChatWithNaoData } = usePermissions();
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const { admin: adminSearch } = Route.useSearch();
 	const navigate = useNavigate();
 
@@ -62,16 +64,22 @@ function HomePage() {
 	const stateTitle = `${username ? capitalize(username) : ''}, what do you want to analyze?`;
 	const theme = useTheme();
 	const isEmptyState = messages.length === 0;
-	const stories = useQuery({ ...trpc.story.listAll.queryOptions(), enabled: isEmptyState });
+	const stories = useQuery({ ...trpc.story.listAll.queryOptions(), enabled: isEmptyState && storiesEnabled });
 	const sharedStories = useQuery({
 		...trpc.storyShare.list.queryOptions({ projectId: project.data?.id ?? '' }),
-		enabled: isEmptyState && !!project.data?.id,
+		enabled: isEmptyState && storiesEnabled && !!project.data?.id,
 	});
-	const favorites = useQuery({ ...trpc.favorite.list.queryOptions(), enabled: isEmptyState });
-	const folderItems = useQuery({ ...trpc.storyFolder.listItems.queryOptions(), enabled: isEmptyState });
+	const favorites = useQuery({
+		...trpc.favorite.list.queryOptions(),
+		enabled: isEmptyState && storiesEnabled,
+	});
+	const folderItems = useQuery({
+		...trpc.storyFolder.listItems.queryOptions(),
+		enabled: isEmptyState && storiesEnabled,
+	});
 	const folderTree = useQuery({
 		...trpc.storyFolder.listTree.queryOptions({ archived: false }),
-		enabled: isEmptyState,
+		enabled: isEmptyState && storiesEnabled,
 	});
 	const storiesGridRef = useRef<HTMLDivElement>(null);
 	const [storyCols, setStoryCols] = useState(STORY_CARD_MAX_COLS);
@@ -91,6 +99,9 @@ function HomePage() {
 		return map;
 	}, [folderItems.data]);
 	const latestStoryItems = useMemo(() => {
+		if (!storiesEnabled) {
+			return [];
+		}
 		const items = buildStoryItems({
 			userStories: stories.data ?? [],
 			sharedStories: sharedStories.data ?? [],
@@ -111,6 +122,7 @@ function HomePage() {
 	}, [
 		stories.data,
 		sharedStories.data,
+		storiesEnabled,
 		session?.user?.name,
 		storyCols,
 		username,

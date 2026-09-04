@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ToolCallDensity, UserPreferences } from '@nao/shared/types';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useSession } from '@/lib/auth-client';
 import { trpc } from '@/main';
 
@@ -8,6 +9,7 @@ const PREFERENCES_STALE_TIME_MS = 5 * 60 * 1000;
 
 export const useToolCallDensity = () => {
 	const { data: session } = useSession();
+	const { compactModeEnabled } = useEffectiveUserGroupFeatures();
 	const queryClient = useQueryClient();
 	const preferencesQueryKey = trpc.user.getPreferences.queryKey();
 
@@ -43,13 +45,17 @@ export const useToolCallDensity = () => {
 		}),
 	);
 
-	const density: ToolCallDensity = preferencesQuery.data?.toolCallDensity ?? 'detailed';
+	const storedDensity: ToolCallDensity = preferencesQuery.data?.toolCallDensity ?? 'detailed';
+	const density: ToolCallDensity = storedDensity === 'compact' && !compactModeEnabled ? 'detailed' : storedDensity;
 
 	const setDensity = useCallback(
 		(toolCallDensity: ToolCallDensity) => {
+			if (toolCallDensity === 'compact' && !compactModeEnabled) {
+				return;
+			}
 			updatePreferences({ toolCallDensity });
 		},
-		[updatePreferences],
+		[compactModeEnabled, updatePreferences],
 	);
 
 	return [density, setDensity] as const;

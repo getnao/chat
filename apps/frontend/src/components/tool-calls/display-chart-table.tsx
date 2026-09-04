@@ -13,6 +13,7 @@ import type { displayChart } from '@nao/shared/tools';
 import type { UIMessage, UIToolPart } from '@nao/backend/chat';
 import { useAgentMessagesGetter, useOptionalAgentContext } from '@/contexts/agent.provider';
 import { useChatId } from '@/hooks/use-chat-id';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useSidePanel } from '@/contexts/side-panel';
 import { StoryViewer } from '@/components/side-panel/story-viewer';
 import { useStoryIds } from '@/hooks/use-story-ids';
@@ -37,6 +38,7 @@ export function DisplayChartTable({ config, outputError, toolCallId }: DisplayCh
 	const [isEditOpen, setIsEditOpen] = useState(false);
 
 	const storyIds = useStoryIds();
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const isEditable = Boolean(agent && !agent.isReadonly && !agent.isRunning);
 	const isPersistingRef = useRef(false);
 	const { sourceData } = useSourceQuery(config?.query_id);
@@ -125,7 +127,7 @@ export function DisplayChartTable({ config, outputError, toolCallId }: DisplayCh
 		() =>
 			isEditable ? (
 				<>
-					{storyIds.length > 0 && (
+					{storiesEnabled && storyIds.length > 0 && (
 						<Button
 							variant='ghost-muted'
 							size='icon-xs'
@@ -148,7 +150,7 @@ export function DisplayChartTable({ config, outputError, toolCallId }: DisplayCh
 					</Button>
 				</>
 			) : null,
-		[isEditable, storyIds.length, handleAddToStory, isAddingToStory],
+		[isEditable, storiesEnabled, storyIds.length, handleAddToStory, isAddingToStory],
 	);
 
 	const persistFormats = async (nextFormats: ColumnConditionalFormats) => {

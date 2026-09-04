@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/main';
 import { useBreakoutStyle } from '@/hooks/use-breakout-width';
 import { useChatId } from '@/hooks/use-chat-id';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { MAP_STYLE_OPTIONS, useMapStyle } from '@/hooks/use-map-style';
 import { useSourceQuery } from '@/hooks/use-source-query';
 import { useStoryIds } from '@/hooks/use-story-ids';
@@ -84,6 +85,7 @@ export const DisplayMapToolCall = ({
 	}, [viewMode]);
 	const isEditable = Boolean(agent && !agent.isReadonly && !agent.isRunning);
 	const storyIds = useStoryIds();
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const { mutate: logDownload } = useMutation(trpc.analyticsEvent.logChatDownload.mutationOptions());
 	const { data: customBoundaries = [] } = useQuery(trpc.project.getMapBoundaries.queryOptions());
 
@@ -310,7 +312,7 @@ export const DisplayMapToolCall = ({
 									onClick={() => setViewMode('query')}
 								/>
 							)}
-							{storyIds.length > 0 && (
+							{storiesEnabled && storyIds.length > 0 && (
 								<ViewToggleButton
 									icon={<FilePlus className='size-3 text-muted-foreground/70' strokeWidth={2.25} />}
 									title='Add to story'

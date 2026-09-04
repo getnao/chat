@@ -9,6 +9,7 @@ import * as chatQueries from '../queries/chat.queries';
 import * as storyQueries from '../queries/story.queries';
 import { logAnalyticsEvent } from '../utils/analytics-event';
 import { projectProtectedProcedure } from './trpc';
+import { assertUserGroupFeatureForTrpc } from './user-group-feature-access';
 
 async function assertAssetOwnerOrAdmin(
 	assetType: AnalyticsAssetType,
@@ -70,6 +71,9 @@ export const analyticsEventRoutes = {
 				ctx.user.id,
 				ctx.userRole,
 			);
+			if (input.assetType === 'story') {
+				await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
+			}
 
 			const rows = await analyticsEventQueries.listEventsForAsset({
 				assetType: input.assetType,

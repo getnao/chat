@@ -43,12 +43,20 @@ export function ViewerGroups({ groups, displayMode }: { groups: SharedGroup[]; d
 	);
 }
 
-export function ViewerEmptyState() {
+export function ViewerEmptyState({ storiesEnabled = true }: { storiesEnabled?: boolean }) {
 	return (
 		<div className='flex flex-col items-center justify-center flex-1 py-24 text-center'>
-			<StoryIcon className='size-10 text-muted-foreground/40 mb-4' />
+			{storiesEnabled ? (
+				<StoryIcon className='size-10 text-muted-foreground/40 mb-4' />
+			) : (
+				<MessageSquare className='size-10 text-muted-foreground/40 mb-4' />
+			)}
 			<p className='text-muted-foreground text-sm'>No shared content yet.</p>
-			<p className='text-muted-foreground/60 text-sm mt-1'>Stories and chats shared with you will appear here.</p>
+			<p className='text-muted-foreground/60 text-sm mt-1'>
+				{storiesEnabled
+					? 'Stories and chats shared with you will appear here.'
+					: 'Chats shared with you will appear here.'}
+			</p>
 		</div>
 	);
 }

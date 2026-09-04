@@ -40,6 +40,7 @@ import { messageQueueStore } from '@/stores/chat-message-queue';
 import { chatInputRestoreStore, useChatInputRestore } from '@/stores/chat-input-restore';
 import { chatPendingCitationStore } from '@/stores/chat-pending-citation';
 import { useChatPendingCitation } from '@/hooks/use-chat-pending-citation';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { SelectionCitationBanner } from '@/components/selection-citation-banner';
 import { ChatInputSuggestions } from '@/components/chat-input-suggestions';
 import { runWithStoryBeforeAgentSend, useStoryBeforeAgentSend } from '@/contexts/story-before-agent-send';
@@ -115,6 +116,7 @@ function ChatInputBase({
 	} = useAgentContext();
 	const navigate = useNavigate();
 	const { canChatWithNaoData } = usePermissions();
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const chatId = useChatId();
 	const storyBeforeAgentSend = useStoryBeforeAgentSend();
 
@@ -416,6 +418,7 @@ function ChatInputBase({
 					<ChatPrompt
 						promptRef={promptRef}
 						placeholder={effectivePlaceholder}
+						storiesEnabled={storiesEnabled}
 						onChange={(value) => setInputText(value)}
 						onEnter={(value, mentions) => submitMessage(value, mentions)}
 					/>
@@ -438,6 +441,7 @@ function ChatInputBase({
 							<ChatInputPlusMenu
 								hasDatabases={hasDatabases}
 								hasSkills={hasSkills}
+								storiesEnabled={storiesEnabled}
 								canChatWithNaoData={canChatWithNaoData}
 								isAdminMode={isAdminMode}
 								adminModeLocked={adminModeLocked}
@@ -647,6 +651,7 @@ function BudgetBanner() {
 function ChatInputPlusMenu({
 	hasDatabases,
 	hasSkills,
+	storiesEnabled,
 	canChatWithNaoData,
 	isAdminMode,
 	adminModeLocked,
@@ -659,6 +664,7 @@ function ChatInputPlusMenu({
 }: {
 	hasDatabases: boolean;
 	hasSkills: boolean;
+	storiesEnabled: boolean;
 	canChatWithNaoData: boolean;
 	isAdminMode: boolean;
 	adminModeLocked: boolean;
@@ -700,10 +706,12 @@ function ChatInputPlusMenu({
 						<span>Database tables</span>
 					</DropdownMenuItem>
 				)}
-				<DropdownMenuItem onSelect={onAddStory}>
-					<StoryIcon className='size-4' />
-					<span>Story mode</span>
-				</DropdownMenuItem>
+				{storiesEnabled && (
+					<DropdownMenuItem onSelect={onAddStory}>
+						<StoryIcon className='size-4' />
+						<span>Story mode</span>
+					</DropdownMenuItem>
+				)}
 				{hasSkills && (
 					<DropdownMenuItem onSelect={onOpenSkills}>
 						<PencilRuler className='size-4' />

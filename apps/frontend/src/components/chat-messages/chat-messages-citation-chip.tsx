@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { useOptionalSelection } from '@/contexts/text-selection';
 import { useSidePanel } from '@/contexts/side-panel';
 import { useChatId } from '@/hooks/use-chat-id';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { SelectionCitationExcerpt } from '@/components/selection-citation-excerpt';
 import { StoryViewer } from '@/components/side-panel/story-viewer';
 import { createRangeFromOffsets, findTextRange } from '@/lib/selection-dom.utils';
@@ -18,9 +19,10 @@ export const ChatMessagesCitationChip = ({ start, end, text, storySlug }: ChatMe
 	const sidePanel = useSidePanel();
 	const chatId = useChatId();
 	const buttonRef = useRef<HTMLButtonElement>(null);
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 
 	const handleClick = useCallback(() => {
-		if (storySlug && chatId) {
+		if (storySlug && chatId && storiesEnabled) {
 			if (sidePanel.currentStorySlug === storySlug) {
 				scrollToStoryText(start, end, text);
 				return;
@@ -43,7 +45,15 @@ export const ChatMessagesCitationChip = ({ start, end, text, storySlug }: ChatMe
 		}
 
 		highlightRange(range);
-	}, [selectionCtx, sidePanel, chatId, storySlug, start, end, text]);
+	}, [selectionCtx, sidePanel, chatId, storySlug, start, end, text, storiesEnabled]);
+
+	if (storySlug && !storiesEnabled) {
+		return (
+			<div className='mb-2 w-full px-3 py-2 border border-border/50 bg-background/50 rounded-lg'>
+				<SelectionCitationExcerpt start={start} end={end} text={text} maxLength={80} lineClamp={2} />
+			</div>
+		);
+	}
 
 	return (
 		<button

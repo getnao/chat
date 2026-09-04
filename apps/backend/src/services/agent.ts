@@ -79,6 +79,7 @@ import { getAzureAccessTokenForUser } from './microsoft-auth.service';
 import { skillService } from './skill';
 import { canGrepUserFiles } from './storage/user-files';
 import { getStoryTemplateWarnings } from './story-template-validation';
+import { hasUserGroupFeature } from './user-group-feature-access.service';
 
 export interface AgentRunResult {
 	text: string;
@@ -118,6 +119,16 @@ export interface AgentToolsContext {
 
 /** Builds the tool set a run should expose. Callers pass one to `create` to customise tools. */
 export type AgentToolsResolver = (context: AgentToolsContext) => AgentTools | Promise<AgentTools>;
+
+export async function filterAgentToolsByUserGroupFeatures(
+	agentTools: AgentTools,
+	chat: AgentChat,
+): Promise<AgentTools> {
+	if (await hasUserGroupFeature(chat.projectId, chat.userId, 'stories')) {
+		return agentTools;
+	}
+	return Object.fromEntries(Object.entries(agentTools).filter(([name]) => name !== 'story')) as AgentTools;
+}
 
 /** Default tool set for interactive runs: all built-ins, MCP tools and web search. */
 export const defaultAgentTools: AgentToolsResolver = ({ chat, agentSettings, webTools, customBoundaries }) =>
@@ -271,7 +282,8 @@ export class AgentService {
 		);
 		const webTools = await this._resolveWebTools(chat.projectId, resolvedLlmSelectedModel.provider, agentSettings);
 		const resolveTools = options.tools ?? defaultAgentTools;
-		const agentTools = await resolveTools({ chat, agentSettings, toolContext, webTools, customBoundaries });
+		const resolvedTools = await resolveTools({ chat, agentSettings, toolContext, webTools, customBoundaries });
+		const agentTools = await filterAgentToolsByUserGroupFeatures(resolvedTools, chat);
 		const stopWhen: StopCondition<AgentTools>[] = options.excludeFollowUps
 			? [stepCountIs(options.maxSteps ?? 20)]
 			: chat.testMode

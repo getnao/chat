@@ -42,6 +42,7 @@ import {
 } from '@/lib/charts.utils';
 import { useDateFormat } from '@/hooks/use-date-format';
 import { useChatId } from '@/hooks/use-chat-id';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useResizeObserver } from '@/hooks/use-resize-observer';
 import { useStoryIds } from '@/hooks/use-story-ids';
 import { useSidePanel } from '@/contexts/side-panel';
@@ -80,6 +81,7 @@ export const DisplayChartToolCall = ({ toolPart }: ToolCallComponentProps<'displ
 	const [dataRange, setDataRange] = useState<DateRange>('all');
 	const [viewMode, setViewMode] = useState<ViewMode>('chart');
 	const storyIds = useStoryIds();
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const normalSize = useMemo(() => (document.querySelector('[data-selection-container]') ? true : false), []);
 	const { mutate: logDownload } = useMutation(trpc.analyticsEvent.logChatDownload.mutationOptions());
 
@@ -324,7 +326,7 @@ export const DisplayChartToolCall = ({ toolPart }: ToolCallComponentProps<'displ
 								<Code className='size-3 text-muted-foreground/70' strokeWidth={2.25} />
 							</Button>
 						)}
-						{storyIds.length > 0 && isBuiltinChart && (
+						{storiesEnabled && storyIds.length > 0 && isBuiltinChart && (
 							<Button
 								variant='ghost-muted'
 								size='icon-xs'

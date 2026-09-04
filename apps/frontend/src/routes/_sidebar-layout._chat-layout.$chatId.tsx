@@ -23,6 +23,7 @@ import { SidePanelProvider } from '@/contexts/side-panel';
 import { EditableChatTitle } from '@/components/editable-chat-title';
 import { useChatQuery } from '@/queries/use-chat-query';
 import { useHeight } from '@/hooks/use-height';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { AssetAnalyticsDialog } from '@/components/asset-analytics-dialog';
 import { ShareChatDialog } from '@/components/share-dialog.chat';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -61,6 +62,10 @@ function ChatPage() {
 	const router = useRouter();
 	const { chatId } = Route.useParams();
 	const { role, canViewChatReplay } = usePermissions();
+	const { storiesEnabled, automationsEnabled } = useEffectiveUserGroupFeatures();
+	const config = useQuery(trpc.system.getPublicConfig.queryOptions());
+	const showAutomationLinks =
+		role !== undefined && role !== 'viewer' && automationsEnabled && config.data?.betaAutomationsEnabled === true;
 	const chat = useChatQuery({ chatId });
 	const title = chat.data?.title;
 
@@ -122,7 +127,9 @@ function ChatPage() {
 			return;
 		}
 
-		sidePanel.open(<StoryViewer chatId={chatId} storySlug={openStorySlug} />, openStorySlug);
+		if (storiesEnabled) {
+			sidePanel.open(<StoryViewer chatId={chatId} storySlug={openStorySlug} />, openStorySlug);
+		}
 
 		const timer = setTimeout(() => {
 			router.history.replace(router.state.location.href, {
@@ -131,7 +138,13 @@ function ChatPage() {
 			});
 		});
 		return () => clearTimeout(timer);
-	}, [chat.isError, isLoadingMessages]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [chat.isError, isLoadingMessages, storiesEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	useEffect(() => {
+		if (!storiesEnabled && sidePanel.currentStorySlug) {
+			sidePanel.close();
+		}
+	}, [storiesEnabled, sidePanel]);
 
 	if (chat.isError) {
 		if (shouldRedirectToReplay || isResolvingReplayRedirect) {
@@ -174,13 +187,13 @@ function ChatPage() {
 										<span className='truncate'>{chatProject.name}</span>
 									</Badge>
 								)}
-								{isAutomationRunning && (
+								{showAutomationLinks && isAutomationRunning && (
 									<Badge variant='secondary' className='gap-1 text-muted-foreground w-fit'>
 										<Spinner className='size-3' />
 										<span>Running...</span>
 									</Badge>
 								)}
-								{automationId && (
+								{showAutomationLinks && automationId && (
 									<Badge variant='outline' className='gap-1 text-muted-foreground w-fit' asChild>
 										<Link to='/automations/$automationId' params={{ automationId }}>
 											<TimerIcon />

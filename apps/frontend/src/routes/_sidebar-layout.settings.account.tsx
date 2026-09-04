@@ -9,6 +9,7 @@ import { NewsletterSubscribeInlineForm } from '@/components/newsletter-subscribe
 import { signOut, useSession } from '@/lib/auth-client';
 import { SettingsVersionInfo } from '@/components/settings/version-info';
 import { useAuthRoute } from '@/hooks/use-auth-route';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { usePermissions } from '@/hooks/use-permissions';
 import { UserProfileCard } from '@/components/settings/profile-card';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -34,6 +35,7 @@ function GeneralPage() {
 	const { isAdmin, isViewer, role } = usePermissions();
 	const [soundEnabled, setSoundEnabled] = useLocalStorage(soundNotificationStorage);
 	const [toolCallDensity, setToolCallDensity] = useToolCallDensity();
+	const { compactModeEnabled } = useEffectiveUserGroupFeatures();
 
 	const navigation = useAuthRoute();
 
@@ -103,13 +105,15 @@ function GeneralPage() {
 							checked={soundEnabled}
 							onCheckedChange={setSoundEnabled}
 						/>
-						<SettingsControlRow
-							label='Tool Call Density'
-							description='Adjust how much detail is shown for tool calls.'
-							control={
-								<ToolCallDensitySlider value={toolCallDensity} onValueChange={setToolCallDensity} />
-							}
-						/>
+						{compactModeEnabled && (
+							<SettingsControlRow
+								label='Tool Call Density'
+								description='Adjust how much detail is shown for tool calls.'
+								control={
+									<ToolCallDensitySlider value={toolCallDensity} onValueChange={setToolCallDensity} />
+								}
+							/>
+						)}
 						<SettingsControlRow
 							label='Theme'
 							description='Choose how nao looks.'

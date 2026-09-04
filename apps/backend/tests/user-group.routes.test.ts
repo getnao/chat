@@ -4,7 +4,8 @@ const mocks = vi.hoisted(() => ({
 	createUserGroup: vi.fn(),
 	getUserGroupOverview: vi.fn(),
 	hasFeature: vi.fn(),
-	role: 'admin' as 'admin' | 'user',
+	resolveEffectiveUserGroupFeatures: vi.fn(),
+	role: 'admin' as 'admin' | 'user' | 'viewer',
 }));
 
 vi.mock('../src/auth', () => ({ getAuth: vi.fn() }));
@@ -17,6 +18,7 @@ vi.mock('../src/queries/user-group.queries', () => ({
 	createUserGroup: mocks.createUserGroup,
 	deleteUserGroup: vi.fn(),
 	getUserGroupOverview: mocks.getUserGroupOverview,
+	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
 	setUserGroupMembership: vi.fn(),
 	updateUserGroup: vi.fn(),
 }));
@@ -39,6 +41,7 @@ describe('user group routes', () => {
 		mocks.role = 'admin';
 		mocks.hasFeature.mockResolvedValue(true);
 		mocks.getUserGroupOverview.mockResolvedValue({ users: [], groups: [], memberships: [] });
+		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['stories']);
 		mocks.createUserGroup.mockResolvedValue({ id: 'group-id', name: 'Analysts' });
 	});
 
@@ -68,6 +71,29 @@ describe('user group routes', () => {
 
 		expect(mocks.hasFeature).toHaveBeenCalledWith('user-groups');
 		expect(mocks.createUserGroup).toHaveBeenCalledWith('project-id', 'Analysts', ['stories']);
+	});
+
+	it('returns effective features to viewers', async () => {
+		mocks.role = 'viewer';
+
+		await expect(createCaller().effectiveFeatures()).resolves.toEqual({
+			stories: true,
+			automations: false,
+			'compact-mode': false,
+		});
+		expect(mocks.resolveEffectiveUserGroupFeatures).toHaveBeenCalledWith('project-id', 'user-id');
+	});
+
+	it('returns all effective features without a user-groups license', async () => {
+		mocks.role = 'viewer';
+		mocks.hasFeature.mockResolvedValue(false);
+
+		await expect(createCaller().effectiveFeatures()).resolves.toEqual({
+			stories: true,
+			automations: true,
+			'compact-mode': true,
+		});
+		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
 	});
 });
 

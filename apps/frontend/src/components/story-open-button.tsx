@@ -6,6 +6,7 @@ import type { StorySummary } from '@/lib/story.utils';
 import { StoryViewer } from '@/components/side-panel/story-viewer';
 import { useSidePanel } from '@/contexts/side-panel';
 import { useAgentMessagesSelector, useOptionalAgentContext } from '@/contexts/agent.provider';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { findStories } from '@/lib/story.utils';
 
 export function StoryOpenButton({ variant = 'outline' }: { variant?: 'outline' | 'ghost' }) {
@@ -13,8 +14,9 @@ export function StoryOpenButton({ variant = 'outline' }: { variant?: 'outline' |
 	const { chatId } = useParams({ strict: false });
 	const { isVisible, open: openSidePanel } = useSidePanel();
 	const stories = useAgentMessagesSelector(findStories, areStoriesEqual);
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 
-	if (!agent || stories.length === 0 || isVisible || !chatId) {
+	if (!storiesEnabled || !agent || stories.length === 0 || isVisible || !chatId) {
 		return null;
 	}
 

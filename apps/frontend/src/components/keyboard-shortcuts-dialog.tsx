@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Kbd } from '@/components/ui/kbd';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { SHORTCUTS } from '@/lib/keyboard-shortcuts';
 
 type KeyboardShortcutsDialogProps = {
@@ -8,7 +9,9 @@ type KeyboardShortcutsDialogProps = {
 };
 
 export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcutsDialogProps) {
-	const groups = Array.from(new Set(SHORTCUTS.map((entry) => entry.group)));
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
+	const displayedShortcuts = SHORTCUTS.filter((entry) => storiesEnabled || entry.id !== 'go-to-stories');
+	const groups = Array.from(new Set(displayedShortcuts.map((entry) => entry.group)));
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -24,26 +27,28 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
 						<section key={group} className='space-y-2'>
 							<h3 className='text-xs font-medium text-muted-foreground'>{group}</h3>
 							<div className='space-y-1'>
-								{SHORTCUTS.filter((entry) => entry.group === group).map((entry) => (
-									<div
-										key={entry.id}
-										className='flex items-center justify-between gap-4 py-1 text-sm'
-									>
-										<span>{entry.label}</span>
-										<div className='flex items-center gap-1.5'>
-											<Kbd shortcut={entry.shortcut} />
-											{entry.alternateShortcuts?.map((shortcut, index) => (
-												<span
-													key={`${entry.id}-alternate-${index}`}
-													className='flex items-center gap-1.5'
-												>
-													<span className='text-muted-foreground'>·</span>
-													<Kbd shortcut={shortcut} />
-												</span>
-											))}
+								{displayedShortcuts
+									.filter((entry) => entry.group === group)
+									.map((entry) => (
+										<div
+											key={entry.id}
+											className='flex items-center justify-between gap-4 py-1 text-sm'
+										>
+											<span>{entry.label}</span>
+											<div className='flex items-center gap-1.5'>
+												<Kbd shortcut={entry.shortcut} />
+												{entry.alternateShortcuts?.map((shortcut, index) => (
+													<span
+														key={`${entry.id}-alternate-${index}`}
+														className='flex items-center gap-1.5'
+													>
+														<span className='text-muted-foreground'>·</span>
+														<Kbd shortcut={shortcut} />
+													</span>
+												))}
+											</div>
 										</div>
-									</div>
-								))}
+									))}
 							</div>
 						</section>
 					))}

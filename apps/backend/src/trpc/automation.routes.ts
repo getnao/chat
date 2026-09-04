@@ -13,6 +13,7 @@ import { naturalLanguageToCron } from '../services/cron-nlp';
 import { nextCronTick } from '../services/scheduler.service';
 import { llmProviderSchema } from '../types/llm';
 import { canSendProcedure, projectProtectedProcedure } from './trpc';
+import { assertUserGroupFeatureForTrpc } from './user-group-feature-access';
 
 function assertAutomationsEnabled() {
 	if (!env.BETA_AUTOMATIONS_ENABLED) {
@@ -20,13 +21,15 @@ function assertAutomationsEnabled() {
 	}
 }
 
-const automationProcedure = canSendProcedure.use(async ({ next }) => {
+const automationProcedure = canSendProcedure.use(async ({ ctx, next }) => {
 	assertAutomationsEnabled();
+	await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'automations');
 	return next();
 });
 
-const automationReadProcedure = projectProtectedProcedure.use(async ({ next }) => {
+const automationReadProcedure = projectProtectedProcedure.use(async ({ ctx, next }) => {
 	assertAutomationsEnabled();
+	await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'automations');
 	return next();
 });
 

@@ -28,8 +28,10 @@ import { useChatActivity } from '@/hooks/use-chat-activity';
 import { useStoryPageEditor } from '@/hooks/use-story-page-editor';
 import { useStoryVersionQueryData } from '@/hooks/use-story-version-query-data';
 import { useTrackViewDuration } from '@/hooks/use-track-view-duration';
+import { requireUserGroupFeature } from '@/lib/require-user-group-feature';
 
 export const Route = createFileRoute('/_sidebar-layout/stories/preview/$chatId/$storySlug')({
+	beforeLoad: () => requireUserGroupFeature('stories'),
 	component: StoryPreviewPage,
 	pendingComponent: StoryContentLoading,
 	errorComponent: StoryRouteError,

@@ -1,8 +1,11 @@
 import { USER_GROUP_FEATURE_DEFINITIONS } from '@nao/shared';
 import { USER_ROLE_LABELS } from '@nao/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, Pencil, Plus } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { MemberStatus, UserRole } from '@nao/shared/types';
+import type { QueryClient } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 
 import { UpgradeToEnterprise } from '@/components/settings/upgrade-to-enterprise';
 import {
@@ -18,11 +21,20 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { SettingsCard } from '@/components/ui/settings-card';
 import { Switch } from '@/components/ui/switch';
+import { TabBar, TabPanel } from '@/components/ui/tab-bar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useLicenseFeatures } from '@/hooks/use-license';
+import { calculateVisibleGroupChipCount } from '@/lib/user-group-chip-overflow';
 import { trpc } from '@/main';
 
 type UserGroupFeature = (typeof USER_GROUP_FEATURE_DEFINITIONS)[number]['key'];
@@ -32,6 +44,31 @@ interface UserGroup {
 	name: string;
 	isDefault: boolean;
 	featureGrants: UserGroupFeature[];
+}
+
+type ProjectAccessSource = 'project' | 'organization' | 'both';
+type UserGroupDialogTab = 'features' | 'context' | 'security';
+
+interface UserWithProjectAccess {
+	id: string;
+	name: string;
+	email: string;
+	role: UserRole;
+	status: MemberStatus;
+	source: ProjectAccessSource;
+}
+
+const USER_GROUP_DIALOG_TABS: Array<{ id: UserGroupDialogTab; label: string }> = [
+	{ id: 'features', label: 'Features' },
+	{ id: 'context', label: 'Context' },
+	{ id: 'security', label: 'Security' },
+];
+
+function invalidateUserGroupQueries(queryClient: QueryClient) {
+	return Promise.all([
+		queryClient.invalidateQueries({ queryKey: trpc.userGroup.overview.queryKey() }),
+		queryClient.invalidateQueries({ queryKey: trpc.userGroup.effectiveFeatures.queryKey() }),
+	]);
 }
 
 export function UserGroupsTable() {
@@ -58,13 +95,7 @@ export function UserGroupsTable() {
 }
 
 function LicensedUserGroupsTable() {
-	const queryClient = useQueryClient();
 	const overview = useQuery(trpc.userGroup.overview.queryOptions());
-	const setMembership = useMutation(
-		trpc.userGroup.setMembership.mutationOptions({
-			onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.userGroup.overview.queryKey() }),
-		}),
-	);
 	const [editingGroup, setEditingGroup] = useState<UserGroup | 'new' | null>(null);
 	const membershipKeys = useMemo(
 		() => new Set(overview.data?.memberships.map(({ groupId, userId }) => `${groupId}:${userId}`)),
@@ -81,84 +112,22 @@ function LicensedUserGroupsTable() {
 		return null;
 	}
 
+	const projectUsers = overview.data.users.filter((user) => user.source !== 'organization');
+	const organizationUsers = overview.data.users.filter((user) => user.source === 'organization');
+
 	return (
 		<>
 			<SettingsCard
 				description='Assign project users to groups and configure the features each group allows.'
-				action={
-					<Button size='sm' variant='secondary' onClick={() => setEditingGroup('new')}>
-						<Plus />
-						Create group
-					</Button>
-				}
+				action={<UserGroupActions groups={overview.data.groups} onEdit={setEditingGroup} />}
 				flush
 			>
-				<div className='overflow-x-auto'>
-					<Table className='min-w-max'>
-						<TableHeader>
-							<TableRow>
-								<TableHead className='sticky left-0 z-10 min-w-64 bg-background'>User</TableHead>
-								<TableHead className='min-w-28'>Role</TableHead>
-								{overview.data.groups.map((group) => (
-									<TableHead key={group.id} className='min-w-36 text-center'>
-										<button
-											type='button'
-											className='inline-flex items-center gap-1 font-medium hover:text-foreground'
-											onClick={() => setEditingGroup(group)}
-										>
-											{group.name}
-											<Pencil className='size-3' />
-										</button>
-									</TableHead>
-								))}
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{overview.data.users.length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={2 + overview.data.groups.length} className='h-24 text-center'>
-										No users have access to this project.
-									</TableCell>
-								</TableRow>
-							) : (
-								overview.data.users.map((user) => (
-									<TableRow key={user.id}>
-										<TableCell className='sticky left-0 z-10 bg-background'>
-											<div className='flex flex-col'>
-												<span className='font-medium'>{user.name}</span>
-												<span className='text-xs text-muted-foreground'>
-													{user.email}
-													{user.status ? ` · ${user.status}` : ''}
-												</span>
-											</div>
-										</TableCell>
-										<TableCell>
-											<Badge variant={user.role}>{USER_ROLE_LABELS[user.role]}</Badge>
-										</TableCell>
-										{overview.data.groups.map((group) => (
-											<TableCell key={group.id} className='text-center'>
-												<Switch
-													aria-label={`${user.name} in ${group.name}`}
-													checked={
-														group.isDefault || membershipKeys.has(`${group.id}:${user.id}`)
-													}
-													disabled={group.isDefault || setMembership.isPending}
-													onCheckedChange={(isMember) =>
-														setMembership.mutate({
-															groupId: group.id,
-															userId: user.id,
-															isMember,
-														})
-													}
-												/>
-											</TableCell>
-										))}
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</div>
+				<UserAccessTable
+					projectUsers={projectUsers}
+					organizationUsers={organizationUsers}
+					groups={overview.data.groups}
+					membershipKeys={membershipKeys}
+				/>
 			</SettingsCard>
 
 			<UserGroupDialog
@@ -170,6 +139,278 @@ function LicensedUserGroupsTable() {
 				}}
 			/>
 		</>
+	);
+}
+
+function UserGroupActions({ groups, onEdit }: { groups: UserGroup[]; onEdit: (group: UserGroup | 'new') => void }) {
+	return (
+		<div className='flex items-center gap-2'>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button size='sm' variant='outline'>
+						Manage groups
+						<ChevronDown />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align='end' className='max-h-64 min-w-52'>
+					{groups.map((group) => (
+						<DropdownMenuItem key={group.id} onSelect={() => onEdit(group)}>
+							<Pencil />
+							{group.name}
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<Button size='sm' onClick={() => onEdit('new')}>
+				<Plus />
+				Create group
+			</Button>
+		</div>
+	);
+}
+
+function UserAccessTable({
+	projectUsers,
+	organizationUsers,
+	groups,
+	membershipKeys,
+}: {
+	projectUsers: UserWithProjectAccess[];
+	organizationUsers: UserWithProjectAccess[];
+	groups: UserGroup[];
+	membershipKeys: Set<string>;
+}) {
+	const hasUsers = projectUsers.length > 0 || organizationUsers.length > 0;
+
+	return (
+		<div className='overflow-x-auto'>
+			<Table className='min-w-3xl'>
+				<TableHeader>
+					<TableRow className='[&_th]:h-12'>
+						<TableHead className='min-w-64'>User</TableHead>
+						<TableHead className='min-w-36'>Role</TableHead>
+						<TableHead className='min-w-52'>Groups</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{!hasUsers && (
+						<TableRow>
+							<TableCell colSpan={3} className='h-24 text-center'>
+								No users have access to this project.
+							</TableCell>
+						</TableRow>
+					)}
+					{projectUsers.length > 0 && (
+						<UserAccessSection
+							label='Project Team'
+							users={projectUsers}
+							groups={groups}
+							membershipKeys={membershipKeys}
+						/>
+					)}
+					{organizationUsers.length > 0 && (
+						<UserAccessSection
+							label='Organisation Members'
+							users={organizationUsers}
+							groups={groups}
+							membershipKeys={membershipKeys}
+						/>
+					)}
+				</TableBody>
+			</Table>
+		</div>
+	);
+}
+
+function UserAccessSection({
+	label,
+	users,
+	groups,
+	membershipKeys,
+}: {
+	label: string;
+	users: UserWithProjectAccess[];
+	groups: UserGroup[];
+	membershipKeys: Set<string>;
+}) {
+	return (
+		<>
+			<TableRow className='border-y bg-muted/40 hover:bg-muted/40'>
+				<TableCell colSpan={3} className='py-2.5 text-xs font-semibold text-muted-foreground'>
+					{label}
+				</TableCell>
+			</TableRow>
+			{users.map((user) => (
+				<TableRow key={user.id}>
+					<TableCell>
+						<div className='flex flex-col'>
+							<span className='font-medium'>{user.name}</span>
+							<span className='text-xs text-muted-foreground'>
+								{user.email}
+								{user.status ? ` · ${user.status}` : ''}
+							</span>
+						</div>
+					</TableCell>
+					<TableCell>
+						<Badge variant={user.role}>{USER_ROLE_LABELS[user.role]}</Badge>
+					</TableCell>
+					<TableCell>
+						<UserGroupsCell user={user} groups={groups} membershipKeys={membershipKeys} />
+					</TableCell>
+				</TableRow>
+			))}
+		</>
+	);
+}
+
+function UserGroupsCell({
+	user,
+	groups,
+	membershipKeys,
+}: {
+	user: UserWithProjectAccess;
+	groups: UserGroup[];
+	membershipKeys: Set<string>;
+}) {
+	const queryClient = useQueryClient();
+	const setMembership = useMutation(
+		trpc.userGroup.setMembership.mutationOptions({
+			onSuccess: () => invalidateUserGroupQueries(queryClient),
+		}),
+	);
+	const selectedGroupNames = useMemo(
+		() =>
+			groups
+				.filter((group) => group.isDefault || membershipKeys.has(`${group.id}:${user.id}`))
+				.map((group) => group.name),
+		[groups, membershipKeys, user.id],
+	);
+	const selectedGroupLabel = selectedGroupNames.length > 0 ? selectedGroupNames.join(', ') : 'No groups';
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					variant='outline'
+					size='sm'
+					className='h-8 w-full min-w-0 justify-between overflow-hidden bg-background font-normal'
+					aria-label={`Manage groups for ${user.name}. Current groups: ${selectedGroupLabel}`}
+					title={selectedGroupLabel}
+				>
+					<ResponsiveGroupChips names={selectedGroupNames} />
+					<ChevronDown className='shrink-0' />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align='start' className='max-h-64 min-w-56'>
+				{groups.map((group) => (
+					<DropdownMenuCheckboxItem
+						key={group.id}
+						checked={group.isDefault || membershipKeys.has(`${group.id}:${user.id}`)}
+						disabled={group.isDefault || setMembership.isPending}
+						onSelect={(event) => event.preventDefault()}
+						onCheckedChange={(checked) =>
+							setMembership.mutate({
+								groupId: group.id,
+								userId: user.id,
+								isMember: checked === true,
+							})
+						}
+					>
+						{group.name}
+					</DropdownMenuCheckboxItem>
+				))}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
+function ResponsiveGroupChips({ names }: { names: string[] }) {
+	const labelAreaRef = useRef<HTMLSpanElement>(null);
+	const measurementRef = useRef<HTMLSpanElement>(null);
+	const [visibleCount, setVisibleCount] = useState(0);
+
+	const measure = useCallback(() => {
+		const labelArea = labelAreaRef.current;
+		const measurement = measurementRef.current;
+		if (!labelArea || !measurement) {
+			return;
+		}
+
+		const groupChipWidths = Array.from(
+			measurement.querySelectorAll<HTMLElement>('[data-measure-group]'),
+			(element) => element.getBoundingClientRect().width,
+		);
+		const overflowChipWidths = Array<number>(names.length + 1);
+		for (const element of measurement.querySelectorAll<HTMLElement>('[data-measure-overflow]')) {
+			overflowChipWidths[Number(element.dataset.measureOverflow)] = element.getBoundingClientRect().width;
+		}
+		const gap = Number.parseFloat(getComputedStyle(measurement).columnGap) || 0;
+		setVisibleCount(
+			calculateVisibleGroupChipCount({
+				availableWidth: labelArea.getBoundingClientRect().width,
+				groupChipWidths,
+				overflowChipWidths,
+				gap,
+			}),
+		);
+	}, [names]);
+
+	useLayoutEffect(() => {
+		measure();
+		const labelArea = labelAreaRef.current;
+		const measurement = measurementRef.current;
+		if (!labelArea || !measurement) {
+			return;
+		}
+
+		const observer = new ResizeObserver(measure);
+		observer.observe(labelArea);
+		observer.observe(measurement);
+		return () => observer.disconnect();
+	}, [measure]);
+
+	const safeVisibleCount = Math.min(visibleCount, names.length);
+	const hiddenCount = names.length - safeVisibleCount;
+
+	return (
+		<span ref={labelAreaRef} className='relative flex min-w-0 flex-1 items-center gap-1 overflow-hidden'>
+			{names.length === 0 ? (
+				<GroupNameChip name='No groups' />
+			) : (
+				<>
+					{names.slice(0, safeVisibleCount).map((name, index) => (
+						<GroupNameChip key={`${name}-${index}`} name={name} />
+					))}
+					{hiddenCount > 0 && <GroupNameChip name={`+${hiddenCount}`} />}
+				</>
+			)}
+			<span
+				ref={measurementRef}
+				aria-hidden
+				className='invisible absolute left-0 top-0 flex w-max items-center gap-1 pointer-events-none'
+			>
+				{names.map((name, index) => (
+					<GroupNameChip key={`measure-${name}-${index}`} name={name} measure='group' />
+				))}
+				{names.map((_, index) => {
+					const hidden = index + 1;
+					return <GroupNameChip key={`measure-overflow-${hidden}`} name={`+${hidden}`} measure={hidden} />;
+				})}
+			</span>
+		</span>
+	);
+}
+
+function GroupNameChip({ name, measure }: { name: string; measure?: 'group' | number }) {
+	return (
+		<Badge
+			variant='secondary'
+			className='h-5 px-1.5 py-0 text-[10px] font-normal'
+			data-measure-group={measure === 'group' ? '' : undefined}
+			data-measure-overflow={typeof measure === 'number' ? measure : undefined}
+		>
+			{name}
+		</Badge>
 	);
 }
 
@@ -186,7 +427,7 @@ function UserGroupDialog({
 	const [featureGrants, setFeatureGrants] = useState<UserGroupFeature[]>([]);
 	const [formError, setFormError] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const invalidateOverview = () => queryClient.invalidateQueries({ queryKey: trpc.userGroup.overview.queryKey() });
+	const [activeTab, setActiveTab] = useState<UserGroupDialogTab>('features');
 	const createGroup = useMutation(trpc.userGroup.create.mutationOptions());
 	const updateGroup = useMutation(trpc.userGroup.update.mutationOptions());
 	const deleteGroup = useMutation(trpc.userGroup.delete.mutationOptions());
@@ -196,7 +437,8 @@ function UserGroupDialog({
 		setFeatureGrants(existingGroup?.featureGrants ?? []);
 		setFormError(null);
 		setConfirmDelete(false);
-	}, [existingGroup]);
+		setActiveTab('features');
+	}, [existingGroup, group]);
 
 	const handleSave = async () => {
 		setFormError(null);
@@ -210,7 +452,7 @@ function UserGroupDialog({
 			} else {
 				await createGroup.mutateAsync({ name, featureGrants });
 			}
-			await invalidateOverview();
+			await invalidateUserGroupQueries(queryClient);
 			onOpenChange(false);
 		} catch (error) {
 			setFormError(error instanceof Error ? error.message : 'Failed to save the group.');
@@ -223,7 +465,7 @@ function UserGroupDialog({
 		}
 		try {
 			await deleteGroup.mutateAsync({ groupId: existingGroup.id });
-			await invalidateOverview();
+			await invalidateUserGroupQueries(queryClient);
 			setConfirmDelete(false);
 			onOpenChange(false);
 		} catch (error) {
@@ -235,7 +477,7 @@ function UserGroupDialog({
 	return (
 		<>
 			<Dialog open={group !== null} onOpenChange={onOpenChange}>
-				<DialogContent className='sm:max-w-xl'>
+				<DialogContent className='sm:max-w-3xl'>
 					<DialogHeader>
 						<DialogTitle>{existingGroup ? `Edit ${existingGroup.name}` : 'Create group'}</DialogTitle>
 					</DialogHeader>
@@ -253,40 +495,32 @@ function UserGroupDialog({
 								maxLength={80}
 							/>
 						</div>
-						<div className='flex flex-col gap-3'>
-							<div>
-								<h3 className='text-sm font-medium'>Allowed features</h3>
-								<p className='text-xs text-muted-foreground'>
-									Choose which product features this group can use.
-								</p>
-							</div>
-							{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
-								<div
-									key={feature.key}
-									className='flex items-start justify-between gap-4 rounded-lg border p-3'
-								>
-									<div>
-										<label
-											htmlFor={`user-group-feature-${feature.key}`}
-											className='text-sm font-medium'
-										>
-											{feature.label}
-										</label>
-										<p className='text-xs text-muted-foreground'>{feature.description}</p>
-									</div>
-									<Switch
-										id={`user-group-feature-${feature.key}`}
-										checked={featureGrants.includes(feature.key)}
-										onCheckedChange={(checked) =>
-											setFeatureGrants((current) =>
-												checked
-													? [...current, feature.key]
-													: current.filter((key) => key !== feature.key),
-											)
-										}
+						<div>
+							<TabBar
+								tabs={USER_GROUP_DIALOG_TABS}
+								activeTab={activeTab}
+								onTabChange={setActiveTab}
+								idBase='user-group-dialog'
+								className='border-b'
+							/>
+							<TabPanel idBase='user-group-dialog' tabId={activeTab} className='min-h-80 pt-5'>
+								{activeTab === 'features' && (
+									<UserGroupFeatures
+										featureGrants={featureGrants}
+										onFeatureGrantsChange={setFeatureGrants}
 									/>
-								</div>
-							))}
+								)}
+								{activeTab === 'context' && (
+									<UserGroupPlaceholder>
+										Table and file access will be configured here.
+									</UserGroupPlaceholder>
+								)}
+								{activeTab === 'security' && (
+									<UserGroupPlaceholder>
+										Row-level security will be configured here.
+									</UserGroupPlaceholder>
+								)}
+							</TabPanel>
 						</div>
 						{formError && <p className='text-sm text-destructive'>{formError}</p>}
 						<div className='flex justify-between gap-2'>
@@ -335,5 +569,51 @@ function UserGroupDialog({
 				</AlertDialogContent>
 			</AlertDialog>
 		</>
+	);
+}
+
+function UserGroupFeatures({
+	featureGrants,
+	onFeatureGrantsChange,
+}: {
+	featureGrants: UserGroupFeature[];
+	onFeatureGrantsChange: (featureGrants: UserGroupFeature[]) => void;
+}) {
+	return (
+		<div className='flex flex-col gap-3'>
+			<div>
+				<h3 className='text-sm font-medium'>Allowed features</h3>
+				<p className='text-xs text-muted-foreground'>Choose which product features this group can use.</p>
+			</div>
+			{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
+				<div key={feature.key} className='flex items-start justify-between gap-4 rounded-lg border p-3'>
+					<div>
+						<label htmlFor={`user-group-feature-${feature.key}`} className='text-sm font-medium'>
+							{feature.label}
+						</label>
+						<p className='text-xs text-muted-foreground'>{feature.description}</p>
+					</div>
+					<Switch
+						id={`user-group-feature-${feature.key}`}
+						checked={featureGrants.includes(feature.key)}
+						onCheckedChange={(checked) =>
+							onFeatureGrantsChange(
+								checked
+									? [...featureGrants, feature.key]
+									: featureGrants.filter((key) => key !== feature.key),
+							)
+						}
+					/>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function UserGroupPlaceholder({ children }: { children: ReactNode }) {
+	return (
+		<div className='flex min-h-64 items-center justify-center rounded-lg border border-dashed p-6 text-sm text-muted-foreground'>
+			{children}
+		</div>
 	);
 }

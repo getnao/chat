@@ -13,6 +13,7 @@ import { StoryViewer } from '@/components/side-panel/story-viewer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidePanel } from '@/contexts/side-panel';
 import { useChatId } from '@/hooks/use-chat-id';
+import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useTimeAgo } from '@/hooks/use-time-ago';
 
 export const StoryToolCall = ({ toolPart }: ToolCallComponentProps<'story'>) => {
@@ -24,6 +25,7 @@ export const StoryToolCall = ({ toolPart }: ToolCallComponentProps<'story'>) => 
 	const output = toolPart.output;
 	const summary = extractStorySummary(output?.code ?? '');
 	const hasAutoOpenedRef = useRef(false);
+	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 
 	const finalStorySlug = output?.id ?? input?.id;
 	const canOpen = Boolean(chatId && finalStorySlug);
@@ -36,11 +38,19 @@ export const StoryToolCall = ({ toolPart }: ToolCallComponentProps<'story'>) => 
 			chatId: chatId ?? '',
 			storySlug: finalStorySlug ?? '',
 		}),
-		enabled: !isStreaming && canOpen,
+		enabled: storiesEnabled && !isStreaming && canOpen,
 	});
 
 	useEffect(() => {
-		if (hasAutoOpenedRef.current || !isCreateAction || !isStreaming || !canOpen || !chatId || !finalStorySlug) {
+		if (
+			!storiesEnabled ||
+			hasAutoOpenedRef.current ||
+			!isCreateAction ||
+			!isStreaming ||
+			!canOpen ||
+			!chatId ||
+			!finalStorySlug
+		) {
 			return;
 		}
 
@@ -69,7 +79,12 @@ export const StoryToolCall = ({ toolPart }: ToolCallComponentProps<'story'>) => 
 		currentStorySlug,
 		openSidePanel,
 		isInInteractiveContext,
+		storiesEnabled,
 	]);
+
+	if (!storiesEnabled) {
+		return null;
+	}
 
 	if (!input) {
 		const partialAction = (toolPart as { input?: { action?: string } }).input?.action;

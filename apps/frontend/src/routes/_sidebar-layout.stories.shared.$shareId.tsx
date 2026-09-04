@@ -25,9 +25,11 @@ import { useStoryPageEditor } from '@/hooks/use-story-page-editor';
 import { useStoryVersionQueryData } from '@/hooks/use-story-version-query-data';
 import { useTrackViewDuration } from '@/hooks/use-track-view-duration';
 import { useSession } from '@/lib/auth-client';
+import { requireUserGroupFeature } from '@/lib/require-user-group-feature';
 import { trpc } from '@/main';
 
 export const Route = createFileRoute('/_sidebar-layout/stories/shared/$shareId')({
+	beforeLoad: () => requireUserGroupFeature('stories'),
 	component: SharedStoryPage,
 	errorComponent: StoryRouteError,
 });

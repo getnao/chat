@@ -4,12 +4,17 @@ import { z } from 'zod';
 
 import * as userGroupQueries from '../queries/user-group.queries';
 import { hasFeature, LICENSE_FEATURES } from '../services/license.service';
-import { adminProtectedProcedure } from './trpc';
+import { getEffectiveUserGroupFeatureFlags } from '../services/user-group-feature-access.service';
+import { adminProtectedProcedure, projectProtectedProcedure } from './trpc';
 
 const groupNameSchema = z.string().trim().min(1, 'Group name is required.').max(80, 'Group name is too long.');
 const featureGrantsSchema = z.array(z.enum(USER_GROUP_FEATURES)).max(USER_GROUP_FEATURES.length);
 
 export const userGroupRoutes = {
+	effectiveFeatures: projectProtectedProcedure.query(async ({ ctx }) => {
+		return getEffectiveUserGroupFeatureFlags(ctx.project.id, ctx.user.id);
+	}),
+
 	overview: adminProtectedProcedure.query(async ({ ctx }) => {
 		await assertUserGroupsLicensed();
 		return handleQuery(() => userGroupQueries.getUserGroupOverview(ctx.project.id));

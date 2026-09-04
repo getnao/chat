@@ -62,7 +62,7 @@ function ChatPage() {
 	const router = useRouter();
 	const { chatId } = Route.useParams();
 	const { role, canViewChatReplay } = usePermissions();
-	const { storiesEnabled, automationsEnabled } = useEffectiveUserGroupFeatures();
+	const { automationsEnabled } = useEffectiveUserGroupFeatures();
 	const config = useQuery(trpc.system.getPublicConfig.queryOptions());
 	const showAutomationLinks =
 		role !== undefined && role !== 'viewer' && automationsEnabled && config.data?.betaAutomationsEnabled === true;
@@ -127,9 +127,7 @@ function ChatPage() {
 			return;
 		}
 
-		if (storiesEnabled) {
-			sidePanel.open(<StoryViewer chatId={chatId} storySlug={openStorySlug} />, openStorySlug);
-		}
+		sidePanel.open(<StoryViewer chatId={chatId} storySlug={openStorySlug} />, openStorySlug);
 
 		const timer = setTimeout(() => {
 			router.history.replace(router.state.location.href, {
@@ -138,13 +136,7 @@ function ChatPage() {
 			});
 		});
 		return () => clearTimeout(timer);
-	}, [chat.isError, isLoadingMessages, storiesEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	useEffect(() => {
-		if (!storiesEnabled && sidePanel.currentStorySlug) {
-			sidePanel.close();
-		}
-	}, [storiesEnabled, sidePanel]);
+	}, [chat.isError, isLoadingMessages]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (chat.isError) {
 		if (shouldRedirectToReplay || isResolvingReplayRedirect) {

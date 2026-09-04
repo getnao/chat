@@ -116,7 +116,7 @@ function ChatInputBase({
 	} = useAgentContext();
 	const navigate = useNavigate();
 	const { canChatWithNaoData } = usePermissions();
-	const { storiesEnabled } = useEffectiveUserGroupFeatures();
+	const { storyCreationEnabled } = useEffectiveUserGroupFeatures();
 	const chatId = useChatId();
 	const storyBeforeAgentSend = useStoryBeforeAgentSend();
 
@@ -418,7 +418,7 @@ function ChatInputBase({
 					<ChatPrompt
 						promptRef={promptRef}
 						placeholder={effectivePlaceholder}
-						storiesEnabled={storiesEnabled}
+						storyCreationEnabled={storyCreationEnabled}
 						onChange={(value) => setInputText(value)}
 						onEnter={(value, mentions) => submitMessage(value, mentions)}
 					/>
@@ -441,7 +441,7 @@ function ChatInputBase({
 							<ChatInputPlusMenu
 								hasDatabases={hasDatabases}
 								hasSkills={hasSkills}
-								storiesEnabled={storiesEnabled}
+								storyCreationEnabled={storyCreationEnabled}
 								canChatWithNaoData={canChatWithNaoData}
 								isAdminMode={isAdminMode}
 								adminModeLocked={adminModeLocked}
@@ -651,7 +651,7 @@ function BudgetBanner() {
 function ChatInputPlusMenu({
 	hasDatabases,
 	hasSkills,
-	storiesEnabled,
+	storyCreationEnabled,
 	canChatWithNaoData,
 	isAdminMode,
 	adminModeLocked,
@@ -664,7 +664,7 @@ function ChatInputPlusMenu({
 }: {
 	hasDatabases: boolean;
 	hasSkills: boolean;
-	storiesEnabled: boolean;
+	storyCreationEnabled: boolean;
 	canChatWithNaoData: boolean;
 	isAdminMode: boolean;
 	adminModeLocked: boolean;
@@ -706,7 +706,7 @@ function ChatInputPlusMenu({
 						<span>Database tables</span>
 					</DropdownMenuItem>
 				)}
-				{storiesEnabled && (
+				{storyCreationEnabled && (
 					<DropdownMenuItem onSelect={onAddStory}>
 						<StoryIcon className='size-4' />
 						<span>Story mode</span>

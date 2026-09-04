@@ -1,4 +1,4 @@
-export const USER_GROUP_FEATURES = ['stories', 'automations', 'compact-mode'] as const;
+export const USER_GROUP_FEATURES = ['story-creation', 'automations', 'compact-mode'] as const;
 
 export type UserGroupFeature = (typeof USER_GROUP_FEATURES)[number];
 
@@ -8,9 +8,9 @@ export const USER_GROUP_FEATURE_DEFINITIONS: ReadonlyArray<{
 	description: string;
 }> = [
 	{
-		key: 'stories',
-		label: 'Stories',
-		description: 'Create, view, and manage stories.',
+		key: 'story-creation',
+		label: 'Create stories',
+		description: 'Create new Stories with the agent or Story mode.',
 	},
 	{
 		key: 'automations',
@@ -23,3 +23,15 @@ export const USER_GROUP_FEATURE_DEFINITIONS: ReadonlyArray<{
 		description: 'Use the compact chat interface.',
 	},
 ];
+
+export function normalizeUserGroupFeatures(features: readonly string[]): UserGroupFeature[] {
+	return [
+		...new Set(
+			features
+				.map((feature) => (feature === 'stories' ? 'story-creation' : feature))
+				.filter((feature): feature is UserGroupFeature =>
+					USER_GROUP_FEATURES.includes(feature as UserGroupFeature),
+				),
+		),
+	];
+}

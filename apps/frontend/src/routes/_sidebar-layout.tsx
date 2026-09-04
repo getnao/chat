@@ -7,7 +7,6 @@ import { Sidebar } from '@/components/sidebar';
 import { CommandMenuCallbackProvider, useCommandMenuCallback } from '@/contexts/command-menu-callback';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar';
 import { useTheme } from '@/contexts/theme.provider';
-import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { usePermissions } from '@/hooks/use-permissions';
 
@@ -45,7 +44,6 @@ function GlobalShortcuts({ onOpenKeyboardShortcuts }: { onOpenKeyboardShortcuts:
 	const { theme, setTheme } = useTheme();
 	const { fire: openCommandMenu } = useCommandMenuCallback();
 	const { canStartNewChat } = usePermissions();
-	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 
 	const navigateHome = useCallback(() => navigate({ to: '/' }), [navigate]);
 	const navigateStories = useCallback(() => navigate({ to: '/stories', search: { folderId: null } }), [navigate]);
@@ -58,7 +56,7 @@ function GlobalShortcuts({ onOpenKeyboardShortcuts }: { onOpenKeyboardShortcuts:
 		'command-menu': openCommandMenu,
 		'toggle-theme': toggleTheme,
 		'new-chat': canStartNewChat ? navigateHome : undefined,
-		'go-to-stories': storiesEnabled ? navigateStories : undefined,
+		'go-to-stories': navigateStories,
 		'keyboard-help': onOpenKeyboardShortcuts,
 	});
 

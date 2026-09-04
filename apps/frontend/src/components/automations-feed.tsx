@@ -141,7 +141,6 @@ export function AutomationsFeed({
 	items,
 	isLoading,
 	hasAutomations,
-	storiesEnabled,
 	lastSeenAt = 0,
 	onCancelRun,
 	cancellingRunId,
@@ -149,27 +148,24 @@ export function AutomationsFeed({
 	items: AutomationFeedItem[];
 	isLoading: boolean;
 	hasAutomations: boolean;
-	storiesEnabled: boolean;
 	lastSeenAt?: number;
 	onCancelRun?: (runId: string) => void;
 	cancellingRunId?: string | null;
 }) {
-	const visibleItems = storiesEnabled ? items : items.filter((item) => !isStoryActivity(item));
-
-	if (isLoading && visibleItems.length === 0) {
+	if (isLoading && items.length === 0) {
 		return <FeedSkeleton />;
 	}
 
-	if (visibleItems.length === 0) {
-		return <FeedEmptyState hasAutomations={hasAutomations} storiesEnabled={storiesEnabled} />;
+	if (items.length === 0) {
+		return <FeedEmptyState hasAutomations={hasAutomations} />;
 	}
 
-	const separatorIndex = findFirstSeenIndex(visibleItems, lastSeenAt);
-	const showSeparator = lastSeenAt > 0 && separatorIndex > 0 && separatorIndex < visibleItems.length;
+	const separatorIndex = findFirstSeenIndex(items, lastSeenAt);
+	const showSeparator = lastSeenAt > 0 && separatorIndex > 0 && separatorIndex < items.length;
 
 	return (
 		<div className='flex flex-col gap-4'>
-			{visibleItems.map((item, index) => (
+			{items.map((item, index) => (
 				<Fragment key={item.id}>
 					{showSeparator && index === separatorIndex && (
 						<NewSinceLastVisitSeparator newCount={separatorIndex} />
@@ -183,12 +179,6 @@ export function AutomationsFeed({
 				</Fragment>
 			))}
 		</div>
-	);
-}
-
-function isStoryActivity(item: AutomationFeedItem): boolean {
-	return (
-		item.kind === 'activity' && (item.activity.type === 'story.refreshed' || item.activity.type === 'story.shared')
 	);
 }
 
@@ -914,19 +904,15 @@ function FeedSkeleton() {
 	);
 }
 
-function FeedEmptyState({ hasAutomations, storiesEnabled }: { hasAutomations: boolean; storiesEnabled: boolean }) {
+function FeedEmptyState({ hasAutomations }: { hasAutomations: boolean }) {
 	return (
 		<div className='flex flex-col items-center justify-center rounded-xl border border-dashed bg-background/40 p-10 text-center'>
 			<Timer className='size-8 text-muted-foreground mb-3' />
 			<h2 className='font-medium'>{hasAutomations ? 'No runs yet' : 'No automations yet'}</h2>
 			<p className='mt-1 text-sm text-muted-foreground'>
 				{hasAutomations
-					? storiesEnabled
-						? 'Once your automations run or your live stories refresh, their output will show up here.'
-						: 'Once your automations run, their output will show up here.'
-					: storiesEnabled
-						? 'Create your first automation or refresh a live story to start seeing activity in this feed.'
-						: 'Create your first automation to start seeing activity in this feed.'}
+					? 'Once your automations run or your live stories refresh, their output will show up here.'
+					: 'Create your first automation or refresh a live story to start seeing activity in this feed.'}
 			</p>
 		</div>
 	);

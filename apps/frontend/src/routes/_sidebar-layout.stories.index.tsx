@@ -33,7 +33,6 @@ import { PromotedSections } from '@/components/stories-pinned-favorites';
 import { StoriesToolbarControls } from '@/components/stories-toolbar-controls';
 import { useProjectSwitch } from '@/hooks/use-project-switch';
 import { useSession } from '@/lib/auth-client';
-import { requireUserGroupFeature } from '@/lib/require-user-group-feature';
 import {
 	buildCurrentLevelEntries,
 	buildStoryItems,
@@ -48,7 +47,6 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/main';
 
 export const Route = createFileRoute('/_sidebar-layout/stories/')({
-	beforeLoad: () => requireUserGroupFeature('stories'),
 	validateSearch: (search: Record<string, unknown>) => ({
 		folderId: typeof search.folderId === 'string' ? search.folderId : null,
 	}),

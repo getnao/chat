@@ -25,7 +25,7 @@ export function useEffectiveUserGroupFeatures() {
 
 	return {
 		features,
-		storiesEnabled: features.stories,
+		storyCreationEnabled: features['story-creation'],
 		automationsEnabled: features.automations,
 		compactModeEnabled: features['compact-mode'],
 		isFeatureEnabled,

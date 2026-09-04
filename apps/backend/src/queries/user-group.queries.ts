@@ -1,4 +1,4 @@
-import { USER_GROUP_FEATURES, type UserGroupFeature } from '@nao/shared';
+import { normalizeUserGroupFeatures, USER_GROUP_FEATURES, type UserGroupFeature } from '@nao/shared';
 import { and, asc, desc, eq, isNotNull, or } from 'drizzle-orm';
 
 import type { DBUserGroup } from '../db/abstractSchema';
@@ -66,7 +66,7 @@ export const ensureDefaultUserGroup = async (projectId: string): Promise<DBUserG
 	if (!group) {
 		throw new UserGroupQueryError('CONFLICT', 'The All Users group could not be created.');
 	}
-	return group;
+	return normalizeUserGroup(group);
 };
 
 export const resolveEffectiveUserGroupFeatures = async (
@@ -90,7 +90,7 @@ export const resolveEffectiveUserGroupFeatures = async (
 		.orderBy(desc(s.userGroup.isDefault))
 		.execute();
 
-	return [...new Set(groups.flatMap((group) => group.featureGrants))];
+	return normalizeUserGroupFeatures(groups.flatMap((group) => group.featureGrants));
 };
 
 export const listUserGroups = async (projectId: string): Promise<DBUserGroup[]> =>
@@ -99,7 +99,8 @@ export const listUserGroups = async (projectId: string): Promise<DBUserGroup[]> 
 		.from(s.userGroup)
 		.where(eq(s.userGroup.projectId, projectId))
 		.orderBy(desc(s.userGroup.isDefault), asc(s.userGroup.name))
-		.execute();
+		.execute()
+		.then((groups) => groups.map(normalizeUserGroup));
 
 export const createUserGroup = async (
 	projectId: string,
@@ -110,10 +111,10 @@ export const createUserGroup = async (
 	await assertNameAvailable(projectId, name);
 	const [group] = await db
 		.insert(s.userGroup)
-		.values({ projectId, name, featureGrants, isDefault: false })
+		.values({ projectId, name, featureGrants: normalizeUserGroupFeatures(featureGrants), isDefault: false })
 		.returning()
 		.execute();
-	return group;
+	return normalizeUserGroup(group);
 };
 
 export const updateUserGroup = async (
@@ -132,13 +133,13 @@ export const updateUserGroup = async (
 		.update(s.userGroup)
 		.set({
 			...(data.name === undefined ? {} : { name: data.name }),
-			featureGrants: data.featureGrants,
+			featureGrants: normalizeUserGroupFeatures(data.featureGrants),
 			updatedAt: new Date(),
 		})
 		.where(and(eq(s.userGroup.id, groupId), eq(s.userGroup.projectId, projectId)))
 		.returning()
 		.execute();
-	return updated;
+	return normalizeUserGroup(updated);
 };
 
 export const deleteUserGroup = async (projectId: string, groupId: string): Promise<void> => {
@@ -213,3 +214,7 @@ const assertNameAvailable = async (projectId: string, name: string, excludedGrou
 		throw new UserGroupQueryError('CONFLICT', 'A user group with this name already exists.');
 	}
 };
+
+function normalizeUserGroup(group: DBUserGroup): DBUserGroup {
+	return { ...group, featureGrants: normalizeUserGroupFeatures(group.featureGrants) };
+}

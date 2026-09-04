@@ -8,7 +8,6 @@ import { db } from '../db/db';
 import * as storyQueries from '../queries/story.queries';
 import * as storyFolderQueries from '../queries/story-folder.queries';
 import { canSendProcedure, projectProtectedProcedure } from './trpc';
-import { assertUserGroupFeatureForTrpc } from './user-group-feature-access';
 
 async function assertFolderInProject(
 	folderId: string,
@@ -53,13 +52,8 @@ function assertCanChangeFolderScope(folder: DBStoryFolder, target: DBStoryFolder
 	}
 }
 
-const projectStoryProcedure = projectProtectedProcedure.use(async ({ ctx, next }) => {
-	await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
-	return next();
-});
-
 export const storyFolderRoutes = {
-	listTree: projectStoryProcedure
+	listTree: projectProtectedProcedure
 		.input(z.object({ archived: z.boolean().optional() }).optional())
 		.query(async ({ ctx, input }) => {
 			const isViewer = ctx.userRole === 'viewer';
@@ -72,7 +66,7 @@ export const storyFolderRoutes = {
 			});
 		}),
 
-	listItems: projectStoryProcedure.query(async ({ ctx }) => {
+	listItems: projectProtectedProcedure.query(async ({ ctx }) => {
 		return storyFolderQueries.listFolderItemsForProject(ctx.user.id, ctx.project.id, {
 			isViewer: ctx.userRole === 'viewer',
 		});
@@ -92,7 +86,6 @@ export const storyFolderRoutes = {
 				assertCanReadPrivateFolder(parent, ctx.user.id, 'Parent folder');
 			}
 			assertCanPlaceInDestination(parent, ctx.user.id);
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 			return storyFolderQueries.createFolder({
 				ownerId: ctx.user.id,
 				projectId: ctx.project.id,
@@ -112,7 +105,6 @@ export const storyFolderRoutes = {
 			const folder = await assertFolderInProject(input.id, ctx);
 			assertCanReadPrivateFolder(folder, ctx.user.id);
 			assertCanModifyFolder(folder, ctx.user.id, ctx.userRole);
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 			await storyFolderQueries.updateFolder(input.id, { name: input.name });
 		}),
 
@@ -120,7 +112,6 @@ export const storyFolderRoutes = {
 		const folder = await assertFolderInProject(input.id, ctx);
 		assertCanReadPrivateFolder(folder, ctx.user.id);
 		assertCanModifyFolder(folder, ctx.user.id, ctx.userRole);
-		await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 		await storyFolderQueries.deleteFolderMovingContentsToParent(input.id);
 	}),
 
@@ -128,7 +119,6 @@ export const storyFolderRoutes = {
 		const folder = await assertFolderInProject(input.id, ctx);
 		assertCanReadPrivateFolder(folder, ctx.user.id);
 		assertCanModifyFolder(folder, ctx.user.id, ctx.userRole);
-		await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 		await storyFolderQueries.archiveFolder(input.id);
 	}),
 
@@ -136,7 +126,6 @@ export const storyFolderRoutes = {
 		const folder = await assertFolderInProject(input.id, ctx);
 		assertCanReadPrivateFolder(folder, ctx.user.id);
 		assertCanModifyFolder(folder, ctx.user.id, ctx.userRole);
-		await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 		await storyFolderQueries.unarchiveFolder(ctx.user.id, ctx.project.id, input.id);
 	}),
 
@@ -148,7 +137,6 @@ export const storyFolderRoutes = {
 				assertCanReadPrivateFolder(folder, ctx.user.id);
 				assertCanModifyFolder(folder, ctx.user.id, ctx.userRole);
 			}
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 			await db.transaction(async (tx) => {
 				for (const id of input.ids) {
 					await storyFolderQueries.archiveFolder(id, tx);
@@ -164,7 +152,6 @@ export const storyFolderRoutes = {
 				assertCanReadPrivateFolder(folder, ctx.user.id);
 				assertCanModifyFolder(folder, ctx.user.id, ctx.userRole);
 			}
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 			await db.transaction(async (tx) => {
 				for (const id of input.ids) {
 					await storyFolderQueries.unarchiveFolder(ctx.user.id, ctx.project.id, id, tx);
@@ -186,8 +173,6 @@ export const storyFolderRoutes = {
 			}
 			assertCanPlaceInDestination(target, ctx.user.id);
 			assertCanChangeFolderScope(folder, target, ctx.user.id);
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
-
 			try {
 				await storyFolderQueries.moveFolder(ctx.user.id, ctx.project.id, input.id, input.newParentId);
 			} catch (err) {
@@ -225,8 +210,6 @@ export const storyFolderRoutes = {
 			}
 
 			assertCanPlaceInDestination(target, ctx.user.id);
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
-
 			await storyFolderQueries.moveStoryToFolder(input.storyId, input.folderId, {
 				storyOwnerId,
 				projectId: ctx.project.id,

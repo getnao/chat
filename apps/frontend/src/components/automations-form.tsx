@@ -181,7 +181,7 @@ export function AutomationForm({
 	onDirtyChange,
 	onSubmit,
 }: AutomationFormProps) {
-	const { storiesEnabled } = useEffectiveUserGroupFeatures();
+	const { storyCreationEnabled } = useEffectiveUserGroupFeatures();
 	const form = useAutomationFormController({
 		initialValue,
 		isPending,
@@ -231,7 +231,7 @@ export function AutomationForm({
 					promptRef={form.promptRef}
 					promptValue={form.value.prompt}
 					promptHasError={form.promptError}
-					storiesEnabled={storiesEnabled}
+					storyCreationEnabled={storyCreationEnabled}
 					onPromptChange={form.handlePromptChange}
 					modelValue={form.selectedModelValue}
 					modelName={form.selectedModelName}
@@ -853,7 +853,7 @@ function AgentInstructionsSection({
 	promptRef,
 	promptValue,
 	promptHasError,
-	storiesEnabled,
+	storyCreationEnabled,
 	onPromptChange,
 	modelValue,
 	modelName,
@@ -867,7 +867,7 @@ function AgentInstructionsSection({
 	promptRef: RefObject<PromptHandle | null>;
 	promptValue: string;
 	promptHasError: boolean;
-	storiesEnabled: boolean;
+	storyCreationEnabled: boolean;
 	onPromptChange: (value: string) => void;
 	modelValue: string;
 	modelName: string | undefined;
@@ -885,7 +885,7 @@ function AgentInstructionsSection({
 				promptRef={promptRef}
 				value={promptValue}
 				hasError={promptHasError}
-				storiesEnabled={storiesEnabled}
+				storyCreationEnabled={storyCreationEnabled}
 				onChange={onPromptChange}
 				footer={
 					<AutomationModelSelect
@@ -898,7 +898,11 @@ function AgentInstructionsSection({
 					/>
 				}
 			/>
-			<PromptMentionHints email={email} storiesEnabled={storiesEnabled} onInsertTrigger={onInsertPromptTrigger} />
+			<PromptMentionHints
+				email={email}
+				storyCreationEnabled={storyCreationEnabled}
+				onInsertTrigger={onInsertPromptTrigger}
+			/>
 		</section>
 	);
 }
@@ -907,14 +911,14 @@ function AutomationPromptInput({
 	promptRef,
 	value,
 	hasError,
-	storiesEnabled,
+	storyCreationEnabled,
 	onChange,
 	footer,
 }: {
 	promptRef: RefObject<PromptHandle | null>;
 	value: string;
 	hasError: boolean;
-	storiesEnabled: boolean;
+	storyCreationEnabled: boolean;
 	onChange: (value: string) => void;
 	footer?: ReactNode;
 }) {
@@ -954,7 +958,7 @@ function AutomationPromptInput({
 					placeholder='Type @ for tools, / for commands...'
 					minHeight='10rem'
 					submitOnEnter={false}
-					storiesEnabled={storiesEnabled}
+					storyCreationEnabled={storyCreationEnabled}
 					onChange={handleChange}
 				/>
 				{footer && <div className='flex items-center justify-between gap-2 px-3 pb-2.5'>{footer}</div>}
@@ -1015,11 +1019,11 @@ function AutomationModelSelect({
 function PromptMentionHints({
 	onInsertTrigger,
 	email,
-	storiesEnabled,
+	storyCreationEnabled,
 }: {
 	onInsertTrigger: (trigger: string) => void;
 	email?: string;
-	storiesEnabled: boolean;
+	storyCreationEnabled: boolean;
 }) {
 	return (
 		<>
@@ -1032,8 +1036,8 @@ function PromptMentionHints({
 				/>
 				<span>for table context,</span>
 				<PromptTriggerButton trigger={SKILL_MENTION_TRIGGER} label='skills' onClick={onInsertTrigger} />
-				<span>{storiesEnabled ? 'for skills, or' : 'for skills.'}</span>
-				{storiesEnabled && (
+				<span>{storyCreationEnabled ? 'for skills, or' : 'for skills.'}</span>
+				{storyCreationEnabled && (
 					<>
 						<PromptTriggerButton trigger={MODE_MENTION_TRIGGER} label='modes' onClick={onInsertTrigger} />
 						<span>for modes.</span>

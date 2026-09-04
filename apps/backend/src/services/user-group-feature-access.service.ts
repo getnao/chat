@@ -49,28 +49,10 @@ export async function assertUserGroupFeature(
 	}
 }
 
-export async function filterProjectIdsByUserGroupFeature(
-	projectIds: string[],
-	userId: string,
-	feature: UserGroupFeature,
-): Promise<Set<string>> {
-	if (!(await hasFeature(LICENSE_FEATURES.userGroups))) {
-		return new Set(projectIds);
-	}
-
-	const results = await Promise.all(
-		projectIds.map(async (projectId) => ({
-			projectId,
-			features: await resolveEffectiveUserGroupFeatures(projectId, userId),
-		})),
-	);
-	return new Set(results.filter(({ features }) => features.includes(feature)).map(({ projectId }) => projectId));
-}
-
 function featureLabel(feature: UserGroupFeature): string {
 	switch (feature) {
-		case 'stories':
-			return 'Stories';
+		case 'story-creation':
+			return 'Story creation';
 		case 'automations':
 			return 'Automations';
 		case 'compact-mode':

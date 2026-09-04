@@ -24,14 +24,14 @@ describe('user group feature access service', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mocks.hasFeature.mockResolvedValue(true);
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['stories']);
+		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
 	});
 
 	it('fails open without querying groups when user groups are unlicensed', async () => {
 		mocks.hasFeature.mockResolvedValue(false);
 
 		await expect(getEffectiveUserGroupFeatures('project-id', 'user-id')).resolves.toEqual([
-			'stories',
+			'story-creation',
 			'automations',
 			'compact-mode',
 		]);
@@ -40,14 +40,14 @@ describe('user group feature access service', () => {
 
 	it('returns typed flags for licensed effective grants', async () => {
 		await expect(getEffectiveUserGroupFeatureFlags('project-id', 'user-id')).resolves.toEqual({
-			stories: true,
+			'story-creation': true,
 			automations: false,
 			'compact-mode': false,
 		});
 	});
 
 	it('allows and denies licensed feature checks', async () => {
-		await expect(hasUserGroupFeature('project-id', 'user-id', 'stories')).resolves.toBe(true);
+		await expect(hasUserGroupFeature('project-id', 'user-id', 'story-creation')).resolves.toBe(true);
 		await expect(assertUserGroupFeature('project-id', 'user-id', 'automations')).rejects.toMatchObject({
 			codeMessage: 'FORBIDDEN',
 			message: 'Automations is not enabled for your user group.',

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { getRenderableUserGroupFeatures } from './effective-user-group-features';
 
 const grantedFeatures = {
-	stories: true,
+	'story-creation': true,
 	automations: false,
 	'compact-mode': true,
 };
@@ -15,7 +15,7 @@ describe('getRenderableUserGroupFeatures', () => {
 
 	it('denies every feature while loading or after an error', () => {
 		expect(getRenderableUserGroupFeatures(grantedFeatures, false)).toEqual({
-			stories: false,
+			'story-creation': false,
 			automations: false,
 			'compact-mode': false,
 		});
@@ -23,7 +23,7 @@ describe('getRenderableUserGroupFeatures', () => {
 
 	it('denies every feature when no project result exists', () => {
 		expect(getRenderableUserGroupFeatures(undefined, true)).toEqual({
-			stories: false,
+			'story-creation': false,
 			automations: false,
 			'compact-mode': false,
 		});

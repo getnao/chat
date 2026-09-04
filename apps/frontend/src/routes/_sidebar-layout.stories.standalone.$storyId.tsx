@@ -22,11 +22,9 @@ import { chatPendingCitationStore } from '@/stores/chat-pending-citation';
 import { useStoryPageEditor } from '@/hooks/use-story-page-editor';
 import { useStoryVersionQueryData } from '@/hooks/use-story-version-query-data';
 import { useTrackViewDuration } from '@/hooks/use-track-view-duration';
-import { requireUserGroupFeature } from '@/lib/require-user-group-feature';
 import { trpc } from '@/main';
 
 export const Route = createFileRoute('/_sidebar-layout/stories/standalone/$storyId')({
-	beforeLoad: () => requireUserGroupFeature('stories'),
 	component: StandaloneStoryPage,
 });
 

@@ -6,11 +6,9 @@ import * as storyQueries from '../queries/story.queries';
 import * as storyFolderQueries from '../queries/story-folder.queries';
 import { logAnalyticsEvent } from '../utils/analytics-event';
 import { projectProtectedProcedure } from './trpc';
-import { assertUserGroupFeatureForTrpc } from './user-group-feature-access';
 
 export const favoriteRoutes = {
 	toggle: projectProtectedProcedure.input(favoriteQueries.favoriteTargetSchema).mutation(async ({ input, ctx }) => {
-		let featureProjectId: string;
 		if (input.type === 'story') {
 			const canAccess = await storyQueries.canUserAccessStory(input.id, ctx.user.id);
 			if (!canAccess) {
@@ -20,7 +18,6 @@ export const favoriteRoutes = {
 			if (!projectId) {
 				throw new TRPCError({ code: 'NOT_FOUND', message: 'Story not found.' });
 			}
-			featureProjectId = projectId;
 		} else {
 			const folder = await storyFolderQueries.getFolderById(input.id);
 			if (!folder || (folder.visibility === 'private' && folder.ownerId !== ctx.user.id)) {
@@ -30,9 +27,7 @@ export const favoriteRoutes = {
 			if (!userRole) {
 				throw new TRPCError({ code: 'NOT_FOUND', message: 'Folder not found.' });
 			}
-			featureProjectId = folder.projectId;
 		}
-		await assertUserGroupFeatureForTrpc(featureProjectId, ctx.user.id, 'stories');
 
 		const isFavorited = await favoriteQueries.toggleFavorite(ctx.user.id, { type: input.type, id: input.id });
 
@@ -51,7 +46,6 @@ export const favoriteRoutes = {
 	}),
 
 	list: projectProtectedProcedure.query(async ({ ctx }) => {
-		await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 		return favoriteQueries.listFavorites(ctx.user.id, ctx.project.id);
 	}),
 };

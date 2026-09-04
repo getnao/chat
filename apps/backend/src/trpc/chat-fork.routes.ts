@@ -46,7 +46,6 @@ export const chatForkRoutes = {
 			if (!story || story.projectId !== ctx.project.id) {
 				throw new TRPCError({ code: 'NOT_FOUND', message: 'Story not found.' });
 			}
-			await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'stories');
 			if (story.chatId) {
 				return { chatId: story.chatId };
 			}
@@ -87,8 +86,7 @@ export const chatForkRoutes = {
 		.input(z.object({ shareId: z.string(), type: shareTypeSchema }))
 		.query(async ({ input, ctx }) => {
 			if (input.type === 'story') {
-				const share = await resolveSharedStory(input.shareId, ctx.user.id);
-				await assertUserGroupFeatureForTrpc(share.projectId, ctx.user.id, 'stories');
+				await resolveSharedStory(input.shareId, ctx.user.id);
 			}
 			const forkType = input.type === 'chat' ? 'chat_selection' : 'story_selection';
 			return chatQueries.getSelectionForksByShareId(ctx.user.id, input.shareId, forkType);
@@ -137,7 +135,6 @@ async function forkSharedStoryItem(
 ): Promise<{ chatId: string }> {
 	const share = await resolveSharedStory(shareId, userId);
 	const projectId = share.projectId;
-	await assertUserGroupFeatureForTrpc(projectId, userId, 'stories');
 
 	const forkMetadata: ForkMetadata = selection
 		? buildSelectionMetadata('story_selection', shareId, share.title, share.authorName, selection)
@@ -165,6 +162,7 @@ async function forkSharedStoryItem(
 		return { chatId: chat.id };
 	}
 
+	await assertUserGroupFeatureForTrpc(projectId, userId, 'story-creation');
 	const queryData = await sharedStoryQueries.getQueryDataFromCode(share.chatId!, share.code);
 	const messages = buildQueryDataMessages(queryData);
 

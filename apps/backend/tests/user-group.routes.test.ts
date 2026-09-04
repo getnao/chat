@@ -41,7 +41,7 @@ describe('user group routes', () => {
 		mocks.role = 'admin';
 		mocks.hasFeature.mockResolvedValue(true);
 		mocks.getUserGroupOverview.mockResolvedValue({ users: [], groups: [], memberships: [] });
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['stories']);
+		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
 		mocks.createUserGroup.mockResolvedValue({ id: 'group-id', name: 'Analysts' });
 	});
 
@@ -67,17 +67,20 @@ describe('user group routes', () => {
 			createCaller().create({ name: 'Analysts', featureGrants: ['unknown'] as never }),
 		).rejects.toMatchObject({ code: 'BAD_REQUEST' });
 
-		await createCaller().create({ name: ' Analysts ', featureGrants: ['stories', 'stories'] });
+		await createCaller().create({
+			name: ' Analysts ',
+			featureGrants: ['story-creation', 'story-creation'],
+		});
 
 		expect(mocks.hasFeature).toHaveBeenCalledWith('user-groups');
-		expect(mocks.createUserGroup).toHaveBeenCalledWith('project-id', 'Analysts', ['stories']);
+		expect(mocks.createUserGroup).toHaveBeenCalledWith('project-id', 'Analysts', ['story-creation']);
 	});
 
 	it('returns effective features to viewers', async () => {
 		mocks.role = 'viewer';
 
 		await expect(createCaller().effectiveFeatures()).resolves.toEqual({
-			stories: true,
+			'story-creation': true,
 			automations: false,
 			'compact-mode': false,
 		});
@@ -89,7 +92,7 @@ describe('user group routes', () => {
 		mocks.hasFeature.mockResolvedValue(false);
 
 		await expect(createCaller().effectiveFeatures()).resolves.toEqual({
-			stories: true,
+			'story-creation': true,
 			automations: true,
 			'compact-mode': true,
 		});

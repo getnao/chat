@@ -3,7 +3,7 @@ import type { UserGroupFeature } from '@nao/shared';
 export type EffectiveUserGroupFeatures = Record<UserGroupFeature, boolean>;
 
 const DENIED_FEATURES: EffectiveUserGroupFeatures = {
-	stories: false,
+	'story-creation': false,
 	automations: false,
 	'compact-mode': false,
 };

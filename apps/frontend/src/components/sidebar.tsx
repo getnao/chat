@@ -55,7 +55,7 @@ export function Sidebar() {
 	const branding = useBranding();
 	const customColor = branding.enabled ? branding.brandColor : null;
 	const { isAdmin, isContextAdmin, isViewer } = usePermissions();
-	const { storiesEnabled, automationsEnabled } = useEffectiveUserGroupFeatures();
+	const { automationsEnabled } = useEffectiveUserGroupFeatures();
 	const isCloud = useIsCloud();
 	const betaAutomationsEnabled = config.data?.betaAutomationsEnabled === true;
 	const showAutomations = !isViewer && betaAutomationsEnabled && automationsEnabled;
@@ -234,15 +234,13 @@ export function Sidebar() {
 								isCollapsed={effectiveIsCollapsed}
 								onClick={handleSearchChats}
 							/>
-							{storiesEnabled && (
-								<SidebarMenuButton
-									icon={StoryIcon as unknown as LucideIcon}
-									label='Stories'
-									shortcut={getShortcutLabel('go-to-stories')}
-									isCollapsed={effectiveIsCollapsed}
-									onClick={handleNavigateStories}
-								/>
-							)}
+							<SidebarMenuButton
+								icon={StoryIcon as unknown as LucideIcon}
+								label='Stories'
+								shortcut={getShortcutLabel('go-to-stories')}
+								isCollapsed={effectiveIsCollapsed}
+								onClick={handleNavigateStories}
+							/>
 							{showAutomations && (
 								<SidebarMenuButton
 									icon={NewspaperIcon as unknown as LucideIcon}

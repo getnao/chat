@@ -27,7 +27,6 @@ import { useTheme } from '@/contexts/theme.provider';
 import { useRegisterCommandMenuCallback } from '@/contexts/command-menu-callback';
 import { useSearchChatsQuery } from '@/queries/use-search-chats-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useSettingsSearch, useSettingsSuggestions } from '@/hooks/use-settings-search';
 import { TextShimmer } from '@/components/ui/text-shimmer';
@@ -54,7 +53,6 @@ export function CommandMenu({ onOpenKeyboardShortcuts }: { onOpenKeyboardShortcu
 	const queryClient = useQueryClient();
 	const { theme, setTheme } = useTheme();
 	const { canStartNewChat } = usePermissions();
-	const { storiesEnabled } = useEffectiveUserGroupFeatures();
 	const isSettingsMode = searchValue.startsWith('/');
 	const settingsQuery = searchValue.slice(1);
 	const settingsResults = useSettingsSearch(isSettingsMode ? settingsQuery : '');
@@ -96,7 +94,6 @@ export function CommandMenu({ onOpenKeyboardShortcuts }: { onOpenKeyboardShortcu
 				},
 				shortcut: getShortcutLabel('go-to-stories'),
 				group: 'Jump to',
-				visible: storiesEnabled,
 			},
 			{
 				id: 'search-settings',
@@ -130,7 +127,7 @@ export function CommandMenu({ onOpenKeyboardShortcuts }: { onOpenKeyboardShortcu
 				group: 'Actions',
 			},
 		],
-		[navigate, queryClient, theme, setTheme, canStartNewChat, storiesEnabled, onOpenKeyboardShortcuts, searchValue],
+		[navigate, queryClient, theme, setTheme, canStartNewChat, onOpenKeyboardShortcuts, searchValue],
 	);
 
 	const visibleCommands = useMemo(() => commands.filter((cmd) => cmd.visible ?? true), [commands]);

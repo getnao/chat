@@ -190,6 +190,18 @@ const envSchema = z.object({
 		.transform((val) => val?.trim() || undefined)
 		.pipe(z.url({ message: 'MCP_PUBLIC_URL must be a valid URL' }).optional()),
 
+	/**
+	 * Whether unauthenticated OAuth dynamic client registration (POST /api/auth/oauth2/register) is
+	 * allowed. MCP clients that self-register (Claude, Cursor, …) rely on it, so it defaults to true.
+	 * Self-hosted deployments that connect only via manually-created confidential clients can set it
+	 * to "false" to shrink the attack surface.
+	 */
+	ALLOW_UNAUTHENTICATED_DCR: z
+		.enum(['true', 'false'])
+		.optional()
+		.default('true')
+		.transform((val) => val === 'true'),
+
 	POSTHOG_KEY: z.string().optional(),
 	POSTHOG_HOST: z.url({ message: 'POSTHOG_HOST must be a valid URL' }).optional(),
 	POSTHOG_DISABLED: z

@@ -222,7 +222,7 @@ async function createAuthInstance(baseURL: string) {
 				accessTokenExpiresIn: 86400,
 				refreshTokenExpiresIn: 604800,
 				allowDynamicClientRegistration: true,
-				allowUnauthenticatedClientRegistration: true,
+				allowUnauthenticatedClientRegistration: env.ALLOW_UNAUTHENTICATED_DCR,
 				validAudiences: MCP_VALID_AUDIENCES,
 			}),
 			...ssoPlugins,

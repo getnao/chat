@@ -10,7 +10,7 @@ dotenv.config({
 	path: path.join(process.cwd(), '..', '..', '.env'),
 });
 
-const envSchema = z.object({
+const baseEnvSchema = z.object({
 	MODE: z.enum(['dev', 'prod', 'test']).default('dev'),
 
 	DB_URI: z.string().default('sqlite:./db.sqlite'),
@@ -259,6 +259,13 @@ const envSchema = z.object({
 		.optional()
 		.default('false')
 		.transform((val) => val === 'true'),
+});
+
+// Refresh tokens must outlive access tokens, otherwise a client can hold a valid
+// access token it can no longer renew once the refresh token has expired.
+const envSchema = baseEnvSchema.refine((e) => e.MCP_REFRESH_TOKEN_TTL > e.MCP_ACCESS_TOKEN_TTL, {
+	message: 'MCP_REFRESH_TOKEN_TTL must be greater than MCP_ACCESS_TOKEN_TTL so refresh tokens outlive access tokens',
+	path: ['MCP_REFRESH_TOKEN_TTL'],
 });
 
 const result = envSchema.safeParse(process.env);

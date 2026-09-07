@@ -1,37 +1,36 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-// ALLOW_UNAUTHENTICATED_DCR is parsed from env at module load, so each case resets
-// the module registry and re-imports env against process.env.
+import { __reloadEnvForTesting, env } from '../src/env';
+
+// ALLOW_UNAUTHENTICATED_DCR is parsed from env at load; __reloadEnvForTesting re-parses
+// process.env in place (without re-running dotenv) so cases can mutate it between runs.
 describe('ALLOW_UNAUTHENTICATED_DCR env', () => {
 	let originalEnv: typeof process.env;
 
 	beforeEach(() => {
 		originalEnv = { ...process.env };
-		process.env.BETTER_AUTH_URL = 'https://nao.internal.example';
 		delete process.env.ALLOW_UNAUTHENTICATED_DCR;
-		vi.resetModules();
 	});
 
 	afterEach(() => {
 		process.env = originalEnv;
-		vi.resetModules();
-		vi.restoreAllMocks();
+		__reloadEnvForTesting();
 	});
 
-	it('defaults to true (preserves prior behavior)', async () => {
-		const { env } = await import('../src/env');
+	it('defaults to true (preserves prior behavior)', () => {
+		__reloadEnvForTesting();
 		expect(env.ALLOW_UNAUTHENTICATED_DCR).toBe(true);
 	});
 
-	it('can be disabled with "false"', async () => {
+	it('can be disabled with "false"', () => {
 		process.env.ALLOW_UNAUTHENTICATED_DCR = 'false';
-		const { env } = await import('../src/env');
+		__reloadEnvForTesting();
 		expect(env.ALLOW_UNAUTHENTICATED_DCR).toBe(false);
 	});
 
-	it('accepts "true"', async () => {
+	it('accepts "true"', () => {
 		process.env.ALLOW_UNAUTHENTICATED_DCR = 'true';
-		const { env } = await import('../src/env');
+		__reloadEnvForTesting();
 		expect(env.ALLOW_UNAUTHENTICATED_DCR).toBe(true);
 	});
 });

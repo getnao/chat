@@ -90,39 +90,43 @@ export const usageRoutes = {
 			return savedPeriod;
 		}),
 
-	updateSavedPeriod: usagePeriodPreferenceProcedure.input(updateSavedPeriodInputSchema).mutation(async ({ ctx, input }) => {
-		const nextSavedPeriod = input.savedPeriod;
-		await mutatePeriodSettings(ctx.user.id, ctx.project.id, ({ preferences: current, savedPeriods }) => {
-			assertSavedPeriodExists(savedPeriods, nextSavedPeriod.id);
-			return {
-				...current,
-				savedUsagePeriods: savedPeriods.map((savedPeriod) =>
-					savedPeriod.id === nextSavedPeriod.id ? nextSavedPeriod : savedPeriod,
-				),
-			};
-		});
-		return nextSavedPeriod;
-	}),
-
-	deleteSavedPeriod: usagePeriodPreferenceProcedure.input(deleteSavedPeriodInputSchema).mutation(async ({ ctx, input }) => {
-		const preferences = await mutatePeriodSettings(
-			ctx.user.id,
-			ctx.project.id,
-			({ preferences: current, savedPeriods }) => {
-				assertSavedPeriodExists(savedPeriods, input.id);
-				const usagePeriod =
-					current.usagePeriod?.mode === 'saved' && current.usagePeriod.savedPeriodId === input.id
-						? DEFAULT_USAGE_PERIOD_SELECTION
-						: current.usagePeriod;
+	updateSavedPeriod: usagePeriodPreferenceProcedure
+		.input(updateSavedPeriodInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const nextSavedPeriod = input.savedPeriod;
+			await mutatePeriodSettings(ctx.user.id, ctx.project.id, ({ preferences: current, savedPeriods }) => {
+				assertSavedPeriodExists(savedPeriods, nextSavedPeriod.id);
 				return {
 					...current,
-					usagePeriod,
-					savedUsagePeriods: savedPeriods.filter(({ id }) => id !== input.id),
+					savedUsagePeriods: savedPeriods.map((savedPeriod) =>
+						savedPeriod.id === nextSavedPeriod.id ? nextSavedPeriod : savedPeriod,
+					),
 				};
-			},
-		);
-		return { id: input.id, selection: preferences.usagePeriod };
-	}),
+			});
+			return nextSavedPeriod;
+		}),
+
+	deleteSavedPeriod: usagePeriodPreferenceProcedure
+		.input(deleteSavedPeriodInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const preferences = await mutatePeriodSettings(
+				ctx.user.id,
+				ctx.project.id,
+				({ preferences: current, savedPeriods }) => {
+					assertSavedPeriodExists(savedPeriods, input.id);
+					const usagePeriod =
+						current.usagePeriod?.mode === 'saved' && current.usagePeriod.savedPeriodId === input.id
+							? DEFAULT_USAGE_PERIOD_SELECTION
+							: current.usagePeriod;
+					return {
+						...current,
+						usagePeriod,
+						savedUsagePeriods: savedPeriods.filter(({ id }) => id !== input.id),
+					};
+				},
+			);
+			return { id: input.id, selection: preferences.usagePeriod };
+		}),
 };
 
 function assertPreferenceProject(inputProjectId: string, contextProjectId: string): void {

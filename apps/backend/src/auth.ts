@@ -15,7 +15,7 @@ import type { JWTPayload } from 'jose';
 
 import { db } from './db/db';
 import dbConfig, { Dialect } from './db/dbConfig';
-import { env, isCloud, MCP_SERVER_URL } from './env';
+import { env, isCloud, MCP_VALID_AUDIENCES } from './env';
 import * as orgQueries from './queries/organization.queries';
 import * as projectQueries from './queries/project.queries';
 import * as userQueries from './queries/user.queries';
@@ -71,7 +71,7 @@ export function updateAuth() {
 	openIdConfigMetadataPromise = null;
 }
 
-export async function verifyOAuthAccessToken(token: string, audience: string): Promise<JWTPayload> {
+export async function verifyOAuthAccessToken(token: string, audience: string[]): Promise<JWTPayload> {
 	const { issuer, jwksUrl } = await getAuthServerEndpoints();
 	return verifyAccessToken(token, {
 		verifyOptions: { audience, issuer },
@@ -223,7 +223,7 @@ async function createAuthInstance(baseURL: string) {
 				refreshTokenExpiresIn: 604800,
 				allowDynamicClientRegistration: true,
 				allowUnauthenticatedClientRegistration: true,
-				validAudiences: [env.BETTER_AUTH_URL, MCP_SERVER_URL],
+				validAudiences: MCP_VALID_AUDIENCES,
 			}),
 			...ssoPlugins,
 		],

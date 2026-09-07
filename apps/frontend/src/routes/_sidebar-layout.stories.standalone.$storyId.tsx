@@ -229,6 +229,8 @@ function StandaloneEditableStory({
 					isCodeDirty: editor.isCodeDirty,
 					isCodeValid: editor.isCodeValid,
 					onSave: editor.handleSave,
+					onCancel: editor.handleCancel,
+					isSaving: editor.isSaving,
 				}}
 				versionControls={{
 					currentVersion: editor.versionNav.currentVersion,
@@ -241,7 +243,6 @@ function StandaloneEditableStory({
 			/>
 
 			<StoryPageBody
-				code={editor.code}
 				editor={editor}
 				queryData={versionQueryData}
 				preview={

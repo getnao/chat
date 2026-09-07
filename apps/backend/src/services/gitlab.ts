@@ -1,7 +1,5 @@
 import { execFileSync } from 'node:child_process';
 
-import type { GitlabProfile } from 'better-auth/social-providers';
-
 import { env } from '../env';
 import { GitIdentity, NAO_CO_AUTHOR, withCoAuthors } from '../utils/git-identity';
 import { configDir, getRepoSubPath, isContextConfigFile, shallowestSubPath } from './git-repo';
@@ -33,7 +31,13 @@ interface GitLabMergeRequestSummary {
 	source_project_id: number;
 }
 
-export type GitLabUser = GitlabProfile;
+export interface GitLabUser {
+	id: number;
+	username: string;
+	name: string;
+	email: string | null;
+	avatar_url: string;
+}
 
 interface GitlabOAuthConfig {
 	clientId: string;

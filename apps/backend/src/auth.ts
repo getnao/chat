@@ -8,7 +8,7 @@ import type { BetterAuthPlugin, Session } from 'better-auth';
 import { APIError, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware } from 'better-auth/api';
-import { verifyBearerToken } from 'better-auth/oauth2';
+import { verifyAccessToken } from 'better-auth/oauth2';
 import { jwt } from 'better-auth/plugins';
 import { bearer } from 'better-auth/plugins/bearer';
 import type { JWTPayload } from 'jose';
@@ -73,7 +73,7 @@ export function updateAuth() {
 
 export async function verifyOAuthAccessToken(token: string, audience: string[]): Promise<JWTPayload> {
 	const { issuer, jwksUrl } = await getAuthServerEndpoints();
-	return verifyBearerToken(token, {
+	return verifyAccessToken(token, {
 		verifyOptions: { audience, issuer },
 		jwksUrl,
 	});
@@ -148,7 +148,7 @@ async function createAuthInstance(baseURL: string) {
 
 				return {
 					user: {
-						sub: String(profile.id),
+						id: String(profile.id),
 						name: profile.login as string,
 						email: (profile.email ?? `${profile.login}@users.noreply.github.com`) as string,
 						image: profile.avatar_url as string,
@@ -180,7 +180,7 @@ async function createAuthInstance(baseURL: string) {
 				const hostname = new URL(gitlabService.gitlabBaseUrl()).hostname;
 				return {
 					user: {
-						sub: String(profile.id),
+						id: String(profile.id),
 						name: profile.name || profile.username,
 						email: profile.email ?? `${profile.username}@users.noreply.${hostname}`,
 						image: profile.avatar_url,

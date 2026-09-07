@@ -1,5 +1,5 @@
 import { oauthProviderClient } from '@better-auth/oauth-provider/client';
-import { inferAdditionalFields } from 'better-auth/client/plugins';
+import { genericOAuthClient, inferAdditionalFields } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
 export const authClient = createAuthClient({
@@ -15,6 +15,7 @@ export const authClient = createAuthClient({
 				},
 			},
 		}),
+		genericOAuthClient(),
 	],
 });
 
@@ -45,8 +46,8 @@ const handleGitlabSignIn = async (callbackURL = '/') => {
 };
 
 const handleOidcSignIn = async (providerId: string, callbackURL = '/') => {
-	await authClient.signIn.social({
-		provider: providerId,
+	await authClient.signIn.oauth2({
+		providerId,
 		callbackURL,
 		errorCallbackURL: '/login',
 	});

@@ -8,3 +8,5 @@ CREATE TABLE `user_project_preference` (
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`project_id`) REFERENCES `project`(`id`) ON UPDATE no action ON DELETE cascade
 );
+--> statement-breakpoint
+CREATE INDEX `user_project_preference_projectId_idx` ON `user_project_preference` (`project_id`);

@@ -1,1 +1,0 @@
-CREATE INDEX "user_project_preference_projectId_idx" ON "user_project_preference" USING btree ("project_id");

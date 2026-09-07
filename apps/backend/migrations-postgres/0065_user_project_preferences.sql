@@ -8,4 +8,5 @@ CREATE TABLE "user_project_preference" (
 );
 --> statement-breakpoint
 ALTER TABLE "user_project_preference" ADD CONSTRAINT "user_project_preference_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_project_preference" ADD CONSTRAINT "user_project_preference_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "user_project_preference" ADD CONSTRAINT "user_project_preference_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "user_project_preference_projectId_idx" ON "user_project_preference" USING btree ("project_id");

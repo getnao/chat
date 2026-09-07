@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a21a56bd-c120-450f-9b97-9da3f4ad6bdb",
+  "id": "e75748a0-c724-4478-b4d6-110606b3b297",
   "prevId": "b38d7d4b-a555-43f6-b2f4-a012046466e9",
   "tables": {
     "account": {
@@ -6585,7 +6585,15 @@
           "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_project_preference_projectId_idx": {
+          "name": "user_project_preference_projectId_idx",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "user_project_preference_user_id_user_id_fk": {
           "name": "user_project_preference_user_id_user_id_fk",

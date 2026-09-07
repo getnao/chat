@@ -9,18 +9,9 @@ import type { ReactNode } from 'react';
 
 import { ToolCallDensitySlider } from '@/components/settings/tool-call-density-slider';
 import { UpgradeToEnterprise } from '@/components/settings/upgrade-to-enterprise';
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
 	DropdownMenu,
@@ -572,26 +563,16 @@ function UserGroupDialog({
 				</DialogContent>
 			</Dialog>
 
-			<AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete {existingGroup?.name}?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This removes the group and all of its user memberships.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							variant='destructive'
-							onClick={handleDelete}
-							isLoading={deleteGroup.isPending}
-						>
-							Delete
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			<ConfirmationDialog
+				open={confirmDelete}
+				onOpenChange={setConfirmDelete}
+				title={`Delete ${existingGroup?.name}?`}
+				description='This removes the group and all of its user memberships.'
+				confirmLabel='Delete'
+				onConfirm={handleDelete}
+				isPending={deleteGroup.isPending}
+				preventCloseWhilePending
+			/>
 		</>
 	);
 }
@@ -615,25 +596,20 @@ function UserGroupFeatures({
 					<p className='text-xs text-muted-foreground'>Choose which product features this group can use.</p>
 				</div>
 				{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
-					<div key={feature.key} className='flex items-start justify-between gap-4 rounded-lg border p-3'>
-						<div>
-							<label htmlFor={`user-group-feature-${feature.key}`} className='text-sm font-medium'>
-								{feature.label}
-							</label>
-							<p className='text-xs text-muted-foreground'>{feature.description}</p>
-						</div>
-						<Switch
-							id={`user-group-feature-${feature.key}`}
-							checked={featureGrants.includes(feature.key)}
-							onCheckedChange={(checked) =>
-								onFeatureGrantsChange(
-									checked
-										? [...featureGrants, feature.key]
-										: featureGrants.filter((key) => key !== feature.key),
-								)
-							}
-						/>
-					</div>
+					<UserGroupSwitchRow
+						key={feature.key}
+						id={`user-group-feature-${feature.key}`}
+						label={feature.label}
+						description={feature.description}
+						checked={featureGrants.includes(feature.key)}
+						onCheckedChange={(checked) =>
+							onFeatureGrantsChange(
+								checked
+									? [...featureGrants, feature.key]
+									: featureGrants.filter((key) => key !== feature.key),
+							)
+						}
+					/>
 				))}
 			</div>
 
@@ -645,7 +621,11 @@ function UserGroupFeatures({
 				<div className='flex items-center justify-between gap-4 rounded-lg border p-3'>
 					<div>
 						<p className='text-sm font-medium'>Default density</p>
-						<p className='text-xs text-muted-foreground'>Used when a member has no personal setting.</p>
+						<p className='text-xs text-muted-foreground'>
+							{toolCallDensityPolicy.canChange
+								? 'Used when a member has no personal setting.'
+								: 'Applied to members.'}
+						</p>
 					</div>
 					<ToolCallDensitySlider
 						value={toolCallDensityPolicy.defaultDensity}
@@ -654,19 +634,42 @@ function UserGroupFeatures({
 						}
 					/>
 				</div>
-				<div className='flex items-center justify-between gap-4 rounded-lg border p-3'>
-					<label htmlFor='user-group-density-can-change' className='text-sm font-medium'>
-						Members can change this setting
-					</label>
-					<Switch
-						id='user-group-density-can-change'
-						checked={toolCallDensityPolicy.canChange}
-						onCheckedChange={(canChange) =>
-							onToolCallDensityPolicyChange({ ...toolCallDensityPolicy, canChange })
-						}
-					/>
-				</div>
+				<UserGroupSwitchRow
+					id='user-group-density-can-change'
+					label='Let members choose'
+					description='Members can override the default in their account settings.'
+					checked={toolCallDensityPolicy.canChange}
+					onCheckedChange={(canChange) =>
+						onToolCallDensityPolicyChange({ ...toolCallDensityPolicy, canChange })
+					}
+				/>
 			</div>
+		</div>
+	);
+}
+
+function UserGroupSwitchRow({
+	id,
+	label,
+	description,
+	checked,
+	onCheckedChange,
+}: {
+	id: string;
+	label: string;
+	description: string;
+	checked: boolean;
+	onCheckedChange: (checked: boolean) => void;
+}) {
+	return (
+		<div className='flex items-start justify-between gap-4 rounded-lg border p-3'>
+			<div>
+				<label htmlFor={id} className='text-sm font-medium'>
+					{label}
+				</label>
+				<p className='text-xs text-muted-foreground'>{description}</p>
+			</div>
+			<Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
 		</div>
 	);
 }

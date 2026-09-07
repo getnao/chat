@@ -48,8 +48,6 @@ const settingsNavGroups: NavGroup[] = [
 				label: 'User Groups',
 				to: '/settings/project/user-groups',
 				visible: ({ isAdmin }) => isAdmin,
-				badge: 'Enterprise',
-				badgeVariant: 'enterprise',
 			},
 			{
 				label: 'Agent',

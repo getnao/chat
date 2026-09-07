@@ -98,10 +98,10 @@ export function UsagePeriodFilter({
 						type='button'
 						variant='outline'
 						size='sm'
-						className='h-8 w-40 justify-between px-2.5 font-normal'
+						className='h-8 min-w-40 justify-between px-2.5 font-normal'
 						disabled={isLoading}
 					>
-						<span className='truncate'>
+						<span>
 							{isLoading && value.mode === 'saved' ? 'Loading…' : formatPeriodPreference(value, entries)}
 						</span>
 						<ChevronDownIcon className='size-4 shrink-0 text-muted-foreground' />
@@ -113,7 +113,7 @@ export function UsagePeriodFilter({
 							<button
 								key={option.value}
 								type='button'
-								className='flex h-8 items-center gap-2 rounded-sm px-2 text-left text-sm hover:bg-accent hover:text-accent-foreground'
+								className='flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-sm hover:bg-accent hover:text-accent-foreground'
 								onClick={() => void selectPeriod({ mode: option.value })}
 							>
 								<span className='flex size-4 items-center justify-center'>
@@ -128,7 +128,7 @@ export function UsagePeriodFilter({
 								<div key={entry.id} className='group flex h-8 items-center rounded-sm hover:bg-accent'>
 									<button
 										type='button'
-										className='flex min-w-0 flex-1 items-center gap-2 px-2 text-left text-sm'
+										className='flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 text-left text-sm'
 										onClick={() => void selectPeriod({ mode: 'saved', entryId: entry.id })}
 									>
 										<span className='flex size-4 shrink-0 items-center justify-center'>
@@ -140,7 +140,7 @@ export function UsagePeriodFilter({
 									</button>
 									<button
 										type='button'
-										className='flex size-7 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground'
+										className='flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground'
 										aria-label={`Edit ${formatPeriodEntry(entry)}`}
 										onClick={() => openEntryDialog(entry)}
 									>
@@ -148,7 +148,7 @@ export function UsagePeriodFilter({
 									</button>
 									<button
 										type='button'
-										className='flex size-7 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive'
+										className='flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-destructive'
 										aria-label={`Delete ${formatPeriodEntry(entry)}`}
 										onClick={() => {
 											setIsOpen(false);
@@ -164,7 +164,7 @@ export function UsagePeriodFilter({
 						<div className='mt-1 border-t pt-1'>
 							<button
 								type='button'
-								className='flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50'
+								className='flex h-8 w-full cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50'
 								disabled={isEntryLimitReached}
 								onClick={() => openEntryDialog()}
 							>

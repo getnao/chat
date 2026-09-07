@@ -126,13 +126,13 @@ describe('usage query results', () => {
 
 	it('stores period preferences independently for each user and project', async () => {
 		const usagePeriod = { mode: '6m' as const };
-		const usagePeriodEntries = [{ id: 'year', days: 365, granularity: 'month' as const }];
+		const savedUsagePeriods = [{ id: 'year', days: 365, granularity: 'month' as const }];
 
-		await updateUserProjectPreferences(USER_ID, PROJECT_ID, { usagePeriod, usagePeriodEntries });
+		await updateUserProjectPreferences(USER_ID, PROJECT_ID, { usagePeriod, savedUsagePeriods });
 
 		await expect(getUserProjectPreferences(USER_ID, PROJECT_ID)).resolves.toEqual({
 			usagePeriod,
-			usagePeriodEntries,
+			savedUsagePeriods,
 		});
 		await expect(getUserProjectPreferences(OTHER_USER_ID, PROJECT_ID)).resolves.toEqual({});
 		await expect(getUserProjectPreferences(USER_ID, OTHER_PROJECT_ID)).resolves.toEqual({});
@@ -142,23 +142,23 @@ describe('usage query results', () => {
 		await Promise.all([
 			mutateUserProjectPreferences(USER_ID, PROJECT_ID, (current) => ({
 				...current,
-				usagePeriodEntries: [
-					...(current.usagePeriodEntries ?? []),
+				savedUsagePeriods: [
+					...(current.savedUsagePeriods ?? []),
 					{ id: 'first', days: 30, granularity: 'day' },
 				],
 			})),
 			mutateUserProjectPreferences(USER_ID, PROJECT_ID, (current) => ({
 				...current,
-				usagePeriodEntries: [
-					...(current.usagePeriodEntries ?? []),
+				savedUsagePeriods: [
+					...(current.savedUsagePeriods ?? []),
 					{ id: 'second', days: 365, granularity: 'month' },
 				],
 			})),
 		]);
 
 		const preferences = await getUserProjectPreferences(USER_ID, PROJECT_ID);
-		expect(preferences.usagePeriodEntries).toHaveLength(2);
-		expect(preferences.usagePeriodEntries).toEqual(
+		expect(preferences.savedUsagePeriods).toHaveLength(2);
+		expect(preferences.savedUsagePeriods).toEqual(
 			expect.arrayContaining([
 				{ id: 'first', days: 30, granularity: 'day' },
 				{ id: 'second', days: 365, granularity: 'month' },

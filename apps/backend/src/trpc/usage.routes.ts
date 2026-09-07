@@ -5,29 +5,33 @@ import * as usageQueries from '../queries/usage.queries';
 import * as userProjectPreferenceQueries from '../queries/user-project-preference.queries';
 import type { UserProjectPreferences } from '../types/usage';
 import {
-	DEFAULT_USAGE_PERIOD_PREFERENCE,
-	MAX_USAGE_PERIOD_ENTRIES,
-	USAGE_PERIOD_ENTRY_LIMIT_MESSAGE,
+	DEFAULT_USAGE_PERIOD_SELECTION,
+	MAX_SAVED_USAGE_PERIODS,
+	SAVED_USAGE_PERIOD_LIMIT_MESSAGE,
+	savedUsagePeriodInputSchema,
+	savedUsagePeriodSchema,
 	usageChartFilterSchema,
 	usageFilterSchema,
-	usagePeriodEntryInputSchema,
-	usagePeriodEntrySchema,
-	usagePeriodPreferenceSchema,
+	usagePeriodSelectionSchema,
 } from '../types/usage';
 import { adminProtectedProcedure } from './trpc';
 
 const projectPreferenceInputSchema = z.object({ projectId: z.string().min(1) });
-const updatePeriodPreferenceInputSchema = projectPreferenceInputSchema.extend({
-	preference: usagePeriodPreferenceSchema,
+const updatePeriodSelectionInputSchema = projectPreferenceInputSchema.extend({
+	selection: usagePeriodSelectionSchema,
 });
-const createPeriodEntryInputSchema = projectPreferenceInputSchema.extend({
-	entry: usagePeriodEntryInputSchema,
+const createSavedPeriodInputSchema = projectPreferenceInputSchema.extend({
+	savedPeriod: savedUsagePeriodInputSchema,
 });
-const updatePeriodEntryInputSchema = projectPreferenceInputSchema.extend({
-	entry: usagePeriodEntrySchema,
+const updateSavedPeriodInputSchema = projectPreferenceInputSchema.extend({
+	savedPeriod: savedUsagePeriodSchema,
 });
-const deletePeriodEntryInputSchema = projectPreferenceInputSchema.extend({
-	id: usagePeriodEntrySchema.shape.id,
+const deleteSavedPeriodInputSchema = projectPreferenceInputSchema.extend({
+	id: savedUsagePeriodSchema.shape.id,
+});
+const legacySavedPeriodSelectionSchema = z.object({
+	mode: z.literal('saved'),
+	entryId: z.string().min(1),
 });
 
 export const usageRoutes = {
@@ -47,136 +51,139 @@ export const usageRoutes = {
 		assertPreferenceProject(input.projectId, ctx.project.id);
 		const preferences = await getSanitizedPeriodPreferences(ctx.user.id, ctx.project.id);
 		return {
-			preference: preferences.usagePeriod ?? null,
-			entries: parsePeriodEntries(preferences),
+			selection: preferences.usagePeriod ?? null,
+			savedPeriods: sanitizeSavedPeriods(preferences),
 		};
 	}),
 
-	updatePeriodPreference: adminProtectedProcedure
-		.input(updatePeriodPreferenceInputSchema)
+	updatePeriodSelection: adminProtectedProcedure
+		.input(updatePeriodSelectionInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			assertPreferenceProject(input.projectId, ctx.project.id);
-			const nextPreference = input.preference;
+			const nextSelection = input.selection;
 			const preferences = await userProjectPreferenceQueries.mutateUserProjectPreferences(
 				ctx.user.id,
 				ctx.project.id,
 				(current) => {
-					const sanitizedCurrent = sanitizePeriodPreferences(current).preferences;
-					if (nextPreference.mode !== 'saved') {
-						return { ...sanitizedCurrent, usagePeriod: nextPreference };
+					const sanitizedCurrent = sanitizePeriodSettings(current).preferences;
+					if (nextSelection.mode !== 'saved') {
+						return { ...sanitizedCurrent, usagePeriod: nextSelection };
 					}
-					const entries = parsePeriodEntries(sanitizedCurrent);
-					if (!entries.some(({ id }) => id === nextPreference.entryId)) {
-						throw new TRPCError({ code: 'NOT_FOUND', message: 'Usage period entry not found.' });
+					const savedPeriods = sanitizeSavedPeriods(sanitizedCurrent);
+					if (!savedPeriods.some(({ id }) => id === nextSelection.savedPeriodId)) {
+						throw new TRPCError({ code: 'NOT_FOUND', message: 'Saved usage period not found.' });
 					}
-					return { ...sanitizedCurrent, usagePeriod: nextPreference };
+					return { ...sanitizedCurrent, usagePeriod: nextSelection };
 				},
 			);
 			return preferences.usagePeriod;
 		}),
 
-	createPeriodEntry: adminProtectedProcedure.input(createPeriodEntryInputSchema).mutation(async ({ ctx, input }) => {
+	createSavedPeriod: adminProtectedProcedure.input(createSavedPeriodInputSchema).mutation(async ({ ctx, input }) => {
 		assertPreferenceProject(input.projectId, ctx.project.id);
-		const entry = { id: crypto.randomUUID(), ...input.entry };
+		const savedPeriod = { id: crypto.randomUUID(), ...input.savedPeriod };
 		await userProjectPreferenceQueries.mutateUserProjectPreferences(ctx.user.id, ctx.project.id, (current) => {
-			const sanitizedCurrent = sanitizePeriodPreferences(current).preferences;
-			const entries = parsePeriodEntries(sanitizedCurrent);
-			if (entries.length >= MAX_USAGE_PERIOD_ENTRIES) {
-				throw new TRPCError({ code: 'BAD_REQUEST', message: USAGE_PERIOD_ENTRY_LIMIT_MESSAGE });
+			const sanitizedCurrent = sanitizePeriodSettings(current).preferences;
+			const savedPeriods = sanitizeSavedPeriods(sanitizedCurrent);
+			if (savedPeriods.length >= MAX_SAVED_USAGE_PERIODS) {
+				throw new TRPCError({ code: 'BAD_REQUEST', message: SAVED_USAGE_PERIOD_LIMIT_MESSAGE });
 			}
 			return {
 				...sanitizedCurrent,
-				usagePeriod: { mode: 'saved', entryId: entry.id },
-				usagePeriodEntries: [...entries, entry],
+				usagePeriod: { mode: 'saved', savedPeriodId: savedPeriod.id },
+				savedUsagePeriods: [...savedPeriods, savedPeriod],
 			};
 		});
-		return entry;
+		return savedPeriod;
 	}),
 
-	updatePeriodEntry: adminProtectedProcedure.input(updatePeriodEntryInputSchema).mutation(async ({ ctx, input }) => {
+	updateSavedPeriod: adminProtectedProcedure.input(updateSavedPeriodInputSchema).mutation(async ({ ctx, input }) => {
 		assertPreferenceProject(input.projectId, ctx.project.id);
-		const nextEntry = input.entry;
+		const nextSavedPeriod = input.savedPeriod;
 		await userProjectPreferenceQueries.mutateUserProjectPreferences(ctx.user.id, ctx.project.id, (current) => {
-			const sanitizedCurrent = sanitizePeriodPreferences(current).preferences;
-			const entries = parsePeriodEntries(sanitizedCurrent);
-			if (!entries.some(({ id }) => id === nextEntry.id)) {
-				throw new TRPCError({ code: 'NOT_FOUND', message: 'Usage period entry not found.' });
+			const sanitizedCurrent = sanitizePeriodSettings(current).preferences;
+			const savedPeriods = sanitizeSavedPeriods(sanitizedCurrent);
+			if (!savedPeriods.some(({ id }) => id === nextSavedPeriod.id)) {
+				throw new TRPCError({ code: 'NOT_FOUND', message: 'Saved usage period not found.' });
 			}
 			return {
 				...sanitizedCurrent,
-				usagePeriodEntries: entries.map((entry) => (entry.id === nextEntry.id ? nextEntry : entry)),
+				savedUsagePeriods: savedPeriods.map((savedPeriod) =>
+					savedPeriod.id === nextSavedPeriod.id ? nextSavedPeriod : savedPeriod,
+				),
 			};
 		});
-		return nextEntry;
+		return nextSavedPeriod;
 	}),
 
-	deletePeriodEntry: adminProtectedProcedure.input(deletePeriodEntryInputSchema).mutation(async ({ ctx, input }) => {
+	deleteSavedPeriod: adminProtectedProcedure.input(deleteSavedPeriodInputSchema).mutation(async ({ ctx, input }) => {
 		assertPreferenceProject(input.projectId, ctx.project.id);
 		const preferences = await userProjectPreferenceQueries.mutateUserProjectPreferences(
 			ctx.user.id,
 			ctx.project.id,
 			(current) => {
-				const sanitizedCurrent = sanitizePeriodPreferences(current).preferences;
-				const entries = parsePeriodEntries(sanitizedCurrent);
-				if (!entries.some(({ id }) => id === input.id)) {
-					throw new TRPCError({ code: 'NOT_FOUND', message: 'Usage period entry not found.' });
+				const sanitizedCurrent = sanitizePeriodSettings(current).preferences;
+				const savedPeriods = sanitizeSavedPeriods(sanitizedCurrent);
+				if (!savedPeriods.some(({ id }) => id === input.id)) {
+					throw new TRPCError({ code: 'NOT_FOUND', message: 'Saved usage period not found.' });
 				}
 				const usagePeriod =
-					sanitizedCurrent.usagePeriod?.mode === 'saved' && sanitizedCurrent.usagePeriod.entryId === input.id
-						? DEFAULT_USAGE_PERIOD_PREFERENCE
+					sanitizedCurrent.usagePeriod?.mode === 'saved' &&
+					sanitizedCurrent.usagePeriod.savedPeriodId === input.id
+						? DEFAULT_USAGE_PERIOD_SELECTION
 						: sanitizedCurrent.usagePeriod;
 				return {
 					...sanitizedCurrent,
 					usagePeriod,
-					usagePeriodEntries: entries.filter(({ id }) => id !== input.id),
+					savedUsagePeriods: savedPeriods.filter(({ id }) => id !== input.id),
 				};
 			},
 		);
-		return { id: input.id, usagePeriod: preferences.usagePeriod };
+		return { id: input.id, selection: preferences.usagePeriod };
 	}),
 };
 
-function parsePeriodEntries(preferences: UserProjectPreferences) {
-	if (!Array.isArray(preferences.usagePeriodEntries)) {
+function sanitizeSavedPeriods(preferences: UserProjectPreferences) {
+	if (!Array.isArray(preferences.savedUsagePeriods)) {
 		return [];
 	}
-	return preferences.usagePeriodEntries
-		.flatMap((entry) => {
-			const parsed = usagePeriodEntrySchema.safeParse(entry);
+	return preferences.savedUsagePeriods
+		.flatMap((savedPeriod) => {
+			const parsed = savedUsagePeriodSchema.safeParse(savedPeriod);
 			return parsed.success ? [parsed.data] : [];
 		})
-		.slice(0, MAX_USAGE_PERIOD_ENTRIES);
+		.slice(0, MAX_SAVED_USAGE_PERIODS);
 }
 
 async function getSanitizedPeriodPreferences(userId: string, projectId: string): Promise<UserProjectPreferences> {
 	const current = await userProjectPreferenceQueries.getUserProjectPreferences(userId, projectId);
-	const sanitized = sanitizePeriodPreferences(current);
+	const sanitized = sanitizePeriodSettings(current);
 	if (!sanitized.changed) {
 		return sanitized.preferences;
 	}
 	return userProjectPreferenceQueries.mutateUserProjectPreferences(
 		userId,
 		projectId,
-		(latest) => sanitizePeriodPreferences(latest).preferences,
+		(latest) => sanitizePeriodSettings(latest).preferences,
 	);
 }
 
-function sanitizePeriodPreferences(preferences: UserProjectPreferences): {
+function sanitizePeriodSettings(preferences: UserProjectPreferences): {
 	preferences: UserProjectPreferences;
 	changed: boolean;
 } {
-	const entries = parsePeriodEntries(preferences);
-	const parsedPreference = usagePeriodPreferenceSchema.safeParse(preferences.usagePeriod);
+	const savedPeriods = sanitizeSavedPeriods(preferences);
+	const parsedSelection = parsePeriodSelection(preferences.usagePeriod);
 	const usagePeriod =
 		preferences.usagePeriod === undefined
 			? undefined
-			: parsedPreference.success && isExistingPeriodPreference(parsedPreference.data, entries)
-				? parsedPreference.data
-				: DEFAULT_USAGE_PERIOD_PREFERENCE;
+			: parsedSelection.success && isValidPeriodSelection(parsedSelection.data, savedPeriods)
+				? parsedSelection.data
+				: DEFAULT_USAGE_PERIOD_SELECTION;
 	const sanitized = {
 		...preferences,
 		usagePeriod,
-		usagePeriodEntries: preferences.usagePeriodEntries === undefined ? undefined : entries,
+		savedUsagePeriods: preferences.savedUsagePeriods === undefined ? undefined : savedPeriods,
 	};
 	return {
 		preferences: sanitized,
@@ -184,11 +191,25 @@ function sanitizePeriodPreferences(preferences: UserProjectPreferences): {
 	};
 }
 
-function isExistingPeriodPreference(
-	preference: NonNullable<UserProjectPreferences['usagePeriod']>,
-	entries: ReturnType<typeof parsePeriodEntries>,
+function isValidPeriodSelection(
+	selection: NonNullable<UserProjectPreferences['usagePeriod']>,
+	savedPeriods: ReturnType<typeof sanitizeSavedPeriods>,
 ): boolean {
-	return preference.mode !== 'saved' || entries.some(({ id }) => id === preference.entryId);
+	return selection.mode !== 'saved' || savedPeriods.some(({ id }) => id === selection.savedPeriodId);
+}
+
+function parsePeriodSelection(value: unknown) {
+	const parsed = usagePeriodSelectionSchema.safeParse(value);
+	if (parsed.success) {
+		return parsed;
+	}
+	const legacy = legacySavedPeriodSelectionSchema.safeParse(value);
+	return legacy.success
+		? usagePeriodSelectionSchema.safeParse({
+				mode: 'saved',
+				savedPeriodId: legacy.data.entryId,
+			})
+		: parsed;
 }
 
 function assertPreferenceProject(inputProjectId: string, contextProjectId: string): void {

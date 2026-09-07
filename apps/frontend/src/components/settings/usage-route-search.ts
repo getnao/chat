@@ -1,6 +1,6 @@
 import { CHAT_REPLAY_FEEDBACK_STATES, CHAT_REPLAY_TOOL_STATES, providerLabels } from '@nao/shared/types';
 import { USAGE_PERIOD_PRESET_NAMES, USAGE_SOURCES } from '@nao/backend/usage';
-import type { UsagePeriodPreference, UsagePeriodPreset, UsageSource } from '@nao/backend/usage';
+import type { UsagePeriodPreset, UsagePeriodSelection, UsageSource } from '@nao/backend/usage';
 import type { ChatReplayFeedbackState, ChatReplayToolState, LlmProvider } from '@nao/shared/types';
 import type { RecommendationTab } from '@/components/settings/recommendations-route-search';
 import { RECOMMENDATION_TABS } from '@/components/settings/recommendations-route-search';
@@ -15,7 +15,7 @@ export type ReplayOrigin = 'recommendations';
 export type UsageRouteSearch = {
 	provider: LlmProvider | 'all';
 	periodMode: UsagePeriodPreset | undefined;
-	periodEntryId: string | undefined;
+	savedPeriodId: string | undefined;
 	users: string[] | undefined;
 	feedback: ChatReplayFeedbackState[] | undefined;
 	tools: ChatReplayToolState[] | undefined;
@@ -31,7 +31,7 @@ export type UsageRouteSearch = {
 export const DEFAULT_USAGE_SEARCH: UsageRouteSearch = {
 	provider: 'all',
 	periodMode: undefined,
-	periodEntryId: undefined,
+	savedPeriodId: undefined,
 	users: undefined,
 	feedback: undefined,
 	tools: undefined,
@@ -46,7 +46,15 @@ export const DEFAULT_USAGE_SEARCH: UsageRouteSearch = {
 
 const tokenViews = ['tokens', 'dollars'] as const satisfies readonly TokenChartDisplayMode[];
 const filterSearchKeys = ['provider', 'users', 'feedback', 'tools', 'sources'] as const;
-const periodSearchKeys = ['periodMode', 'periodValue', 'periodUnit', 'periodEntryId', 'period', 'granularity'] as const;
+const periodSearchKeys = [
+	'periodMode',
+	'periodValue',
+	'periodUnit',
+	'savedPeriodId',
+	'periodEntryId',
+	'period',
+	'granularity',
+] as const;
 const usageFiltersStorageKey = 'nao.usage-filters';
 
 export function validateUsageSearchWithStoredFilters(search: Record<string, unknown>): UsageRouteSearch {
@@ -75,7 +83,7 @@ export function saveUsageFilters(search: UsageRouteSearch): void {
 	}
 }
 
-export function readStoredUsagePeriodPreference(projectId: string | null): UsagePeriodPreference | undefined {
+export function readStoredUsagePeriodSelection(projectId: string | null): UsagePeriodSelection | undefined {
 	const period = parsePeriodSearch(readStoredUsageFilters(getUsageFiltersStorageKey(projectId ?? 'default')));
 	if (!period.mode) {
 		return undefined;
@@ -84,7 +92,7 @@ export function readStoredUsagePeriodPreference(projectId: string | null): Usage
 	return { mode: period.mode };
 }
 
-export function clearStoredUsagePeriodPreference(projectId: string): void {
+export function clearStoredUsagePeriodSelection(projectId: string): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -107,14 +115,12 @@ const replayOrigins = ['recommendations'] as const satisfies readonly ReplayOrig
 
 export function validateUsageSearch(search: Record<string, unknown>): UsageRouteSearch {
 	const period = parsePeriodSearch(search);
+	const savedPeriodId = parseSavedPeriodId(search.savedPeriodId) ?? parseSavedPeriodId(search.periodEntryId);
 
 	return {
 		provider: parseProvider(search.provider),
 		periodMode: period.mode,
-		periodEntryId:
-			typeof search.periodEntryId === 'string' && search.periodEntryId.length > 0
-				? search.periodEntryId
-				: undefined,
+		savedPeriodId,
 		users: parseStringArray(search.users),
 		feedback: parseArrayOf(search.feedback, CHAT_REPLAY_FEEDBACK_STATES),
 		tools: parseArrayOf(search.tools, CHAT_REPLAY_TOOL_STATES),
@@ -186,6 +192,10 @@ function parseProvider(value: unknown): LlmProvider | 'all' {
 		return value as LlmProvider | 'all';
 	}
 	return 'all';
+}
+
+function parseSavedPeriodId(value: unknown): string | undefined {
+	return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function parseStringArray(value: unknown): string[] | undefined {

@@ -13,7 +13,7 @@ import {
 } from '@/components/settings/usage-route-search';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePermissions } from '@/hooks/use-permissions';
-import { useUsagePeriodPreferences } from '@/hooks/use-usage-period-preferences';
+import { useUsagePeriodSettings } from '@/hooks/use-usage-period-settings';
 import { trpc } from '@/main';
 import { requireContextAdminOrAdmin } from '@/lib/require-admin';
 import { formatUsageBucketLabel } from '@/lib/usage-date';
@@ -111,7 +111,7 @@ function UsageOverview({
 }) {
 	const { provider, users, feedback, tools, sources, tokenView } = usageSearch;
 	const { canViewUsage } = usePermissions();
-	const periodState = useUsagePeriodPreferences({ canViewUsage, usageSearch, onUpdateSearch });
+	const periodState = useUsagePeriodSettings({ canViewUsage, usageSearch, onUpdateSearch });
 	const { period, granularity } = periodState;
 
 	const usedProviders = useQuery({
@@ -161,15 +161,15 @@ function UsageOverview({
 			showUsageControls={canViewUsage}
 			provider={provider}
 			onProviderChange={(value) => onUpdateSearch({ provider: value })}
-			periodPreference={periodState.preference}
-			onPeriodPreferenceChange={periodState.selectPreference}
-			periodEntries={periodState.entries}
+			periodSelection={periodState.selection}
+			onPeriodSelectionChange={periodState.selectPeriod}
+			savedPeriods={periodState.savedPeriods}
 			isPeriodLoading={periodState.isLoading}
 			periodError={periodState.error}
 			onRetryPeriod={periodState.retry}
-			onCreatePeriodEntry={periodState.createEntry}
-			onUpdatePeriodEntry={periodState.updateEntry}
-			onDeletePeriodEntry={periodState.deleteEntry}
+			onCreateSavedPeriod={periodState.createSavedPeriod}
+			onUpdateSavedPeriod={periodState.updateSavedPeriod}
+			onDeleteSavedPeriod={periodState.deleteSavedPeriod}
 			availableProviders={usedProviders.data}
 			chatFacets={chatFacets.data?.facets}
 			selectedUserNames={users}

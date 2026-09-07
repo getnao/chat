@@ -7,11 +7,11 @@ import {
 	resolveUsageChartGranularity,
 	resolveUsagePeriod,
 	resolveUsagePeriodGranularity,
+	savedUsagePeriodInputSchema,
 	USAGE_PERIOD_PRESETS,
 	usageChartFilterSchema,
 	usageFilterSchema,
-	usagePeriodEntryInputSchema,
-	usagePeriodPreferenceSchema,
+	usagePeriodSelectionSchema,
 } from '../src/types/usage';
 import { formatDate, generateDateSeries, getLookbackTimestamp } from '../src/utils/date';
 
@@ -81,32 +81,32 @@ describe('usage chart granularity', () => {
 		);
 	});
 
-	it('uses a saved entry period and explicit granularity', () => {
+	it('uses a saved period and explicit granularity', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date('2026-09-03T10:00:00Z'));
-		const entry = { id: 'year', days: 365, granularity: 'month' as const };
-		const preference = { mode: 'saved' as const, entryId: entry.id };
+		const savedPeriod = { id: 'year', days: 365, granularity: 'month' as const };
+		const selection = { mode: 'saved' as const, savedPeriodId: savedPeriod.id };
 
-		expect(resolveUsagePeriod(preference, [entry])).toEqual({ value: 365, unit: 'day' });
-		expect(resolveUsagePeriodGranularity(preference, [entry])).toBe('month');
+		expect(resolveUsagePeriod(selection, [savedPeriod])).toEqual({ value: 365, unit: 'day' });
+		expect(resolveUsagePeriodGranularity(selection, [savedPeriod])).toBe('month');
 		expect(generateDateSeries({ value: 365, unit: 'day' }, 'month')).toHaveLength(13);
 	});
 
 	it('enforces the technical bucket limit without limiting days', () => {
 		expect(
-			usagePeriodEntryInputSchema.safeParse({
+			savedUsagePeriodInputSchema.safeParse({
 				days: MAX_USAGE_CHART_BUCKETS_PER_REQUEST,
 				granularity: 'day',
 			}).success,
 		).toBe(true);
 		expect(
-			usagePeriodEntryInputSchema.safeParse({
+			savedUsagePeriodInputSchema.safeParse({
 				days: MAX_USAGE_CHART_BUCKETS_PER_REQUEST + 1,
 				granularity: 'day',
 			}).success,
 		).toBe(false);
-		expect(usagePeriodEntryInputSchema.safeParse({ days: 5000, granularity: 'month' }).success).toBe(true);
-		expect(usagePeriodEntryInputSchema.safeParse({ days: 84, granularity: 'hour' }).success).toBe(false);
+		expect(savedUsagePeriodInputSchema.safeParse({ days: 5000, granularity: 'month' }).success).toBe(true);
+		expect(savedUsagePeriodInputSchema.safeParse({ days: 84, granularity: 'hour' }).success).toBe(false);
 	});
 
 	it('validates explicit chart requests against their actual bucket count', () => {
@@ -147,11 +147,11 @@ describe('usage chart granularity', () => {
 		expect(usageChartFilterSchema.safeParse({ granularity: 'hour' }).success).toBe(false);
 	});
 
-	it('rejects removed custom preferences and oversized usage requests', () => {
+	it('rejects removed custom selections and oversized usage requests', () => {
 		const period = { value: 2001, unit: 'month' as const };
 
 		expect(
-			usagePeriodPreferenceSchema.safeParse({
+			usagePeriodSelectionSchema.safeParse({
 				mode: 'custom',
 				customPeriod: period,
 			}).success,

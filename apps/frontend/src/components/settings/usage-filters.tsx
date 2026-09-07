@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CheckIcon, Radio, ThumbsUp, Users, Wrench } from 'lucide-react';
 import { CHAT_REPLAY_FEEDBACK_STATES, CHAT_REPLAY_TOOL_STATES, providerLabel } from '@nao/shared/types';
 import { USAGE_SOURCES } from '@nao/backend/usage';
-import type { UsagePeriodEntry, UsagePeriodEntryInput, UsagePeriodPreference, UsageSource } from '@nao/backend/usage';
+import type { SavedUsagePeriod, SavedUsagePeriodInput, UsagePeriodSelection, UsageSource } from '@nao/backend/usage';
 import type {
 	ChatReplayFeedbackState,
 	ChatReplayToolState,
@@ -22,15 +22,15 @@ interface UsageFiltersProps {
 	showUsageControls?: boolean;
 	provider: LlmProvider | 'all';
 	onProviderChange: (value: LlmProvider | 'all') => void;
-	periodPreference: UsagePeriodPreference;
-	onPeriodPreferenceChange: (value: UsagePeriodPreference) => void | Promise<void>;
-	periodEntries: UsagePeriodEntry[];
+	periodSelection: UsagePeriodSelection;
+	onPeriodSelectionChange: (value: UsagePeriodSelection) => void | Promise<void>;
+	savedPeriods: SavedUsagePeriod[];
 	isPeriodLoading?: boolean;
 	periodError?: string;
 	onRetryPeriod?: () => void;
-	onCreatePeriodEntry: (value: UsagePeriodEntryInput) => void | Promise<void>;
-	onUpdatePeriodEntry: (value: UsagePeriodEntry) => void | Promise<void>;
-	onDeletePeriodEntry: (id: string) => void | Promise<void>;
+	onCreateSavedPeriod: (value: SavedUsagePeriodInput) => void | Promise<void>;
+	onUpdateSavedPeriod: (value: SavedUsagePeriod) => void | Promise<void>;
+	onDeleteSavedPeriod: (id: string) => void | Promise<void>;
 	availableProviders: LlmProvider[] | undefined;
 	chatFacets: ProjectChatReplayFacets | undefined;
 	selectedUserNames: string[] | undefined;
@@ -43,15 +43,15 @@ export function UsageFilters({
 	showUsageControls = true,
 	provider,
 	onProviderChange,
-	periodPreference,
-	onPeriodPreferenceChange,
-	periodEntries,
+	periodSelection,
+	onPeriodSelectionChange,
+	savedPeriods,
 	isPeriodLoading,
 	periodError,
 	onRetryPeriod,
-	onCreatePeriodEntry,
-	onUpdatePeriodEntry,
-	onDeletePeriodEntry,
+	onCreateSavedPeriod,
+	onUpdateSavedPeriod,
+	onDeleteSavedPeriod,
 	availableProviders,
 	chatFacets,
 	selectedUserNames,
@@ -87,15 +87,15 @@ export function UsageFilters({
 						</SelectContent>
 					</Select>
 					<UsagePeriodFilter
-						value={periodPreference}
-						entries={periodEntries}
+						value={periodSelection}
+						savedPeriods={savedPeriods}
 						isLoading={isPeriodLoading}
 						error={periodError}
 						onRetry={onRetryPeriod}
-						onChange={onPeriodPreferenceChange}
-						onCreateEntry={onCreatePeriodEntry}
-						onUpdateEntry={onUpdatePeriodEntry}
-						onDeleteEntry={onDeletePeriodEntry}
+						onChange={onPeriodSelectionChange}
+						onCreateSavedPeriod={onCreateSavedPeriod}
+						onUpdateSavedPeriod={onUpdateSavedPeriod}
+						onDeleteSavedPeriod={onDeleteSavedPeriod}
 					/>
 				</>
 			)}

@@ -1,28 +1,28 @@
 import { useRef, useState } from 'react';
 import { CheckIcon, ChevronDownIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import { MAX_USAGE_PERIOD_ENTRIES } from '@nao/backend/usage';
+import { MAX_SAVED_USAGE_PERIODS } from '@nao/backend/usage';
 import type {
 	Granularity,
-	UsagePeriodEntry,
-	UsagePeriodEntryInput,
+	SavedUsagePeriod,
+	SavedUsagePeriodInput,
 	UsagePeriodMode,
-	UsagePeriodPreference,
+	UsagePeriodSelection,
 } from '@nao/backend/usage';
-import { UsagePeriodEntryDialog } from '@/components/settings/usage-period-entry-dialog';
+import { SavedUsagePeriodDialog } from '@/components/settings/saved-usage-period-dialog';
 import { Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface UsagePeriodFilterProps {
-	value: UsagePeriodPreference;
-	entries: UsagePeriodEntry[];
+	value: UsagePeriodSelection;
+	savedPeriods: SavedUsagePeriod[];
 	isLoading?: boolean;
 	error?: string;
 	onRetry?: () => void;
-	onChange: (value: UsagePeriodPreference) => void | Promise<void>;
-	onCreateEntry: (value: UsagePeriodEntryInput) => void | Promise<void>;
-	onUpdateEntry: (value: UsagePeriodEntry) => void | Promise<void>;
-	onDeleteEntry: (id: string) => void | Promise<void>;
+	onChange: (value: UsagePeriodSelection) => void | Promise<void>;
+	onCreateSavedPeriod: (value: SavedUsagePeriodInput) => void | Promise<void>;
+	onUpdateSavedPeriod: (value: SavedUsagePeriod) => void | Promise<void>;
+	onDeleteSavedPeriod: (id: string) => void | Promise<void>;
 }
 
 const periodOptions: { value: Exclude<UsagePeriodMode, 'saved'>; label: string }[] = [
@@ -39,51 +39,51 @@ const granularityLabels: Record<Granularity, string> = {
 
 export function UsagePeriodFilter({
 	value,
-	entries,
+	savedPeriods,
 	isLoading = false,
 	error,
 	onRetry,
 	onChange,
-	onCreateEntry,
-	onUpdateEntry,
-	onDeleteEntry,
+	onCreateSavedPeriod,
+	onUpdateSavedPeriod,
+	onDeleteSavedPeriod,
 }: UsagePeriodFilterProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [editingEntry, setEditingEntry] = useState<UsagePeriodEntry>();
-	const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
-	const [entryToDelete, setEntryToDelete] = useState<UsagePeriodEntry>();
+	const [editingSavedPeriod, setEditingSavedPeriod] = useState<SavedUsagePeriod>();
+	const [isSavedPeriodDialogOpen, setIsSavedPeriodDialogOpen] = useState(false);
+	const [savedPeriodToDelete, setSavedPeriodToDelete] = useState<SavedUsagePeriod>();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [deleteError, setDeleteError] = useState<string>();
 	const deletingRef = useRef(false);
-	const isEntryLimitReached = entries.length >= MAX_USAGE_PERIOD_ENTRIES;
+	const isSavedPeriodLimitReached = savedPeriods.length >= MAX_SAVED_USAGE_PERIODS;
 
-	const openEntryDialog = (entry?: UsagePeriodEntry) => {
-		setEditingEntry(entry);
+	const openSavedPeriodDialog = (savedPeriod?: SavedUsagePeriod) => {
+		setEditingSavedPeriod(savedPeriod);
 		setIsOpen(false);
-		setIsEntryDialogOpen(true);
+		setIsSavedPeriodDialogOpen(true);
 	};
 
-	const selectPeriod = async (preference: UsagePeriodPreference) => {
+	const selectPeriod = async (selection: UsagePeriodSelection) => {
 		setIsOpen(false);
 		try {
-			await onChange(preference);
+			await onChange(selection);
 		} catch {
 			return;
 		}
 	};
 
-	const deleteEntry = async () => {
-		if (!entryToDelete || deletingRef.current) {
+	const deleteSavedPeriod = async () => {
+		if (!savedPeriodToDelete || deletingRef.current) {
 			return;
 		}
 		deletingRef.current = true;
 		setIsDeleting(true);
 		setDeleteError(undefined);
 		try {
-			await onDeleteEntry(entryToDelete.id);
-			setEntryToDelete(undefined);
+			await onDeleteSavedPeriod(savedPeriodToDelete.id);
+			setSavedPeriodToDelete(undefined);
 		} catch (cause) {
-			setDeleteError(cause instanceof Error ? cause.message : 'Unable to delete this entry.');
+			setDeleteError(cause instanceof Error ? cause.message : 'Unable to delete this period.');
 		} finally {
 			deletingRef.current = false;
 			setIsDeleting(false);
@@ -102,7 +102,9 @@ export function UsagePeriodFilter({
 						disabled={isLoading}
 					>
 						<span>
-							{isLoading && value.mode === 'saved' ? 'Loading…' : formatPeriodPreference(value, entries)}
+							{isLoading && value.mode === 'saved'
+								? 'Loading…'
+								: formatPeriodSelection(value, savedPeriods)}
 						</span>
 						<ChevronDownIcon className='size-4 shrink-0 text-muted-foreground' />
 					</Button>
@@ -122,38 +124,43 @@ export function UsagePeriodFilter({
 								{option.label}
 							</button>
 						))}
-						{entries.length > 0 && <div className='my-1 border-t' />}
+						{savedPeriods.length > 0 && <div className='my-1 border-t' />}
 						<div className='max-h-56 overflow-y-auto'>
-							{entries.map((entry) => (
-								<div key={entry.id} className='group flex h-8 items-center rounded-sm hover:bg-accent'>
+							{savedPeriods.map((savedPeriod) => (
+								<div
+									key={savedPeriod.id}
+									className='group flex h-8 items-center rounded-sm hover:bg-accent'
+								>
 									<button
 										type='button'
 										className='flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 text-left text-sm'
-										onClick={() => void selectPeriod({ mode: 'saved', entryId: entry.id })}
+										onClick={() =>
+											void selectPeriod({ mode: 'saved', savedPeriodId: savedPeriod.id })
+										}
 									>
 										<span className='flex size-4 shrink-0 items-center justify-center'>
-											{value.mode === 'saved' && value.entryId === entry.id && (
+											{value.mode === 'saved' && value.savedPeriodId === savedPeriod.id && (
 												<CheckIcon className='size-4' />
 											)}
 										</span>
-										<span className='truncate'>{formatPeriodEntry(entry)}</span>
+										<span className='truncate'>{formatSavedPeriod(savedPeriod)}</span>
 									</button>
 									<button
 										type='button'
 										className='flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground'
-										aria-label={`Edit ${formatPeriodEntry(entry)}`}
-										onClick={() => openEntryDialog(entry)}
+										aria-label={`Edit ${formatSavedPeriod(savedPeriod)}`}
+										onClick={() => openSavedPeriodDialog(savedPeriod)}
 									>
 										<PencilIcon className='size-3.5' />
 									</button>
 									<button
 										type='button'
 										className='flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-destructive'
-										aria-label={`Delete ${formatPeriodEntry(entry)}`}
+										aria-label={`Delete ${formatSavedPeriod(savedPeriod)}`}
 										onClick={() => {
 											setIsOpen(false);
 											setDeleteError(undefined);
-											setEntryToDelete(entry);
+											setSavedPeriodToDelete(savedPeriod);
 										}}
 									>
 										<Trash2Icon className='size-3.5' />
@@ -165,12 +172,12 @@ export function UsagePeriodFilter({
 							<button
 								type='button'
 								className='flex h-8 w-full cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50'
-								disabled={isEntryLimitReached}
-								onClick={() => openEntryDialog()}
+								disabled={isSavedPeriodLimitReached}
+								onClick={() => openSavedPeriodDialog()}
 							>
 								<PlusIcon className='size-4' />
-								{isEntryLimitReached
-									? `Entry limit reached (${MAX_USAGE_PERIOD_ENTRIES})`
+								{isSavedPeriodLimitReached
+									? `Saved period limit reached (${MAX_SAVED_USAGE_PERIODS})`
 									: 'Create filter'}
 							</button>
 						</div>
@@ -187,26 +194,28 @@ export function UsagePeriodFilter({
 					)}
 				</span>
 			)}
-			<UsagePeriodEntryDialog
-				open={isEntryDialogOpen}
-				onOpenChange={setIsEntryDialogOpen}
-				entry={editingEntry}
-				onSave={(entry) =>
-					editingEntry ? onUpdateEntry({ ...entry, id: editingEntry.id }) : onCreateEntry(entry)
+			<SavedUsagePeriodDialog
+				open={isSavedPeriodDialogOpen}
+				onOpenChange={setIsSavedPeriodDialogOpen}
+				savedPeriod={editingSavedPeriod}
+				onSave={(savedPeriod) =>
+					editingSavedPeriod
+						? onUpdateSavedPeriod({ ...savedPeriod, id: editingSavedPeriod.id })
+						: onCreateSavedPeriod(savedPeriod)
 				}
 			/>
 			<ConfirmationDialog
-				open={entryToDelete !== undefined}
+				open={savedPeriodToDelete !== undefined}
 				onOpenChange={(open) => {
 					if (!open && !isDeleting) {
-						setEntryToDelete(undefined);
+						setSavedPeriodToDelete(undefined);
 						setDeleteError(undefined);
 					}
 				}}
 				title='Remove filter?'
-				description={`“${entryToDelete ? formatPeriodEntry(entryToDelete) : ''}” will no longer be available in the period menu.`}
+				description={`“${savedPeriodToDelete ? formatSavedPeriod(savedPeriodToDelete) : ''}” will no longer be available in the period menu.`}
 				confirmLabel='Remove'
-				onConfirm={deleteEntry}
+				onConfirm={deleteSavedPeriod}
 				isPending={isDeleting}
 				error={deleteError}
 				preventCloseWhilePending
@@ -215,15 +224,15 @@ export function UsagePeriodFilter({
 	);
 }
 
-function formatPeriodPreference(preference: UsagePeriodPreference, entries: UsagePeriodEntry[]): string {
-	if (preference.mode === 'saved') {
-		const entry = entries.find(({ id }) => id === preference.entryId);
-		return entry ? formatPeriodEntry(entry) : 'Last 15 days';
+function formatPeriodSelection(selection: UsagePeriodSelection, savedPeriods: SavedUsagePeriod[]): string {
+	if (selection.mode === 'saved') {
+		const savedPeriod = savedPeriods.find(({ id }) => id === selection.savedPeriodId);
+		return savedPeriod ? formatSavedPeriod(savedPeriod) : 'Last 15 days';
 	}
-	return periodOptions.find((option) => option.value === preference.mode)?.label ?? 'Period';
+	return periodOptions.find((option) => option.value === selection.mode)?.label ?? 'Period';
 }
 
-function formatPeriodEntry(entry: UsagePeriodEntry): string {
-	const dayLabel = entry.days === 1 ? 'day' : 'days';
-	return `Last ${entry.days} ${dayLabel} - ${granularityLabels[entry.granularity]}`;
+function formatSavedPeriod(savedPeriod: SavedUsagePeriod): string {
+	const dayLabel = savedPeriod.days === 1 ? 'day' : 'days';
+	return `Last ${savedPeriod.days} ${dayLabel} - ${granularityLabels[savedPeriod.granularity]}`;
 }

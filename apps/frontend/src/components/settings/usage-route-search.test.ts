@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
 	DEFAULT_USAGE_SEARCH,
-	readStoredUsagePeriodPreference,
+	readStoredUsagePeriodSelection,
 	saveUsageFilters,
 	validateUsageSearch,
 	validateUsageSearchWithStoredFilters,
@@ -38,9 +38,10 @@ describe('validateUsageSearch', () => {
 		).toBeUndefined();
 	});
 
-	it('accepts a saved period entry id', () => {
-		expect(validateUsageSearch({ periodEntryId: 'last-year' }).periodEntryId).toBe('last-year');
-		expect(validateUsageSearch({ periodEntryId: '' }).periodEntryId).toBeUndefined();
+	it('accepts a saved period id', () => {
+		expect(validateUsageSearch({ savedPeriodId: 'last-year' }).savedPeriodId).toBe('last-year');
+		expect(validateUsageSearch({ savedPeriodId: '' }).savedPeriodId).toBeUndefined();
+		expect(validateUsageSearch({ periodEntryId: 'legacy-id' }).savedPeriodId).toBe('legacy-id');
 	});
 
 	it('converts fixed and granularity period values', () => {
@@ -57,7 +58,7 @@ describe('validateUsageSearch', () => {
 			provider: 'openai',
 			periodMode: undefined,
 		});
-		expect(readStoredUsagePeriodPreference('project-a')).toEqual({ mode: '6m' });
+		expect(readStoredUsagePeriodSelection('project-a')).toEqual({ mode: '6m' });
 	});
 
 	it('preserves a legacy period while saving other filters', () => {
@@ -65,7 +66,7 @@ describe('validateUsageSearch', () => {
 
 		saveUsageFilters({ ...DEFAULT_USAGE_SEARCH, provider: 'openai' });
 
-		expect(readStoredUsagePeriodPreference('project-a')).toEqual({ mode: '6m' });
+		expect(readStoredUsagePeriodSelection('project-a')).toEqual({ mode: '6m' });
 		expect(JSON.parse(localStorage.getItem('nao.usage-filters.project-a') ?? '{}')).toMatchObject({
 			provider: 'openai',
 			periodMode: '6m',

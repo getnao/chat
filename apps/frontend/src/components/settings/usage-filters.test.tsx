@@ -2,70 +2,72 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_USAGE_PERIOD_PREFERENCE, MAX_USAGE_PERIOD_ENTRIES } from '@nao/backend/usage';
+import { DEFAULT_USAGE_PERIOD_SELECTION, MAX_SAVED_USAGE_PERIODS } from '@nao/backend/usage';
 
 import { UsageFilters } from './usage-filters';
 import { UsagePeriodFilter } from './usage-period-filter';
-import type { UsagePeriodEntry } from '@nao/backend/usage';
+import type { SavedUsagePeriod } from '@nao/backend/usage';
 
-const periodEntries: UsagePeriodEntry[] = [{ id: 'year', days: 365, granularity: 'month' }];
+const savedPeriods: SavedUsagePeriod[] = [{ id: 'year', days: 365, granularity: 'month' }];
 
 describe('UsageFilters', () => {
 	afterEach(cleanup);
 
-	it('shows a neutral label while a saved entry is loading', () => {
+	it('shows a neutral label while a saved period is loading', () => {
 		render(
 			<UsagePeriodFilter
-				value={{ mode: 'saved', entryId: 'year' }}
-				entries={[]}
+				value={{ mode: 'saved', savedPeriodId: 'year' }}
+				savedPeriods={[]}
 				isLoading
 				onChange={vi.fn()}
-				onCreateEntry={vi.fn()}
-				onUpdateEntry={vi.fn()}
-				onDeleteEntry={vi.fn()}
+				onCreateSavedPeriod={vi.fn()}
+				onUpdateSavedPeriod={vi.fn()}
+				onDeleteSavedPeriod={vi.fn()}
 			/>,
 		);
 
 		expect(screen.getByRole('button', { name: 'Loading…' }).hasAttribute('disabled')).toBe(true);
 	});
 
-	it('disables creation when the saved entry limit is reached', () => {
-		const entries: UsagePeriodEntry[] = Array.from({ length: MAX_USAGE_PERIOD_ENTRIES }, (_, index) => ({
-			id: `entry-${index}`,
+	it('disables creation when the saved period limit is reached', () => {
+		const savedPeriodsAtLimit: SavedUsagePeriod[] = Array.from({ length: MAX_SAVED_USAGE_PERIODS }, (_, index) => ({
+			id: `saved-period-${index}`,
 			days: index + 1,
 			granularity: 'day',
 		}));
 		render(
 			<UsagePeriodFilter
-				value={DEFAULT_USAGE_PERIOD_PREFERENCE}
-				entries={entries}
+				value={DEFAULT_USAGE_PERIOD_SELECTION}
+				savedPeriods={savedPeriodsAtLimit}
 				onChange={vi.fn()}
-				onCreateEntry={vi.fn()}
-				onUpdateEntry={vi.fn()}
-				onDeleteEntry={vi.fn()}
+				onCreateSavedPeriod={vi.fn()}
+				onUpdateSavedPeriod={vi.fn()}
+				onDeleteSavedPeriod={vi.fn()}
 			/>,
 		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Last 15 days' }));
 
-		const addEntry = screen.getByRole('button', { name: `Entry limit reached (${MAX_USAGE_PERIOD_ENTRIES})` });
-		expect(addEntry.hasAttribute('disabled')).toBe(true);
-		fireEvent.click(addEntry);
+		const addSavedPeriod = screen.getByRole('button', {
+			name: `Saved period limit reached (${MAX_SAVED_USAGE_PERIODS})`,
+		});
+		expect(addSavedPeriod.hasAttribute('disabled')).toBe(true);
+		fireEvent.click(addSavedPeriod);
 		expect(screen.queryByRole('dialog', { name: 'Create period filter' })).toBeNull();
 	});
 
-	it('opens an add-entry dialog without a maximum day limit', () => {
-		const onCreatePeriodEntry = vi.fn();
+	it('opens an add-period dialog without a maximum day limit', () => {
+		const onCreateSavedPeriod = vi.fn();
 		render(
 			<UsageFilters
 				provider='all'
 				onProviderChange={vi.fn()}
-				periodPreference={DEFAULT_USAGE_PERIOD_PREFERENCE}
-				onPeriodPreferenceChange={vi.fn()}
-				periodEntries={[]}
-				onCreatePeriodEntry={onCreatePeriodEntry}
-				onUpdatePeriodEntry={vi.fn()}
-				onDeletePeriodEntry={vi.fn()}
+				periodSelection={DEFAULT_USAGE_PERIOD_SELECTION}
+				onPeriodSelectionChange={vi.fn()}
+				savedPeriods={[]}
+				onCreateSavedPeriod={onCreateSavedPeriod}
+				onUpdateSavedPeriod={vi.fn()}
+				onDeleteSavedPeriod={vi.fn()}
 				availableProviders={[]}
 				chatFacets={undefined}
 				selectedUserNames={undefined}
@@ -83,7 +85,7 @@ describe('UsageFilters', () => {
 		fireEvent.change(daysInput, { target: { value: '2000' } });
 		fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-		expect(onCreatePeriodEntry).toHaveBeenCalledWith({
+		expect(onCreateSavedPeriod).toHaveBeenCalledWith({
 			days: 2000,
 			granularity: 'day',
 		});
@@ -94,12 +96,12 @@ describe('UsageFilters', () => {
 			<UsageFilters
 				provider='all'
 				onProviderChange={vi.fn()}
-				periodPreference={DEFAULT_USAGE_PERIOD_PREFERENCE}
-				onPeriodPreferenceChange={vi.fn()}
-				periodEntries={[]}
-				onCreatePeriodEntry={vi.fn()}
-				onUpdatePeriodEntry={vi.fn()}
-				onDeletePeriodEntry={vi.fn()}
+				periodSelection={DEFAULT_USAGE_PERIOD_SELECTION}
+				onPeriodSelectionChange={vi.fn()}
+				savedPeriods={[]}
+				onCreateSavedPeriod={vi.fn()}
+				onUpdateSavedPeriod={vi.fn()}
+				onDeleteSavedPeriod={vi.fn()}
 				availableProviders={[]}
 				chatFacets={undefined}
 				selectedUserNames={undefined}
@@ -123,20 +125,20 @@ describe('UsageFilters', () => {
 		expect(daysInput.getAttribute('aria-describedby')).toBe(validationMessage.id);
 	});
 
-	it('selects, edits, and deletes saved entries', async () => {
-		const onPeriodPreferenceChange = vi.fn();
-		const onUpdatePeriodEntry = vi.fn();
-		const onDeletePeriodEntry = vi.fn();
+	it('selects, edits, and deletes saved periods', async () => {
+		const onPeriodSelectionChange = vi.fn();
+		const onUpdateSavedPeriod = vi.fn();
+		const onDeleteSavedPeriod = vi.fn();
 		render(
 			<UsageFilters
 				provider='all'
 				onProviderChange={vi.fn()}
-				periodPreference={DEFAULT_USAGE_PERIOD_PREFERENCE}
-				onPeriodPreferenceChange={onPeriodPreferenceChange}
-				periodEntries={periodEntries}
-				onCreatePeriodEntry={vi.fn()}
-				onUpdatePeriodEntry={onUpdatePeriodEntry}
-				onDeletePeriodEntry={onDeletePeriodEntry}
+				periodSelection={DEFAULT_USAGE_PERIOD_SELECTION}
+				onPeriodSelectionChange={onPeriodSelectionChange}
+				savedPeriods={savedPeriods}
+				onCreateSavedPeriod={vi.fn()}
+				onUpdateSavedPeriod={onUpdateSavedPeriod}
+				onDeleteSavedPeriod={onDeleteSavedPeriod}
 				availableProviders={[]}
 				chatFacets={undefined}
 				selectedUserNames={undefined}
@@ -148,13 +150,13 @@ describe('UsageFilters', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Last 15 days' }));
 		fireEvent.click(screen.getByRole('button', { name: 'Last 365 days - Monthly' }));
-		expect(onPeriodPreferenceChange).toHaveBeenCalledWith({ mode: 'saved', entryId: 'year' });
+		expect(onPeriodSelectionChange).toHaveBeenCalledWith({ mode: 'saved', savedPeriodId: 'year' });
 
 		fireEvent.click(screen.getByRole('button', { name: 'Last 15 days' }));
 		fireEvent.click(screen.getByRole('button', { name: 'Edit Last 365 days - Monthly' }));
 		fireEvent.change(screen.getByRole('spinbutton', { name: 'Days' }), { target: { value: '730' } });
 		fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-		expect(onUpdatePeriodEntry).toHaveBeenCalledWith({
+		expect(onUpdateSavedPeriod).toHaveBeenCalledWith({
 			id: 'year',
 			days: 730,
 			granularity: 'month',
@@ -164,21 +166,21 @@ describe('UsageFilters', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Last 15 days' }));
 		fireEvent.click(screen.getByRole('button', { name: 'Delete Last 365 days - Monthly' }));
 		fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-		expect(onDeletePeriodEntry).toHaveBeenCalledWith('year');
+		expect(onDeleteSavedPeriod).toHaveBeenCalledWith('year');
 	});
 
 	it('keeps the delete dialog open and reports failures', async () => {
-		const onDeletePeriodEntry = vi.fn().mockRejectedValue(new Error('Delete failed'));
+		const onDeleteSavedPeriod = vi.fn().mockRejectedValue(new Error('Delete failed'));
 		render(
 			<UsageFilters
 				provider='all'
 				onProviderChange={vi.fn()}
-				periodPreference={DEFAULT_USAGE_PERIOD_PREFERENCE}
-				onPeriodPreferenceChange={vi.fn()}
-				periodEntries={periodEntries}
-				onCreatePeriodEntry={vi.fn()}
-				onUpdatePeriodEntry={vi.fn()}
-				onDeletePeriodEntry={onDeletePeriodEntry}
+				periodSelection={DEFAULT_USAGE_PERIOD_SELECTION}
+				onPeriodSelectionChange={vi.fn()}
+				savedPeriods={savedPeriods}
+				onCreateSavedPeriod={vi.fn()}
+				onUpdateSavedPeriod={vi.fn()}
+				onDeleteSavedPeriod={onDeleteSavedPeriod}
 				availableProviders={[]}
 				chatFacets={undefined}
 				selectedUserNames={undefined}
@@ -194,12 +196,12 @@ describe('UsageFilters', () => {
 
 		expect(await screen.findByText('Delete failed')).toBeDefined();
 		expect(screen.getByRole('dialog', { name: 'Remove filter?' })).toBeDefined();
-		expect(onDeletePeriodEntry).toHaveBeenCalledTimes(1);
+		expect(onDeleteSavedPeriod).toHaveBeenCalledTimes(1);
 	});
 
-	it('prevents closing the entry dialog while saving', async () => {
+	it('prevents closing the saved period dialog while saving', async () => {
 		let resolveSave: () => void = () => undefined;
-		const onCreatePeriodEntry = vi.fn(
+		const onCreateSavedPeriod = vi.fn(
 			() =>
 				new Promise<void>((resolve) => {
 					resolveSave = resolve;
@@ -209,12 +211,12 @@ describe('UsageFilters', () => {
 			<UsageFilters
 				provider='all'
 				onProviderChange={vi.fn()}
-				periodPreference={DEFAULT_USAGE_PERIOD_PREFERENCE}
-				onPeriodPreferenceChange={vi.fn()}
-				periodEntries={[]}
-				onCreatePeriodEntry={onCreatePeriodEntry}
-				onUpdatePeriodEntry={vi.fn()}
-				onDeletePeriodEntry={vi.fn()}
+				periodSelection={DEFAULT_USAGE_PERIOD_SELECTION}
+				onPeriodSelectionChange={vi.fn()}
+				savedPeriods={[]}
+				onCreateSavedPeriod={onCreateSavedPeriod}
+				onUpdateSavedPeriod={vi.fn()}
+				onDeleteSavedPeriod={vi.fn()}
 				availableProviders={[]}
 				chatFacets={undefined}
 				selectedUserNames={undefined}

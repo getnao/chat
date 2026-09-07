@@ -1,36 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DEFAULT_USAGE_PERIOD_PREFERENCE, resolveUsagePeriod, resolveUsagePeriodGranularity } from '@nao/backend/usage';
-import type { UsagePeriodEntry, UsagePeriodEntryInput, UsagePeriodPreference } from '@nao/backend/usage';
+import { DEFAULT_USAGE_PERIOD_SELECTION, resolveUsagePeriod, resolveUsagePeriodGranularity } from '@nao/backend/usage';
+import type { SavedUsagePeriod, SavedUsagePeriodInput, UsagePeriodSelection } from '@nao/backend/usage';
 import type { UsageRouteSearch } from '@/components/settings/usage-route-search';
 import {
-	clearStoredUsagePeriodPreference,
-	readStoredUsagePeriodPreference,
+	clearStoredUsagePeriodSelection,
+	readStoredUsagePeriodSelection,
 } from '@/components/settings/usage-route-search';
 import { trpc } from '@/main';
 import { getActiveProjectId } from '@/lib/active-project';
 
-interface UseUsagePeriodPreferencesOptions {
+interface UseUsagePeriodSettingsOptions {
 	canViewUsage: boolean;
 	usageSearch: UsageRouteSearch;
 	onUpdateSearch: (next: Partial<UsageRouteSearch>) => void;
 }
 
 interface UsagePeriodSettings {
-	preference: UsagePeriodPreference | null;
-	entries: UsagePeriodEntry[];
+	selection: UsagePeriodSelection | null;
+	savedPeriods: SavedUsagePeriod[];
 }
 
-export function useUsagePeriodPreferences({
-	canViewUsage,
-	usageSearch,
-	onUpdateSearch,
-}: UseUsagePeriodPreferencesOptions) {
+export function useUsagePeriodSettings({ canViewUsage, usageSearch, onUpdateSearch }: UseUsagePeriodSettingsOptions) {
 	const queryClient = useQueryClient();
 	const projectId = getActiveProjectId();
 	const queryProjectId = projectId ?? '';
 	const queriesEnabled = canViewUsage && projectId !== null;
-	const legacyPeriodPreference = useMemo(() => readStoredUsagePeriodPreference(projectId), [projectId]);
+	const legacyPeriodSelection = useMemo(() => readStoredUsagePeriodSelection(projectId), [projectId]);
 	const [actionError, setActionError] = useState<ProjectActionError>();
 	const [migrationStatuses, setMigrationStatuses] = useState<Record<string, MigrationStatus>>({});
 	const selectionVersion = useRef(0);
@@ -42,14 +38,14 @@ export function useUsagePeriodPreferences({
 		enabled: queriesEnabled,
 	});
 
-	const updatePreference = useMutation({
-		...trpc.usage.updatePeriodPreference.mutationOptions({
-			onMutate: async ({ projectId: mutationProjectId, preference: nextPreference }) => {
+	const updateSelection = useMutation({
+		...trpc.usage.updatePeriodSelection.mutationOptions({
+			onMutate: async ({ projectId: mutationProjectId, selection: nextSelection }) => {
 				const queryKey = getPeriodSettingsQueryKey(mutationProjectId);
 				await queryClient.cancelQueries({ queryKey });
 				const previousSettings = queryClient.getQueryData<UsagePeriodSettings>(queryKey);
 				queryClient.setQueryData<UsagePeriodSettings>(queryKey, (current) =>
-					current ? { ...current, preference: nextPreference } : current,
+					current ? { ...current, selection: nextSelection } : current,
 				);
 				return { previousSettings };
 			},
@@ -60,17 +56,17 @@ export function useUsagePeriodPreferences({
 				queryClient.invalidateQueries({ queryKey: getPeriodSettingsQueryKey(mutationProjectId) });
 			},
 		}),
-		scope: { id: `usage-period-preference-${queryProjectId}` },
+		scope: { id: `usage-period-selection-${queryProjectId}` },
 	});
 
-	const createEntryMutation = useMutation(
-		trpc.usage.createPeriodEntry.mutationOptions({
-			onSuccess: (entry, { projectId: mutationProjectId }) => {
+	const createSavedPeriodMutation = useMutation(
+		trpc.usage.createSavedPeriod.mutationOptions({
+			onSuccess: (savedPeriod, { projectId: mutationProjectId }) => {
 				queryClient.setQueryData<UsagePeriodSettings>(
 					getPeriodSettingsQueryKey(mutationProjectId),
 					(current) => ({
-						preference: { mode: 'saved', entryId: entry.id },
-						entries: [...(current?.entries ?? []), entry],
+						selection: { mode: 'saved', savedPeriodId: savedPeriod.id },
+						savedPeriods: [...(current?.savedPeriods ?? []), savedPeriod],
 					}),
 				);
 			},
@@ -80,9 +76,9 @@ export function useUsagePeriodPreferences({
 		}),
 	);
 
-	const updateEntryMutation = useMutation(
-		trpc.usage.updatePeriodEntry.mutationOptions({
-			onMutate: async ({ projectId: mutationProjectId, entry }) => {
+	const updateSavedPeriodMutation = useMutation(
+		trpc.usage.updateSavedPeriod.mutationOptions({
+			onMutate: async ({ projectId: mutationProjectId, savedPeriod }) => {
 				const queryKey = getPeriodSettingsQueryKey(mutationProjectId);
 				await queryClient.cancelQueries({ queryKey });
 				const previousSettings = queryClient.getQueryData<UsagePeriodSettings>(queryKey);
@@ -90,7 +86,9 @@ export function useUsagePeriodPreferences({
 					current
 						? {
 								...current,
-								entries: current.entries.map((item) => (item.id === entry.id ? entry : item)),
+								savedPeriods: current.savedPeriods.map((item) =>
+									item.id === savedPeriod.id ? savedPeriod : item,
+								),
 							}
 						: current,
 				);
@@ -105,8 +103,8 @@ export function useUsagePeriodPreferences({
 		}),
 	);
 
-	const deleteEntryMutation = useMutation(
-		trpc.usage.deletePeriodEntry.mutationOptions({
+	const deleteSavedPeriodMutation = useMutation(
+		trpc.usage.deleteSavedPeriod.mutationOptions({
 			onMutate: async ({ projectId: mutationProjectId, id }) => {
 				const queryKey = getPeriodSettingsQueryKey(mutationProjectId);
 				await queryClient.cancelQueries({ queryKey });
@@ -115,13 +113,13 @@ export function useUsagePeriodPreferences({
 					if (!current) {
 						return current;
 					}
-					const preference =
-						current.preference?.mode === 'saved' && current.preference.entryId === id
-							? DEFAULT_USAGE_PERIOD_PREFERENCE
-							: current.preference;
+					const selection =
+						current.selection?.mode === 'saved' && current.selection.savedPeriodId === id
+							? DEFAULT_USAGE_PERIOD_SELECTION
+							: current.selection;
 					return {
-						preference,
-						entries: current.entries.filter((entry) => entry.id !== id),
+						selection,
+						savedPeriods: current.savedPeriods.filter((savedPeriod) => savedPeriod.id !== id),
 					};
 				});
 				return { previousSettings };
@@ -135,40 +133,40 @@ export function useUsagePeriodPreferences({
 		}),
 	);
 
-	const entries = settingsQuery.data?.entries ?? [];
-	const savedPreference = settingsQuery.data?.preference ?? legacyPeriodPreference ?? DEFAULT_USAGE_PERIOD_PREFERENCE;
-	const preference = resolvePeriodPreference(
-		savedPreference,
-		settingsQuery.data?.entries,
-		usageSearch.periodEntryId,
+	const savedPeriods = settingsQuery.data?.savedPeriods ?? [];
+	const savedSelection = settingsQuery.data?.selection ?? legacyPeriodSelection ?? DEFAULT_USAGE_PERIOD_SELECTION;
+	const selection = resolvePeriodSelection(
+		savedSelection,
+		settingsQuery.data?.savedPeriods,
+		usageSearch.savedPeriodId,
 		usageSearch.periodMode,
 	);
 
-	const selectPreference = async (nextPreference: UsagePeriodPreference) => {
+	const selectPeriod = async (nextSelection: UsagePeriodSelection) => {
 		const mutationProjectId = queryProjectId;
-		const previousPreference = preference;
+		const previousSelection = selection;
 		const version = ++selectionVersion.current;
-		const replacesLegacyPreference =
+		const replacesLegacySelection =
 			migrationStatus === 'failed' &&
-			settingsQuery.data?.preference === null &&
-			legacyPeriodPreference !== undefined;
+			settingsQuery.data?.selection === null &&
+			legacyPeriodSelection !== undefined;
 		setActionError(undefined);
-		if (replacesLegacyPreference) {
+		if (replacesLegacySelection) {
 			setMigrationStatuses((current) => ({ ...current, [mutationProjectId]: 'pending' }));
 		}
-		onUpdateSearch(toPeriodSearch(nextPreference));
+		onUpdateSearch(toPeriodSearch(nextSelection));
 		try {
-			await updatePreference.mutateAsync({ projectId: mutationProjectId, preference: nextPreference });
-			if (replacesLegacyPreference) {
-				clearStoredUsagePeriodPreference(mutationProjectId);
+			await updateSelection.mutateAsync({ projectId: mutationProjectId, selection: nextSelection });
+			if (replacesLegacySelection) {
+				clearStoredUsagePeriodSelection(mutationProjectId);
 				setMigrationStatuses((current) => ({ ...current, [mutationProjectId]: 'succeeded' }));
 			}
 		} catch (cause) {
-			if (replacesLegacyPreference) {
+			if (replacesLegacySelection) {
 				setMigrationStatuses((current) => ({ ...current, [mutationProjectId]: 'failed' }));
 			}
 			if (version === selectionVersion.current && isActiveProject(mutationProjectId)) {
-				onUpdateSearch(toPeriodSearch(previousPreference));
+				onUpdateSearch(toPeriodSearch(previousSelection));
 				setActionError({
 					projectId: mutationProjectId,
 					message: toErrorMessage(cause, 'Unable to save the selected period.'),
@@ -178,35 +176,38 @@ export function useUsagePeriodPreferences({
 		}
 	};
 
-	const createEntry = async (input: UsagePeriodEntryInput) => {
+	const createSavedPeriod = async (input: SavedUsagePeriodInput) => {
 		const mutationProjectId = queryProjectId;
 		setActionError(undefined);
-		const entry = await createEntryMutation.mutateAsync({ projectId: mutationProjectId, entry: input });
+		const savedPeriod = await createSavedPeriodMutation.mutateAsync({
+			projectId: mutationProjectId,
+			savedPeriod: input,
+		});
 		if (isActiveProject(mutationProjectId)) {
-			onUpdateSearch(toPeriodSearch({ mode: 'saved', entryId: entry.id }));
+			onUpdateSearch(toPeriodSearch({ mode: 'saved', savedPeriodId: savedPeriod.id }));
 		}
 		if (
 			migrationStatus === 'failed' &&
-			settingsQuery.data?.preference === null &&
-			legacyPeriodPreference !== undefined
+			settingsQuery.data?.selection === null &&
+			legacyPeriodSelection !== undefined
 		) {
-			clearStoredUsagePeriodPreference(mutationProjectId);
+			clearStoredUsagePeriodSelection(mutationProjectId);
 			setMigrationStatuses((current) => ({ ...current, [mutationProjectId]: 'succeeded' }));
 		}
 	};
 
-	const updateEntry = async (entry: UsagePeriodEntry) => {
+	const updateSavedPeriod = async (savedPeriod: SavedUsagePeriod) => {
 		setActionError(undefined);
-		await updateEntryMutation.mutateAsync({ projectId: queryProjectId, entry });
+		await updateSavedPeriodMutation.mutateAsync({ projectId: queryProjectId, savedPeriod });
 	};
 
-	const deleteEntry = async (id: string) => {
+	const deleteSavedPeriod = async (id: string) => {
 		const mutationProjectId = queryProjectId;
 		setActionError(undefined);
-		const isActive = preference.mode === 'saved' && preference.entryId === id;
-		await deleteEntryMutation.mutateAsync({ projectId: mutationProjectId, id });
+		const isActive = selection.mode === 'saved' && selection.savedPeriodId === id;
+		await deleteSavedPeriodMutation.mutateAsync({ projectId: mutationProjectId, id });
 		if (isActive && isActiveProject(mutationProjectId)) {
-			onUpdateSearch(toPeriodSearch(DEFAULT_USAGE_PERIOD_PREFERENCE));
+			onUpdateSearch(toPeriodSearch(DEFAULT_USAGE_PERIOD_SELECTION));
 		}
 	};
 
@@ -216,7 +217,7 @@ export function useUsagePeriodPreferences({
 			await settingsQuery.refetch();
 			return;
 		}
-		if (migrationStatus !== 'failed' || !legacyPeriodPreference) {
+		if (migrationStatus !== 'failed' || !legacyPeriodSelection) {
 			return;
 		}
 
@@ -226,13 +227,13 @@ export function useUsagePeriodPreferences({
 			const settings = await queryClient.fetchQuery(
 				trpc.usage.getPeriodSettings.queryOptions({ projectId: migrationProjectId }),
 			);
-			if (settings.preference === null) {
-				await updatePreference.mutateAsync({
+			if (settings.selection === null) {
+				await updateSelection.mutateAsync({
 					projectId: migrationProjectId,
-					preference: legacyPeriodPreference,
+					selection: legacyPeriodSelection,
 				});
 			}
-			clearStoredUsagePeriodPreference(migrationProjectId);
+			clearStoredUsagePeriodSelection(migrationProjectId);
 			setMigrationStatuses((current) => ({ ...current, [migrationProjectId]: 'succeeded' }));
 		} catch (cause) {
 			setMigrationStatuses((current) => ({ ...current, [migrationProjectId]: 'failed' }));
@@ -246,12 +247,12 @@ export function useUsagePeriodPreferences({
 	};
 
 	useEffect(() => {
-		if (!queriesEnabled || !settingsQuery.data || !legacyPeriodPreference) {
+		if (!queriesEnabled || !settingsQuery.data || !legacyPeriodSelection) {
 			return;
 		}
-		if (settingsQuery.data.preference !== null) {
+		if (settingsQuery.data.selection !== null) {
 			if (migrationStatus === undefined) {
-				clearStoredUsagePeriodPreference(queryProjectId);
+				clearStoredUsagePeriodSelection(queryProjectId);
 			}
 			return;
 		}
@@ -261,10 +262,10 @@ export function useUsagePeriodPreferences({
 
 		const migrationProjectId = queryProjectId;
 		setMigrationStatuses((current) => ({ ...current, [migrationProjectId]: 'pending' }));
-		void updatePreference
-			.mutateAsync({ projectId: migrationProjectId, preference: legacyPeriodPreference })
+		void updateSelection
+			.mutateAsync({ projectId: migrationProjectId, selection: legacyPeriodSelection })
 			.then(() => {
-				clearStoredUsagePeriodPreference(migrationProjectId);
+				clearStoredUsagePeriodSelection(migrationProjectId);
 				setMigrationStatuses((current) => ({ ...current, [migrationProjectId]: 'succeeded' }));
 			})
 			.catch((cause) => {
@@ -276,27 +277,27 @@ export function useUsagePeriodPreferences({
 					});
 				}
 			});
-	}, [legacyPeriodPreference, migrationStatus, queriesEnabled, queryProjectId, settingsQuery.data, updatePreference]);
+	}, [legacyPeriodSelection, migrationStatus, queriesEnabled, queryProjectId, settingsQuery.data, updateSelection]);
 
 	useEffect(() => {
-		const entryId = usageSearch.periodEntryId;
+		const savedPeriodId = usageSearch.savedPeriodId;
 		if (
 			!settingsQuery.isSuccess ||
-			deleteEntryMutation.isPending ||
-			!entryId ||
-			settingsQuery.data.entries.some((entry) => entry.id === entryId) ||
+			deleteSavedPeriodMutation.isPending ||
+			!savedPeriodId ||
+			settingsQuery.data.savedPeriods.some((savedPeriod) => savedPeriod.id === savedPeriodId) ||
 			!isActiveProject(queryProjectId)
 		) {
 			return;
 		}
-		onUpdateSearch({ periodEntryId: undefined });
+		onUpdateSearch({ savedPeriodId: undefined });
 	}, [
-		deleteEntryMutation.isPending,
+		deleteSavedPeriodMutation.isPending,
 		onUpdateSearch,
 		queryProjectId,
 		settingsQuery.data,
 		settingsQuery.isSuccess,
-		usageSearch.periodEntryId,
+		usageSearch.savedPeriodId,
 	]);
 
 	const loadError = settingsQuery.error;
@@ -308,49 +309,53 @@ export function useUsagePeriodPreferences({
 		(loadError ? toErrorMessage(loadError, 'Unable to load saved periods.') : undefined);
 	const isMigrationBlocking =
 		migrationStatus === 'pending' ||
-		(settingsQuery.data?.preference === null &&
-			legacyPeriodPreference !== undefined &&
+		(settingsQuery.data?.selection === null &&
+			legacyPeriodSelection !== undefined &&
 			migrationStatus === undefined);
 	const isReady = settingsQuery.isSuccess && !isMigrationBlocking;
 
 	return {
-		entries,
-		preference,
-		period: resolveUsagePeriod(preference, entries),
-		granularity: resolveUsagePeriodGranularity(preference, entries),
+		savedPeriods,
+		selection,
+		period: resolveUsagePeriod(selection, savedPeriods),
+		granularity: resolveUsagePeriodGranularity(selection, savedPeriods),
 		isLoading: canViewUsage && (projectId === null || (!isReady && !loadError)),
 		isReady,
 		error,
 		retry: loadError || migrationStatus === 'failed' ? () => void retry() : undefined,
-		selectPreference,
-		createEntry,
-		updateEntry,
-		deleteEntry,
+		selectPeriod,
+		createSavedPeriod,
+		updateSavedPeriod,
+		deleteSavedPeriod,
 	};
 }
 
-function resolvePeriodPreference(
-	savedPreference: UsagePeriodPreference,
-	entries: UsagePeriodEntry[] | undefined,
-	entryId: string | undefined,
+function resolvePeriodSelection(
+	savedSelection: UsagePeriodSelection,
+	savedPeriods: SavedUsagePeriod[] | undefined,
+	savedPeriodId: string | undefined,
 	mode: UsageRouteSearch['periodMode'],
-): UsagePeriodPreference {
-	if (entryId && (!entries || entries.some((entry) => entry.id === entryId))) {
-		return { mode: 'saved', entryId };
+): UsagePeriodSelection {
+	if (savedPeriodId && (!savedPeriods || savedPeriods.some(({ id }) => id === savedPeriodId))) {
+		return { mode: 'saved', savedPeriodId };
 	}
 	if (mode) {
 		return { mode };
 	}
-	if (savedPreference.mode === 'saved' && entries && !entries.some((entry) => entry.id === savedPreference.entryId)) {
-		return DEFAULT_USAGE_PERIOD_PREFERENCE;
+	if (
+		savedSelection.mode === 'saved' &&
+		savedPeriods &&
+		!savedPeriods.some(({ id }) => id === savedSelection.savedPeriodId)
+	) {
+		return DEFAULT_USAGE_PERIOD_SELECTION;
 	}
-	return savedPreference;
+	return savedSelection;
 }
 
-function toPeriodSearch(preference: UsagePeriodPreference): Partial<UsageRouteSearch> {
+function toPeriodSearch(selection: UsagePeriodSelection): Partial<UsageRouteSearch> {
 	return {
-		periodMode: preference.mode === 'saved' ? undefined : preference.mode,
-		periodEntryId: preference.mode === 'saved' ? preference.entryId : undefined,
+		periodMode: selection.mode === 'saved' ? undefined : selection.mode,
+		savedPeriodId: selection.mode === 'saved' ? selection.savedPeriodId : undefined,
 	};
 }
 

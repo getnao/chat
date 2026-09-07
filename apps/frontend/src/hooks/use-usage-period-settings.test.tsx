@@ -3,21 +3,21 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_USAGE_PERIOD_PREFERENCE } from '@nao/backend/usage';
-import { useUsagePeriodPreferences } from './use-usage-period-preferences';
+import { DEFAULT_USAGE_PERIOD_SELECTION } from '@nao/backend/usage';
+import { useUsagePeriodSettings } from './use-usage-period-settings';
 import type { UsageRouteSearch } from '@/components/settings/usage-route-search';
 import {
 	DEFAULT_USAGE_SEARCH,
-	readStoredUsagePeriodPreference,
+	readStoredUsagePeriodSelection,
 	saveUsageFilters,
 } from '@/components/settings/usage-route-search';
 
 const mocks = vi.hoisted(() => ({
 	getSettings: vi.fn(),
-	updatePreference: vi.fn(),
-	createEntry: vi.fn(),
-	updateEntry: vi.fn(),
-	deleteEntry: vi.fn(),
+	updateSelection: vi.fn(),
+	createSavedPeriod: vi.fn(),
+	updateSavedPeriod: vi.fn(),
+	deleteSavedPeriod: vi.fn(),
 	settingsQueryOptions: vi.fn(),
 }));
 
@@ -27,34 +27,34 @@ vi.mock('@/main', () => ({
 			getPeriodSettings: {
 				queryOptions: mocks.settingsQueryOptions,
 			},
-			updatePeriodPreference: {
-				mutationOptions: (options: object) => ({ mutationFn: mocks.updatePreference, ...options }),
+			updatePeriodSelection: {
+				mutationOptions: (options: object) => ({ mutationFn: mocks.updateSelection, ...options }),
 			},
-			createPeriodEntry: {
-				mutationOptions: (options: object) => ({ mutationFn: mocks.createEntry, ...options }),
+			createSavedPeriod: {
+				mutationOptions: (options: object) => ({ mutationFn: mocks.createSavedPeriod, ...options }),
 			},
-			updatePeriodEntry: {
-				mutationOptions: (options: object) => ({ mutationFn: mocks.updateEntry, ...options }),
+			updateSavedPeriod: {
+				mutationOptions: (options: object) => ({ mutationFn: mocks.updateSavedPeriod, ...options }),
 			},
-			deletePeriodEntry: {
-				mutationOptions: (options: object) => ({ mutationFn: mocks.deleteEntry, ...options }),
+			deleteSavedPeriod: {
+				mutationOptions: (options: object) => ({ mutationFn: mocks.deleteSavedPeriod, ...options }),
 			},
 		},
 	},
 }));
 
-describe('useUsagePeriodPreferences', () => {
+describe('useUsagePeriodSettings', () => {
 	beforeEach(() => {
 		localStorage.clear();
 		localStorage.setItem('nao.active-project-id', JSON.stringify('project-a'));
 		mocks.getSettings.mockResolvedValue({
-			preference: DEFAULT_USAGE_PERIOD_PREFERENCE,
-			entries: [{ id: 'year', days: 365, granularity: 'month' }],
+			selection: DEFAULT_USAGE_PERIOD_SELECTION,
+			savedPeriods: [{ id: 'year', days: 365, granularity: 'month' }],
 		});
-		mocks.updatePreference.mockResolvedValue(DEFAULT_USAGE_PERIOD_PREFERENCE);
-		mocks.createEntry.mockResolvedValue({ id: 'created', days: 30, granularity: 'day' });
-		mocks.updateEntry.mockImplementation(async ({ entry }) => entry);
-		mocks.deleteEntry.mockResolvedValue({ id: 'year', usagePeriod: DEFAULT_USAGE_PERIOD_PREFERENCE });
+		mocks.updateSelection.mockResolvedValue(DEFAULT_USAGE_PERIOD_SELECTION);
+		mocks.createSavedPeriod.mockResolvedValue({ id: 'created', days: 30, granularity: 'day' });
+		mocks.updateSavedPeriod.mockImplementation(async ({ savedPeriod }) => savedPeriod);
+		mocks.deleteSavedPeriod.mockResolvedValue({ id: 'year', selection: DEFAULT_USAGE_PERIOD_SELECTION });
 		mocks.settingsQueryOptions.mockImplementation((input) => ({
 			queryKey: [['usage', 'getPeriodSettings'], { input }],
 			queryFn: () => mocks.getSettings(input),
@@ -66,7 +66,7 @@ describe('useUsagePeriodPreferences', () => {
 		vi.clearAllMocks();
 	});
 
-	it('waits for saved entries and scopes queries by project', async () => {
+	it('waits for saved periods and scopes queries by project', async () => {
 		let resolveSettings: (value: unknown) => void = () => undefined;
 		mocks.getSettings.mockReturnValue(
 			new Promise((resolve) => {
@@ -81,8 +81,8 @@ describe('useUsagePeriodPreferences', () => {
 
 		await act(async () => {
 			resolveSettings({
-				preference: DEFAULT_USAGE_PERIOD_PREFERENCE,
-				entries: [{ id: 'year', days: 365, granularity: 'month' }],
+				selection: DEFAULT_USAGE_PERIOD_SELECTION,
+				savedPeriods: [{ id: 'year', days: 365, granularity: 'month' }],
 			});
 		});
 		await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('ready'));
@@ -92,8 +92,8 @@ describe('useUsagePeriodPreferences', () => {
 		await waitFor(() => expect(mocks.settingsQueryOptions).toHaveBeenLastCalledWith({ projectId: 'project-b' }));
 	});
 
-	it('restores URL state when preference persistence fails', async () => {
-		mocks.updatePreference.mockRejectedValue(new Error('Save failed'));
+	it('restores URL state when selection persistence fails', async () => {
+		mocks.updateSelection.mockRejectedValue(new Error('Save failed'));
 		const onUpdateSearch = vi.fn();
 		renderHarness(onUpdateSearch);
 		await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('ready'));
@@ -101,22 +101,22 @@ describe('useUsagePeriodPreferences', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Select saved period' }));
 
 		await waitFor(() => expect(onUpdateSearch).toHaveBeenCalledTimes(2));
-		expect(onUpdateSearch.mock.calls[0][0]).toMatchObject({ periodEntryId: 'year', periodMode: undefined });
-		expect(onUpdateSearch.mock.calls[1][0]).toMatchObject({ periodEntryId: undefined, periodMode: '15d' });
+		expect(onUpdateSearch.mock.calls[0][0]).toMatchObject({ savedPeriodId: 'year', periodMode: undefined });
+		expect(onUpdateSearch.mock.calls[1][0]).toMatchObject({ savedPeriodId: undefined, periodMode: '15d' });
 		expect(screen.getByRole('alert').textContent).toBe('Save failed');
 	});
 
-	it('migrates legacy preferences once per project', async () => {
+	it('migrates legacy selections once per project', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
 		localStorage.setItem('nao.usage-filters.project-b', JSON.stringify({ periodMode: '24h' }));
-		mocks.getSettings.mockResolvedValue({ preference: null, entries: [] });
+		mocks.getSettings.mockResolvedValue({ selection: null, savedPeriods: [] });
 		const onUpdateSearch = vi.fn();
 		const { rerenderHarness } = renderHarness(onUpdateSearch);
 
 		await waitFor(() =>
-			expect(mocks.updatePreference.mock.calls[0]?.[0]).toEqual({
+			expect(mocks.updateSelection.mock.calls[0]?.[0]).toEqual({
 				projectId: 'project-a',
-				preference: { mode: '6m' },
+				selection: { mode: '6m' },
 			}),
 		);
 
@@ -124,69 +124,69 @@ describe('useUsagePeriodPreferences', () => {
 		rerenderHarness(1);
 
 		await waitFor(() =>
-			expect(mocks.updatePreference.mock.calls[1]?.[0]).toEqual({
+			expect(mocks.updateSelection.mock.calls[1]?.[0]).toEqual({
 				projectId: 'project-b',
-				preference: { mode: '24h' },
+				selection: { mode: '24h' },
 			}),
 		);
 	});
 
-	it('clears a legacy period when the server already has a preference', async () => {
+	it('clears a legacy period when the server already has a selection', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
-		mocks.getSettings.mockResolvedValue({ preference: { mode: '24h' }, entries: [] });
+		mocks.getSettings.mockResolvedValue({ selection: { mode: '24h' }, savedPeriods: [] });
 
 		renderHarness(vi.fn());
 
-		await waitFor(() => expect(readStoredUsagePeriodPreference('project-a')).toBeUndefined());
-		expect(mocks.updatePreference).not.toHaveBeenCalled();
+		await waitFor(() => expect(readStoredUsagePeriodSelection('project-a')).toBeUndefined());
+		expect(mocks.updateSelection).not.toHaveBeenCalled();
 	});
 
 	it('does not automatically retry a failed legacy migration', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
-		mocks.getSettings.mockResolvedValue({ preference: null, entries: [] });
-		mocks.updatePreference.mockRejectedValue(new Error('Migration failed'));
+		mocks.getSettings.mockResolvedValue({ selection: null, savedPeriods: [] });
+		mocks.updateSelection.mockRejectedValue(new Error('Migration failed'));
 		renderHarness(vi.fn());
 
 		expect((await screen.findByRole('alert')).textContent).toBe('Migration failed');
 		await act(async () => Promise.resolve());
-		expect(mocks.updatePreference).toHaveBeenCalledTimes(1);
+		expect(mocks.updateSelection).toHaveBeenCalledTimes(1);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Retry migration' }));
-		await waitFor(() => expect(mocks.updatePreference).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(mocks.updateSelection).toHaveBeenCalledTimes(2));
 	});
 
-	it('uses the legacy preference while migration is failed', async () => {
+	it('uses the legacy selection while migration is failed', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
-		mocks.getSettings.mockResolvedValue({ preference: null, entries: [] });
-		mocks.updatePreference.mockRejectedValue(new Error('Migration failed'));
+		mocks.getSettings.mockResolvedValue({ selection: null, savedPeriods: [] });
+		mocks.updateSelection.mockRejectedValue(new Error('Migration failed'));
 
 		renderHarness(vi.fn());
 
 		expect((await screen.findByRole('alert')).textContent).toBe('Migration failed');
 		expect(screen.getByTestId('status').textContent).toBe('ready');
-		expect(screen.getByTestId('preference').textContent).toBe('6m');
+		expect(screen.getByTestId('selection').textContent).toBe('6m');
 		expect(screen.getByTestId('period').textContent).toBe('6-month');
 	});
 
-	it('does not overwrite a newer server preference when retrying migration', async () => {
+	it('does not overwrite a newer server selection when retrying migration', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
-		mocks.getSettings.mockResolvedValue({ preference: null, entries: [] });
-		mocks.updatePreference.mockRejectedValue(new Error('Migration failed'));
+		mocks.getSettings.mockResolvedValue({ selection: null, savedPeriods: [] });
+		mocks.updateSelection.mockRejectedValue(new Error('Migration failed'));
 		renderHarness(vi.fn());
 		await screen.findByRole('alert');
 
-		mocks.getSettings.mockResolvedValue({ preference: { mode: '24h' }, entries: [] });
+		mocks.getSettings.mockResolvedValue({ selection: { mode: '24h' }, savedPeriods: [] });
 		fireEvent.click(screen.getByRole('button', { name: 'Retry migration' }));
 
-		await waitFor(() => expect(readStoredUsagePeriodPreference('project-a')).toBeUndefined());
-		expect(mocks.updatePreference).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(readStoredUsagePeriodSelection('project-a')).toBeUndefined());
+		expect(mocks.updateSelection).toHaveBeenCalledTimes(1);
 		expect(screen.queryByRole('button', { name: 'Retry migration' })).toBeNull();
 	});
 
 	it('reconciles failed migration state with a newer user selection', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
-		mocks.getSettings.mockResolvedValue({ preference: null, entries: [] });
-		mocks.updatePreference
+		mocks.getSettings.mockResolvedValue({ selection: null, savedPeriods: [] });
+		mocks.updateSelection
 			.mockRejectedValueOnce(new Error('Migration failed'))
 			.mockResolvedValueOnce({ mode: '24h' });
 		renderHarness(vi.fn());
@@ -194,46 +194,46 @@ describe('useUsagePeriodPreferences', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Select 24 hours' }));
 
-		await waitFor(() => expect(readStoredUsagePeriodPreference('project-a')).toBeUndefined());
-		expect(mocks.updatePreference.mock.calls.at(-1)?.[0]).toEqual({
+		await waitFor(() => expect(readStoredUsagePeriodSelection('project-a')).toBeUndefined());
+		expect(mocks.updateSelection.mock.calls.at(-1)?.[0]).toEqual({
 			projectId: 'project-a',
-			preference: { mode: '24h' },
+			selection: { mode: '24h' },
 		});
 		expect(screen.queryByRole('button', { name: 'Retry migration' })).toBeNull();
 	});
 
 	it('retries a failed legacy migration after a page reload', async () => {
 		localStorage.setItem('nao.usage-filters.project-a', JSON.stringify({ periodMode: '6m' }));
-		mocks.getSettings.mockResolvedValue({ preference: null, entries: [] });
-		mocks.updatePreference.mockRejectedValue(new Error('Migration failed'));
+		mocks.getSettings.mockResolvedValue({ selection: null, savedPeriods: [] });
+		mocks.updateSelection.mockRejectedValue(new Error('Migration failed'));
 		const firstPage = renderHarness(vi.fn());
 
 		saveUsageFilters(DEFAULT_USAGE_SEARCH);
 		expect((await screen.findByRole('alert')).textContent).toBe('Migration failed');
-		expect(readStoredUsagePeriodPreference('project-a')).toEqual({ mode: '6m' });
+		expect(readStoredUsagePeriodSelection('project-a')).toEqual({ mode: '6m' });
 
 		firstPage.unmount();
-		mocks.updatePreference.mockResolvedValue({ mode: '6m' });
+		mocks.updateSelection.mockResolvedValue({ mode: '6m' });
 		renderHarness(vi.fn());
 
-		await waitFor(() => expect(mocks.updatePreference).toHaveBeenCalledTimes(2));
-		expect(mocks.updatePreference.mock.calls[1]?.[0]).toEqual({
+		await waitFor(() => expect(mocks.updateSelection).toHaveBeenCalledTimes(2));
+		expect(mocks.updateSelection.mock.calls[1]?.[0]).toEqual({
 			projectId: 'project-a',
-			preference: { mode: '6m' },
+			selection: { mode: '6m' },
 		});
-		await waitFor(() => expect(readStoredUsagePeriodPreference('project-a')).toBeUndefined());
+		await waitFor(() => expect(readStoredUsagePeriodSelection('project-a')).toBeUndefined());
 	});
 
-	it('clears a stale period entry id after entries load', async () => {
+	it('clears a stale saved period id after saved periods load', async () => {
 		const onUpdateSearch = vi.fn();
-		renderHarness(onUpdateSearch, { ...DEFAULT_USAGE_SEARCH, periodEntryId: 'missing' });
+		renderHarness(onUpdateSearch, { ...DEFAULT_USAGE_SEARCH, savedPeriodId: 'missing' });
 
-		await waitFor(() => expect(onUpdateSearch).toHaveBeenCalledWith({ periodEntryId: undefined }));
+		await waitFor(() => expect(onUpdateSearch).toHaveBeenCalledWith({ savedPeriodId: undefined }));
 	});
 
 	it('does not update the new project URL when an old create completes', async () => {
-		let resolveCreate: (entry: { id: string; days: number; granularity: 'day' }) => void = () => undefined;
-		mocks.createEntry.mockReturnValue(
+		let resolveCreate: (savedPeriod: { id: string; days: number; granularity: 'day' }) => void = () => undefined;
+		mocks.createSavedPeriod.mockReturnValue(
 			new Promise((resolve) => {
 				resolveCreate = resolve;
 			}),
@@ -249,19 +249,19 @@ describe('useUsagePeriodPreferences', () => {
 		await act(async () => resolveCreate({ id: 'created', days: 30, granularity: 'day' }));
 
 		expect(onUpdateSearch).not.toHaveBeenCalled();
-		expect(getCachedEntries(queryClient, 'project-a')).toContainEqual({
+		expect(getCachedSavedPeriods(queryClient, 'project-a')).toContainEqual({
 			id: 'created',
 			days: 30,
 			granularity: 'day',
 		});
-		expect(getCachedEntries(queryClient, 'project-b')).not.toContainEqual(
+		expect(getCachedSavedPeriods(queryClient, 'project-b')).not.toContainEqual(
 			expect.objectContaining({ id: 'created' }),
 		);
 	});
 
-	it('optimistically updates an entry and rolls it back without changing the URL', async () => {
+	it('optimistically updates a saved period and rolls it back without changing the URL', async () => {
 		let rejectUpdate: (cause: Error) => void = () => undefined;
-		mocks.updateEntry.mockReturnValue(
+		mocks.updateSavedPeriod.mockReturnValue(
 			new Promise((_resolve, reject) => {
 				rejectUpdate = reject;
 			}),
@@ -272,7 +272,7 @@ describe('useUsagePeriodPreferences', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Update period' }));
 		await waitFor(() =>
-			expect(JSON.parse(screen.getByTestId('entries').textContent ?? '[]')).toContainEqual({
+			expect(JSON.parse(screen.getByTestId('saved-periods').textContent ?? '[]')).toContainEqual({
 				id: 'year',
 				days: 730,
 				granularity: 'month',
@@ -281,7 +281,7 @@ describe('useUsagePeriodPreferences', () => {
 
 		await act(async () => rejectUpdate(new Error('Update failed')));
 		await waitFor(() =>
-			expect(JSON.parse(screen.getByTestId('entries').textContent ?? '[]')).toContainEqual({
+			expect(JSON.parse(screen.getByTestId('saved-periods').textContent ?? '[]')).toContainEqual({
 				id: 'year',
 				days: 365,
 				granularity: 'month',
@@ -292,7 +292,7 @@ describe('useUsagePeriodPreferences', () => {
 
 	it('does not roll back the new project URL when an old selection fails', async () => {
 		let rejectUpdate: (cause: Error) => void = () => undefined;
-		mocks.updatePreference.mockReturnValue(
+		mocks.updateSelection.mockReturnValue(
 			new Promise((_resolve, reject) => {
 				rejectUpdate = reject;
 			}),
@@ -310,9 +310,9 @@ describe('useUsagePeriodPreferences', () => {
 	});
 
 	it('does not reset the new project URL when an old delete completes', async () => {
-		let resolveDelete: (result: { id: string; usagePeriod: typeof DEFAULT_USAGE_PERIOD_PREFERENCE }) => void = () =>
+		let resolveDelete: (result: { id: string; selection: typeof DEFAULT_USAGE_PERIOD_SELECTION }) => void = () =>
 			undefined;
-		mocks.deleteEntry.mockReturnValue(
+		mocks.deleteSavedPeriod.mockReturnValue(
 			new Promise((resolve) => {
 				resolveDelete = resolve;
 			}),
@@ -320,7 +320,7 @@ describe('useUsagePeriodPreferences', () => {
 		const onUpdateSearch = vi.fn();
 		const { rerenderHarness } = renderHarness(onUpdateSearch, {
 			...DEFAULT_USAGE_SEARCH,
-			periodEntryId: 'year',
+			savedPeriodId: 'year',
 		});
 		await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('ready'));
 
@@ -330,7 +330,7 @@ describe('useUsagePeriodPreferences', () => {
 		await act(async () =>
 			resolveDelete({
 				id: 'year',
-				usagePeriod: DEFAULT_USAGE_PERIOD_PREFERENCE,
+				selection: DEFAULT_USAGE_PERIOD_SELECTION,
 			}),
 		);
 
@@ -366,11 +366,11 @@ function renderHarness(
 	};
 }
 
-function getCachedEntries(queryClient: QueryClient, projectId: string) {
+function getCachedSavedPeriods(queryClient: QueryClient, projectId: string) {
 	return (
 		queryClient.getQueryData<{
-			entries: { id: string; days: number; granularity: string }[];
-		}>([['usage', 'getPeriodSettings'], { input: { projectId } }])?.entries ?? []
+			savedPeriods: { id: string; days: number; granularity: string }[];
+		}>([['usage', 'getPeriodSettings'], { input: { projectId } }])?.savedPeriods ?? []
 	);
 }
 
@@ -383,19 +383,19 @@ function Harness({
 	revision: number;
 	usageSearch: UsageRouteSearch;
 }) {
-	const state = useUsagePeriodPreferences({ canViewUsage: true, usageSearch, onUpdateSearch });
+	const state = useUsagePeriodSettings({ canViewUsage: true, usageSearch, onUpdateSearch });
 
 	return (
 		<div data-revision={revision}>
 			<div data-testid='status'>{state.isReady ? 'ready' : state.isLoading ? 'loading' : 'error'}</div>
-			<div data-testid='preference'>{state.preference.mode}</div>
+			<div data-testid='selection'>{state.selection.mode}</div>
 			<div data-testid='period'>{`${state.period.value}-${state.period.unit}`}</div>
-			<div data-testid='entries'>{JSON.stringify(state.entries)}</div>
+			<div data-testid='saved-periods'>{JSON.stringify(state.savedPeriods)}</div>
 			{state.error && <div role='alert'>{state.error}</div>}
 			<button
 				type='button'
 				onClick={() => {
-					void state.selectPreference({ mode: 'saved', entryId: 'year' }).catch(() => undefined);
+					void state.selectPeriod({ mode: 'saved', savedPeriodId: 'year' }).catch(() => undefined);
 				}}
 			>
 				Select saved period
@@ -403,7 +403,7 @@ function Harness({
 			<button
 				type='button'
 				onClick={() => {
-					void state.selectPreference({ mode: '24h' }).catch(() => undefined);
+					void state.selectPeriod({ mode: '24h' }).catch(() => undefined);
 				}}
 			>
 				Select 24 hours
@@ -411,7 +411,7 @@ function Harness({
 			<button
 				type='button'
 				onClick={() => {
-					void state.createEntry({ days: 30, granularity: 'day' });
+					void state.createSavedPeriod({ days: 30, granularity: 'day' });
 				}}
 			>
 				Create period
@@ -419,7 +419,9 @@ function Harness({
 			<button
 				type='button'
 				onClick={() => {
-					void state.updateEntry({ id: 'year', days: 730, granularity: 'month' }).catch(() => undefined);
+					void state
+						.updateSavedPeriod({ id: 'year', days: 730, granularity: 'month' })
+						.catch(() => undefined);
 				}}
 			>
 				Update period
@@ -427,7 +429,7 @@ function Harness({
 			<button
 				type='button'
 				onClick={() => {
-					void state.deleteEntry('year');
+					void state.deleteSavedPeriod('year');
 				}}
 			>
 				Delete period

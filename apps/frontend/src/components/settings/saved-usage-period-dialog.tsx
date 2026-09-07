@@ -4,20 +4,20 @@ import {
 	MAX_USAGE_CHART_BUCKETS_PER_REQUEST,
 	USAGE_CHART_BUCKET_LIMIT_MESSAGE,
 } from '@nao/backend/usage';
-import type { Granularity, UsagePeriodEntry, UsagePeriodEntryInput } from '@nao/backend/usage';
+import type { Granularity, SavedUsagePeriod, SavedUsagePeriodInput } from '@nao/backend/usage';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface UsagePeriodEntryDialogProps {
+interface SavedUsagePeriodDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	entry?: UsagePeriodEntry;
-	onSave: (value: UsagePeriodEntryInput) => void | Promise<void>;
+	savedPeriod?: SavedUsagePeriod;
+	onSave: (value: SavedUsagePeriodInput) => void | Promise<void>;
 }
 
-export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: UsagePeriodEntryDialogProps) {
+export function SavedUsagePeriodDialog({ open, onOpenChange, savedPeriod, onSave }: SavedUsagePeriodDialogProps) {
 	const [days, setDays] = useState('30');
 	const [granularity, setGranularity] = useState<Granularity>('day');
 	const [isPending, setIsPending] = useState(false);
@@ -43,10 +43,10 @@ export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: Us
 		if (!open) {
 			return;
 		}
-		setDays(String(entry?.days ?? 30));
-		setGranularity(entry?.granularity ?? 'day');
+		setDays(String(savedPeriod?.days ?? 30));
+		setGranularity(savedPeriod?.granularity ?? 'day');
 		setError(undefined);
-	}, [entry, open]);
+	}, [open, savedPeriod]);
 
 	const save = async () => {
 		if (!isValid || savingRef.current) {
@@ -59,7 +59,7 @@ export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: Us
 			await onSave({ days: parsedDays, granularity });
 			onOpenChange(false);
 		} catch (cause) {
-			setError(cause instanceof Error ? cause.message : 'Unable to save this entry.');
+			setError(cause instanceof Error ? cause.message : 'Unable to save this period.');
 		} finally {
 			savingRef.current = false;
 			setIsPending(false);
@@ -77,7 +77,7 @@ export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: Us
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent className='sm:max-w-md'>
 				<DialogHeader>
-					<DialogTitle>{entry ? 'Edit period filter' : 'Create period filter'}</DialogTitle>
+					<DialogTitle>{savedPeriod ? 'Edit period filter' : 'Create period filter'}</DialogTitle>
 					<DialogDescription>Choose the date range and grouping used by the usage charts.</DialogDescription>
 				</DialogHeader>
 				<form
@@ -89,31 +89,31 @@ export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: Us
 				>
 					<div className='grid grid-cols-2 gap-3'>
 						<div className='grid gap-2'>
-							<label htmlFor='usage-period-entry-days' className='text-sm font-medium'>
+							<label htmlFor='saved-usage-period-days' className='text-sm font-medium'>
 								Days
 							</label>
 							<Input
-								id='usage-period-entry-days'
+								id='saved-usage-period-days'
 								type='number'
 								min={1}
 								step={1}
 								value={days}
 								onChange={(event) => setDays(event.target.value)}
 								aria-invalid={!hasValidDays || exceedsBucketLimit}
-								aria-describedby={validationMessage ? 'usage-period-entry-validation' : undefined}
+								aria-describedby={validationMessage ? 'saved-usage-period-validation' : undefined}
 								autoFocus
 							/>
 						</div>
 						<div className='grid gap-2'>
-							<label htmlFor='usage-period-entry-granularity' className='text-sm font-medium'>
+							<label htmlFor='saved-usage-period-granularity' className='text-sm font-medium'>
 								Granularity
 							</label>
 							<Select value={granularity} onValueChange={(value) => setGranularity(value as Granularity)}>
 								<SelectTrigger
-									id='usage-period-entry-granularity'
+									id='saved-usage-period-granularity'
 									size='input'
 									aria-invalid={exceedsBucketLimit}
-									aria-describedby={exceedsBucketLimit ? 'usage-period-entry-validation' : undefined}
+									aria-describedby={exceedsBucketLimit ? 'saved-usage-period-validation' : undefined}
 								>
 									<SelectValue />
 								</SelectTrigger>
@@ -126,7 +126,7 @@ export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: Us
 						</div>
 					</div>
 					{validationMessage && (
-						<p id='usage-period-entry-validation' className='text-sm text-destructive'>
+						<p id='saved-usage-period-validation' className='text-sm text-destructive'>
 							{validationMessage}
 						</p>
 					)}
@@ -146,7 +146,7 @@ export function UsagePeriodEntryDialog({ open, onOpenChange, entry, onSave }: Us
 							Cancel
 						</Button>
 						<Button type='submit' size='sm' disabled={!isValid || isPending} isLoading={isPending}>
-							{entry ? 'Save' : 'Create'}
+							{savedPeriod ? 'Save' : 'Create'}
 						</Button>
 					</div>
 				</form>

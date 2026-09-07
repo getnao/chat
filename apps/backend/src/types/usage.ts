@@ -31,66 +31,63 @@ export const USAGE_PERIOD_MODES = [...USAGE_PERIOD_PRESET_NAMES, 'saved'] as con
 export const usagePeriodModeSchema = z.enum(USAGE_PERIOD_MODES);
 export type UsagePeriodMode = z.infer<typeof usagePeriodModeSchema>;
 
-const usagePeriodPresetPreferenceSchema = z.object({
+const usagePeriodPresetSelectionSchema = z.object({
 	mode: z.enum(USAGE_PERIOD_PRESET_NAMES),
 });
 
-const usagePeriodEntryPreferenceSchema = z.object({
+const savedUsagePeriodSelectionSchema = z.object({
 	mode: z.literal('saved'),
-	entryId: z.string().min(1),
+	savedPeriodId: z.string().min(1),
 });
 
-export const usagePeriodPreferenceSchema = z.union([
-	usagePeriodPresetPreferenceSchema,
-	usagePeriodEntryPreferenceSchema,
-]);
-export type UsagePeriodPreference = z.infer<typeof usagePeriodPreferenceSchema>;
+export const usagePeriodSelectionSchema = z.union([usagePeriodPresetSelectionSchema, savedUsagePeriodSelectionSchema]);
+export type UsagePeriodSelection = z.infer<typeof usagePeriodSelectionSchema>;
 
-export const DEFAULT_USAGE_PERIOD_PREFERENCE = {
+export const DEFAULT_USAGE_PERIOD_SELECTION = {
 	mode: '15d',
-} satisfies UsagePeriodPreference;
+} satisfies UsagePeriodSelection;
 
-const usagePeriodEntryInputObjectSchema = z.object({
+const savedUsagePeriodInputObjectSchema = z.object({
 	days: z.number().int().positive(),
 	granularity: granularitySchema,
 });
 
-export const usagePeriodEntryInputSchema = usagePeriodEntryInputObjectSchema.superRefine(
+export const savedUsagePeriodInputSchema = savedUsagePeriodInputObjectSchema.superRefine(
 	({ days, granularity }, context) => {
 		addBucketLimitIssue({ value: days, unit: 'day' }, granularity, context);
 	},
 );
-export type UsagePeriodEntryInput = z.infer<typeof usagePeriodEntryInputSchema>;
+export type SavedUsagePeriodInput = z.infer<typeof savedUsagePeriodInputSchema>;
 
-export const usagePeriodEntrySchema = usagePeriodEntryInputObjectSchema
+export const savedUsagePeriodSchema = savedUsagePeriodInputObjectSchema
 	.extend({
 		id: z.string().min(1),
 	})
 	.superRefine(({ days, granularity }, context) => {
 		addBucketLimitIssue({ value: days, unit: 'day' }, granularity, context);
 	});
-export type UsagePeriodEntry = z.infer<typeof usagePeriodEntrySchema>;
+export type SavedUsagePeriod = z.infer<typeof savedUsagePeriodSchema>;
 
-export const MAX_USAGE_PERIOD_ENTRIES = 16;
-export const USAGE_PERIOD_ENTRY_LIMIT_MESSAGE = `You can save up to ${MAX_USAGE_PERIOD_ENTRIES} usage period entries.`;
-export const usagePeriodEntriesSchema = z
-	.array(usagePeriodEntrySchema)
-	.max(MAX_USAGE_PERIOD_ENTRIES, USAGE_PERIOD_ENTRY_LIMIT_MESSAGE);
+export const MAX_SAVED_USAGE_PERIODS = 16;
+export const SAVED_USAGE_PERIOD_LIMIT_MESSAGE = `You can save up to ${MAX_SAVED_USAGE_PERIODS} usage periods.`;
+export const savedUsagePeriodsSchema = z
+	.array(savedUsagePeriodSchema)
+	.max(MAX_SAVED_USAGE_PERIODS, SAVED_USAGE_PERIOD_LIMIT_MESSAGE);
 
 export interface UserProjectPreferences {
-	usagePeriod?: UsagePeriodPreference;
-	usagePeriodEntries?: UsagePeriodEntry[];
+	usagePeriod?: UsagePeriodSelection;
+	savedUsagePeriods?: SavedUsagePeriod[];
 }
 
 export function resolveUsagePeriod(
-	preference: UsagePeriodPreference,
-	entries: UsagePeriodEntry[] = [],
+	selection: UsagePeriodSelection,
+	savedPeriods: SavedUsagePeriod[] = [],
 ): UsagePeriodRange {
-	if (preference.mode === 'saved') {
-		const entry = entries.find(({ id }) => id === preference.entryId);
-		return entry ? { value: entry.days, unit: 'day' } : USAGE_PERIOD_PRESETS['15d'];
+	if (selection.mode === 'saved') {
+		const savedPeriod = savedPeriods.find(({ id }) => id === selection.savedPeriodId);
+		return savedPeriod ? { value: savedPeriod.days, unit: 'day' } : USAGE_PERIOD_PRESETS['15d'];
 	}
-	return USAGE_PERIOD_PRESETS[preference.mode];
+	return USAGE_PERIOD_PRESETS[selection.mode];
 }
 
 export const MAX_USAGE_CHART_BUCKETS: Record<Granularity, number> = {
@@ -110,13 +107,13 @@ export function resolveUsageChartGranularity(period: UsagePeriodRange): Granular
 }
 
 export function resolveUsagePeriodGranularity(
-	preference: UsagePeriodPreference,
-	entries: UsagePeriodEntry[] = [],
+	selection: UsagePeriodSelection,
+	savedPeriods: SavedUsagePeriod[] = [],
 ): Granularity {
-	if (preference.mode === 'saved') {
-		return entries.find(({ id }) => id === preference.entryId)?.granularity ?? 'day';
+	if (selection.mode === 'saved') {
+		return savedPeriods.find(({ id }) => id === selection.savedPeriodId)?.granularity ?? 'day';
 	}
-	return resolveUsageChartGranularity(resolveUsagePeriod(preference, entries));
+	return resolveUsageChartGranularity(resolveUsagePeriod(selection, savedPeriods));
 }
 
 export function getUsageChartBucketCount(period: UsagePeriodRange, granularity: Granularity, now = new Date()): number {

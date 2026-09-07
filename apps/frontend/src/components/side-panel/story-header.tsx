@@ -307,7 +307,7 @@ export const StoryHeader = memo(function StoryHeader({
 					</span>
 				</TooltipTrigger>
 				<TooltipContent>
-					{isLiveUpdating ? 'Live story uploading...' : isLive ? 'Live story settings' : 'Enable live mode'}
+					{isLiveUpdating ? 'Updating...' : isLive ? 'Live story settings' : 'Enable live mode'}
 				</TooltipContent>
 			</Tooltip>
 			{isLive && (

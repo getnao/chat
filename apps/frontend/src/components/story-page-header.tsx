@@ -378,7 +378,7 @@ function LiveStoryControls({ live }: { live: LiveControls }) {
 					</span>
 				</TooltipTrigger>
 				<TooltipContent>
-					{isUpdating ? 'Live story uploading...' : isLive ? 'Live story settings' : 'Enable live mode'}
+					{isUpdating ? 'Updating...' : isLive ? 'Live story settings' : 'Enable live mode'}
 				</TooltipContent>
 			</Tooltip>
 			{isLive && cachedAt && <LiveStoryTimestamp cachedAt={cachedAt} />}

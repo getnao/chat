@@ -245,7 +245,7 @@ const envSchema = z.object({
 	BETA_STORY_FILTERS_ENABLED: z
 		.enum(['true', 'false'])
 		.optional()
-		.default('false')
+		.default('true')
 		.transform((val) => val === 'true'),
 });
 

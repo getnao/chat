@@ -23,7 +23,6 @@ import { SidePanelProvider } from '@/contexts/side-panel';
 import { EditableChatTitle } from '@/components/editable-chat-title';
 import { useChatQuery } from '@/queries/use-chat-query';
 import { useHeight } from '@/hooks/use-height';
-import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { AssetAnalyticsDialog } from '@/components/asset-analytics-dialog';
 import { ShareChatDialog } from '@/components/share-dialog.chat';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -62,10 +61,8 @@ function ChatPage() {
 	const router = useRouter();
 	const { chatId } = Route.useParams();
 	const { role, canViewChatReplay } = usePermissions();
-	const { automationsEnabled } = useEffectiveUserGroupFeatures();
 	const config = useQuery(trpc.system.getPublicConfig.queryOptions());
-	const showAutomationLinks =
-		role !== undefined && role !== 'viewer' && automationsEnabled && config.data?.betaAutomationsEnabled === true;
+	const showAutomationLinks = role !== undefined && role !== 'viewer' && config.data?.betaAutomationsEnabled === true;
 	const chat = useChatQuery({ chatId });
 	const title = chat.data?.title;
 

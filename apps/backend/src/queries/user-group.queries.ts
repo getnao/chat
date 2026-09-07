@@ -1,4 +1,11 @@
-import { normalizeUserGroupFeatures, USER_GROUP_FEATURES, type UserGroupFeature } from '@nao/shared';
+import {
+	DEFAULT_TOOL_CALL_DENSITY_POLICY,
+	parseStoredUserGroupConfig,
+	serializeUserGroupConfig,
+	type ToolCallDensityPolicy,
+	USER_GROUP_FEATURES,
+	type UserGroupFeature,
+} from '@nao/shared';
 import { and, asc, desc, eq, isNotNull, or } from 'drizzle-orm';
 
 import type { DBUserGroup } from '../db/abstractSchema';
@@ -12,10 +19,20 @@ import {
 
 export const DEFAULT_USER_GROUP_NAME = 'All Users';
 
+export interface UserGroup extends Omit<DBUserGroup, 'featureGrants'> {
+	featureGrants: UserGroupFeature[];
+	toolCallDensityPolicy: ToolCallDensityPolicy;
+}
+
 export interface UserGroupOverview {
 	users: UserWithProjectAccessDetails[];
-	groups: DBUserGroup[];
+	groups: UserGroup[];
 	memberships: Array<{ groupId: string; userId: string }>;
+}
+
+export interface EffectiveUserGroupAccess {
+	features: UserGroupFeature[];
+	toolCallDensityPolicy: ToolCallDensityPolicy;
 }
 
 export class UserGroupQueryError extends Error {
@@ -45,14 +62,14 @@ export const getUserGroupOverview = async (projectId: string): Promise<UserGroup
 	};
 };
 
-export const ensureDefaultUserGroup = async (projectId: string): Promise<DBUserGroup> => {
+export const ensureDefaultUserGroup = async (projectId: string): Promise<UserGroup> => {
 	await db
 		.insert(s.userGroup)
 		.values({
 			projectId,
 			name: DEFAULT_USER_GROUP_NAME,
 			isDefault: true,
-			featureGrants: [...USER_GROUP_FEATURES],
+			featureGrants: serializeUserGroupConfig(USER_GROUP_FEATURES, DEFAULT_TOOL_CALL_DENSITY_POLICY),
 		})
 		.onConflictDoNothing()
 		.execute();
@@ -72,10 +89,20 @@ export const ensureDefaultUserGroup = async (projectId: string): Promise<DBUserG
 export const resolveEffectiveUserGroupFeatures = async (
 	projectId: string,
 	userId: string,
-): Promise<UserGroupFeature[]> => {
+): Promise<UserGroupFeature[]> => (await resolveEffectiveUserGroupAccess(projectId, userId)).features;
+
+export const resolveEffectiveUserGroupAccess = async (
+	projectId: string,
+	userId: string,
+): Promise<EffectiveUserGroupAccess> => {
 	await ensureDefaultUserGroup(projectId);
 	const groups = await db
-		.select({ featureGrants: s.userGroup.featureGrants })
+		.select({
+			id: s.userGroup.id,
+			isDefault: s.userGroup.isDefault,
+			featureGrants: s.userGroup.featureGrants,
+			membershipCreatedAt: s.userGroupMember.createdAt,
+		})
 		.from(s.userGroup)
 		.leftJoin(
 			s.userGroupMember,
@@ -87,13 +114,40 @@ export const resolveEffectiveUserGroupFeatures = async (
 				or(eq(s.userGroup.isDefault, true), isNotNull(s.userGroupMember.userId)),
 			),
 		)
-		.orderBy(desc(s.userGroup.isDefault))
 		.execute();
 
-	return normalizeUserGroupFeatures(groups.flatMap((group) => group.featureGrants));
+	const applicableGroups = groups.map((group) => ({
+		...group,
+		config: parseStoredUserGroupConfig(group.featureGrants),
+	}));
+	const grantedFeatures = new Set(applicableGroups.flatMap((group) => group.config.features));
+	const defaultGroup = applicableGroups.find((group) => group.isDefault);
+	const newestExplicitGroup = applicableGroups
+		.filter(
+			(
+				group,
+			): group is typeof group & {
+				membershipCreatedAt: Date;
+			} => !group.isDefault && group.membershipCreatedAt !== null,
+		)
+		.sort(
+			(left, right) =>
+				right.membershipCreatedAt.getTime() - left.membershipCreatedAt.getTime() ||
+				left.id.localeCompare(right.id),
+		)[0];
+	const densitySource = newestExplicitGroup ?? defaultGroup;
+
+	return {
+		features: USER_GROUP_FEATURES.filter((feature) => grantedFeatures.has(feature)),
+		toolCallDensityPolicy: {
+			defaultDensity:
+				densitySource?.config.toolCallDensity.defaultDensity ?? DEFAULT_TOOL_CALL_DENSITY_POLICY.defaultDensity,
+			canChange: applicableGroups.some((group) => group.config.toolCallDensity.canChange),
+		},
+	};
 };
 
-export const listUserGroups = async (projectId: string): Promise<DBUserGroup[]> =>
+export const listUserGroups = async (projectId: string): Promise<UserGroup[]> =>
 	db
 		.select()
 		.from(s.userGroup)
@@ -106,12 +160,18 @@ export const createUserGroup = async (
 	projectId: string,
 	name: string,
 	featureGrants: UserGroupFeature[] = [],
-): Promise<DBUserGroup> => {
+	toolCallDensityPolicy: ToolCallDensityPolicy = DEFAULT_TOOL_CALL_DENSITY_POLICY,
+): Promise<UserGroup> => {
 	await ensureDefaultUserGroup(projectId);
 	await assertNameAvailable(projectId, name);
 	const [group] = await db
 		.insert(s.userGroup)
-		.values({ projectId, name, featureGrants: normalizeUserGroupFeatures(featureGrants), isDefault: false })
+		.values({
+			projectId,
+			name,
+			featureGrants: serializeUserGroupConfig(featureGrants, toolCallDensityPolicy),
+			isDefault: false,
+		})
 		.returning()
 		.execute();
 	return normalizeUserGroup(group);
@@ -120,9 +180,14 @@ export const createUserGroup = async (
 export const updateUserGroup = async (
 	projectId: string,
 	groupId: string,
-	data: { name?: string; featureGrants: UserGroupFeature[] },
-): Promise<DBUserGroup> => {
+	data: {
+		name?: string;
+		featureGrants: UserGroupFeature[];
+		toolCallDensityPolicy?: ToolCallDensityPolicy;
+	},
+): Promise<UserGroup> => {
 	const group = await getUserGroup(projectId, groupId);
+	const currentConfig = parseStoredUserGroupConfig(group.featureGrants);
 	if (group.isDefault && data.name !== undefined && data.name !== group.name) {
 		throw new UserGroupQueryError('BAD_REQUEST', 'The All Users group cannot be renamed.');
 	}
@@ -133,7 +198,10 @@ export const updateUserGroup = async (
 		.update(s.userGroup)
 		.set({
 			...(data.name === undefined ? {} : { name: data.name }),
-			featureGrants: normalizeUserGroupFeatures(data.featureGrants),
+			featureGrants: serializeUserGroupConfig(
+				data.featureGrants,
+				data.toolCallDensityPolicy ?? currentConfig.toolCallDensity,
+			),
 			updatedAt: new Date(),
 		})
 		.where(and(eq(s.userGroup.id, groupId), eq(s.userGroup.projectId, projectId)))
@@ -215,6 +283,11 @@ const assertNameAvailable = async (projectId: string, name: string, excludedGrou
 	}
 };
 
-function normalizeUserGroup(group: DBUserGroup): DBUserGroup {
-	return { ...group, featureGrants: normalizeUserGroupFeatures(group.featureGrants) };
+function normalizeUserGroup(group: DBUserGroup): UserGroup {
+	const config = parseStoredUserGroupConfig(group.featureGrants);
+	return {
+		...group,
+		featureGrants: config.features,
+		toolCallDensityPolicy: config.toolCallDensity,
+	};
 }

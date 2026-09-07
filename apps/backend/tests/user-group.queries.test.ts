@@ -28,6 +28,7 @@ import {
 	createUserGroup,
 	deleteUserGroup,
 	getUserGroupOverview,
+	resolveEffectiveUserGroupAccess,
 	resolveEffectiveUserGroupFeatures,
 	setUserGroupMembership,
 	updateUserGroup,
@@ -82,7 +83,23 @@ describe('user group queries', () => {
 
 		expect(defaultGroup).toMatchObject({
 			name: 'All Users',
-			featureGrants: ['story-creation', 'automations', 'compact-mode'],
+			featureGrants: ['story-creation', 'automation-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
+		});
+		const [storedDefaultGroup] = await db
+			.select({ featureGrants: userGroup.featureGrants })
+			.from(userGroup)
+			.where(eq(userGroup.id, defaultGroup?.id ?? ''));
+		expect(storedDefaultGroup.featureGrants).toEqual({
+			version: 2,
+			features: ['story-creation', 'automation-creation'],
+			toolCallDensity: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
 		});
 		expect(overview.users.map(({ id }) => id).sort()).toEqual(
 			[BOTH_USER_ID, DIRECT_USER_ID, INHERITED_USER_ID].sort(),
@@ -111,6 +128,10 @@ describe('user group queries', () => {
 		const group = await createUserGroup(PROJECT_ID, 'Analysts');
 
 		expect(group.featureGrants).toEqual([]);
+		expect(group.toolCallDensityPolicy).toEqual({
+			defaultDensity: 'detailed',
+			canChange: true,
+		});
 		await setUserGroupMembership(PROJECT_ID, group.id, INHERITED_USER_ID, true);
 		expect((await getUserGroupOverview(PROJECT_ID)).memberships).toContainEqual({
 			groupId: group.id,
@@ -120,8 +141,31 @@ describe('user group queries', () => {
 		const updated = await updateUserGroup(PROJECT_ID, group.id, {
 			name: 'Data Analysts',
 			featureGrants: ['story-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
 		});
-		expect(updated).toMatchObject({ name: 'Data Analysts', featureGrants: ['story-creation'] });
+		expect(updated).toMatchObject({
+			name: 'Data Analysts',
+			featureGrants: ['story-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
+		const [storedUpdated] = await db
+			.select({ featureGrants: userGroup.featureGrants })
+			.from(userGroup)
+			.where(eq(userGroup.id, group.id));
+		expect(storedUpdated.featureGrants).toEqual({
+			version: 2,
+			features: ['story-creation'],
+			toolCallDensity: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
 
 		await expect(
 			setUserGroupMembership(PROJECT_ID, group.id, OUTSIDER_USER_ID, true),
@@ -136,7 +180,7 @@ describe('user group queries', () => {
 			code: 'BAD_REQUEST',
 		});
 
-		await updateUserGroup(PROJECT_ID, defaultGroup.id, { featureGrants: ['automations'] });
+		await updateUserGroup(PROJECT_ID, defaultGroup.id, { featureGrants: ['automation-creation'] });
 		await deleteUserGroup(PROJECT_ID, group.id);
 		expect((await getUserGroupOverview(PROJECT_ID)).groups).toHaveLength(1);
 	});
@@ -144,66 +188,253 @@ describe('user group queries', () => {
 	it('resolves every feature for an untouched project', async () => {
 		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
 			'story-creation',
-			'automations',
-			'compact-mode',
+			'automation-creation',
 		]);
 	});
 
 	it('unions grants from the default and explicit groups', async () => {
 		const overview = await getUserGroupOverview(PROJECT_ID);
 		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['story-creation'] });
-		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['automations']);
+		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['automation-creation']);
 		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
 
 		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
 			'story-creation',
-			'automations',
+			'automation-creation',
 		]);
 	});
 
 	it('uses a custom group when the default has no grants', async () => {
 		const overview = await getUserGroupOverview(PROJECT_ID);
 		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: [] });
-		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['compact-mode']);
+		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['story-creation']);
 		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
 
-		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual(['compact-mode']);
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
+			'story-creation',
+		]);
 	});
 
 	it('deduplicates grants shared by multiple groups', async () => {
 		const overview = await getUserGroupOverview(PROJECT_ID);
 		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['story-creation'] });
-		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['story-creation', 'automations']);
+		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['story-creation', 'automation-creation']);
 		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
 
 		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
 			'story-creation',
-			'automations',
+			'automation-creation',
 		]);
 	});
 
-	it('normalizes legacy Story grants in effective features and overview output', async () => {
+	it('normalizes and deduplicates legacy creation grants in effective features and overview output', async () => {
 		const overview = await getUserGroupOverview(PROJECT_ID);
 		const defaultGroup = overview.groups[0];
 		await db
 			.update(userGroup)
-			.set({ featureGrants: ['stories', 'story-creation', 'stories'] as never })
+			.set({
+				featureGrants: [
+					'stories',
+					'story-creation',
+					'stories',
+					'automations',
+					'automation-creation',
+					'automations',
+				] as never,
+			})
 			.where(eq(userGroup.id, defaultGroup.id));
 
 		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
 			'story-creation',
+			'automation-creation',
 		]);
 		await expect(getUserGroupOverview(PROJECT_ID)).resolves.toMatchObject({
-			groups: [expect.objectContaining({ featureGrants: ['story-creation'] })],
+			groups: [
+				expect.objectContaining({
+					featureGrants: ['story-creation', 'automation-creation'],
+					toolCallDensityPolicy: {
+						defaultDensity: 'detailed',
+						canChange: false,
+					},
+				}),
+			],
 		});
 	});
 
 	it('only uses the default group without explicit memberships', async () => {
 		const overview = await getUserGroupOverview(PROJECT_ID);
-		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['automations'] });
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, { featureGrants: ['automation-creation'] });
 		await createUserGroup(PROJECT_ID, 'Analysts', ['story-creation']);
 
-		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual(['automations']);
+		await expect(resolveEffectiveUserGroupFeatures(PROJECT_ID, DIRECT_USER_ID)).resolves.toEqual([
+			'automation-creation',
+		]);
+	});
+
+	it('uses the All Users density policy without explicit memberships', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, {
+			featureGrants: overview.groups[0].featureGrants,
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
+
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
+	});
+
+	it('uses the newest explicit membership for the density default', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, {
+			featureGrants: overview.groups[0].featureGrants,
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: false,
+			},
+		});
+		const olderGroup = await createUserGroup(PROJECT_ID, 'Older', [], {
+			defaultDensity: 'detailed',
+			canChange: false,
+		});
+		const newerGroup = await createUserGroup(PROJECT_ID, 'Newer', [], {
+			defaultDensity: 'compact',
+			canChange: false,
+		});
+		await db.insert(userGroupMember).values([
+			{ groupId: olderGroup.id, userId: DIRECT_USER_ID, createdAt: new Date('2025-01-01T00:00:00Z') },
+			{ groupId: newerGroup.id, userId: DIRECT_USER_ID, createdAt: new Date('2025-01-02T00:00:00Z') },
+		]);
+
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
+	});
+
+	it('uses a stable group-id tie break for equal membership timestamps', async () => {
+		const firstGroup = await createUserGroup(PROJECT_ID, 'First');
+		const secondGroup = await createUserGroup(PROJECT_ID, 'Second');
+		const [winningGroup, losingGroup] = [firstGroup, secondGroup].sort((left, right) =>
+			left.id.localeCompare(right.id),
+		);
+		await updateUserGroup(PROJECT_ID, winningGroup.id, {
+			featureGrants: [],
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
+		await updateUserGroup(PROJECT_ID, losingGroup.id, {
+			featureGrants: [],
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: false,
+			},
+		});
+		const createdAt = new Date('2025-01-01T00:00:00Z');
+		await db.insert(userGroupMember).values([
+			{ groupId: firstGroup.id, userId: DIRECT_USER_ID, createdAt },
+			{ groupId: secondGroup.id, userId: DIRECT_USER_ID, createdAt },
+		]);
+
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+			},
+		});
+	});
+
+	it('unlocks when any applicable group allows changes', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, {
+			featureGrants: overview.groups[0].featureGrants,
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: false,
+			},
+		});
+		const lockedGroup = await createUserGroup(PROJECT_ID, 'Locked', [], {
+			defaultDensity: 'compact',
+			canChange: false,
+		});
+		await setUserGroupMembership(PROJECT_ID, lockedGroup.id, DIRECT_USER_ID, true);
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				canChange: false,
+			},
+		});
+
+		const unlockedGroup = await createUserGroup(PROJECT_ID, 'Unlocked', [], {
+			defaultDensity: 'detailed',
+			canChange: true,
+		});
+		await setUserGroupMembership(PROJECT_ID, unlockedGroup.id, DIRECT_USER_ID, true);
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				canChange: true,
+			},
+		});
+	});
+
+	it('keeps users unlocked when All Users allows changes', async () => {
+		const lockedGroup = await createUserGroup(PROJECT_ID, 'Locked', [], {
+			defaultDensity: 'compact',
+			canChange: false,
+		});
+		await setUserGroupMembership(PROJECT_ID, lockedGroup.id, DIRECT_USER_ID, true);
+
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				canChange: true,
+			},
+		});
+	});
+
+	it('makes a removed and re-added membership the newest density default', async () => {
+		const overview = await getUserGroupOverview(PROJECT_ID);
+		await updateUserGroup(PROJECT_ID, overview.groups[0].id, {
+			featureGrants: overview.groups[0].featureGrants,
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: false,
+			},
+		});
+		const compactGroup = await createUserGroup(PROJECT_ID, 'Compact', [], {
+			defaultDensity: 'compact',
+			canChange: false,
+		});
+		const detailedGroup = await createUserGroup(PROJECT_ID, 'Detailed', [], {
+			defaultDensity: 'detailed',
+			canChange: false,
+		});
+		await setUserGroupMembership(PROJECT_ID, compactGroup.id, DIRECT_USER_ID, true);
+		await db
+			.update(userGroupMember)
+			.set({ createdAt: new Date('2025-01-01T00:00:00Z') })
+			.where(eq(userGroupMember.groupId, compactGroup.id));
+		await setUserGroupMembership(PROJECT_ID, detailedGroup.id, DIRECT_USER_ID, true);
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+			},
+		});
+
+		await setUserGroupMembership(PROJECT_ID, compactGroup.id, DIRECT_USER_ID, false);
+		await new Promise((resolve) => setTimeout(resolve, 5));
+		await setUserGroupMembership(PROJECT_ID, compactGroup.id, DIRECT_USER_ID, true);
+		await expect(resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+			},
+		});
 	});
 });
 

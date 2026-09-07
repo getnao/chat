@@ -4,8 +4,9 @@ const mocks = vi.hoisted(() => ({
 	createUserGroup: vi.fn(),
 	getUserGroupOverview: vi.fn(),
 	hasFeature: vi.fn(),
-	resolveEffectiveUserGroupFeatures: vi.fn(),
+	resolveEffectiveUserGroupAccess: vi.fn(),
 	role: 'admin' as 'admin' | 'user' | 'viewer',
+	updateUserGroup: vi.fn(),
 }));
 
 vi.mock('../src/auth', () => ({ getAuth: vi.fn() }));
@@ -18,9 +19,10 @@ vi.mock('../src/queries/user-group.queries', () => ({
 	createUserGroup: mocks.createUserGroup,
 	deleteUserGroup: vi.fn(),
 	getUserGroupOverview: mocks.getUserGroupOverview,
-	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
+	resolveEffectiveUserGroupAccess: mocks.resolveEffectiveUserGroupAccess,
+	resolveEffectiveUserGroupFeatures: vi.fn(),
 	setUserGroupMembership: vi.fn(),
-	updateUserGroup: vi.fn(),
+	updateUserGroup: mocks.updateUserGroup,
 }));
 vi.mock('../src/services/license.service', () => ({
 	hasFeature: mocks.hasFeature,
@@ -41,7 +43,13 @@ describe('user group routes', () => {
 		mocks.role = 'admin';
 		mocks.hasFeature.mockResolvedValue(true);
 		mocks.getUserGroupOverview.mockResolvedValue({ users: [], groups: [], memberships: [] });
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
+		mocks.resolveEffectiveUserGroupAccess.mockResolvedValue({
+			features: ['story-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
 		mocks.createUserGroup.mockResolvedValue({ id: 'group-id', name: 'Analysts' });
 	});
 
@@ -70,33 +78,95 @@ describe('user group routes', () => {
 		await createCaller().create({
 			name: ' Analysts ',
 			featureGrants: ['story-creation', 'story-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
 		});
 
 		expect(mocks.hasFeature).toHaveBeenCalledWith('user-groups');
-		expect(mocks.createUserGroup).toHaveBeenCalledWith('project-id', 'Analysts', ['story-creation']);
+		expect(mocks.createUserGroup).toHaveBeenCalledWith('project-id', 'Analysts', ['story-creation'], {
+			defaultDensity: 'compact',
+			canChange: false,
+		});
 	});
 
-	it('returns effective features to viewers', async () => {
+	it('rejects invalid density policies', async () => {
+		await expect(
+			createCaller().create({
+				name: 'Analysts',
+				featureGrants: [],
+				toolCallDensityPolicy: {
+					defaultDensity: 'condensed',
+					canChange: true,
+				},
+			} as never),
+		).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		await expect(
+			createCaller().create({
+				name: 'Analysts',
+				featureGrants: [],
+				toolCallDensityPolicy: {
+					defaultDensity: 'compact',
+					canChange: 'yes',
+				},
+			} as never),
+		).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		expect(mocks.createUserGroup).not.toHaveBeenCalled();
+	});
+
+	it('updates feature grants and density policy together', async () => {
+		await createCaller().update({
+			groupId: 'group-id',
+			name: 'Analysts',
+			featureGrants: ['automation-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
+		});
+
+		expect(mocks.updateUserGroup).toHaveBeenCalledWith('project-id', 'group-id', {
+			name: 'Analysts',
+			featureGrants: ['automation-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
+		});
+	});
+
+	it('returns effective access to viewers', async () => {
 		mocks.role = 'viewer';
 
-		await expect(createCaller().effectiveFeatures()).resolves.toEqual({
-			'story-creation': true,
-			automations: false,
-			'compact-mode': false,
+		await expect(createCaller().effectiveAccess()).resolves.toEqual({
+			features: {
+				'story-creation': true,
+				'automation-creation': false,
+			},
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).toHaveBeenCalledWith('project-id', 'user-id');
+		expect(mocks.resolveEffectiveUserGroupAccess).toHaveBeenCalledWith('project-id', 'user-id');
 	});
 
 	it('returns all effective features without a user-groups license', async () => {
 		mocks.role = 'viewer';
 		mocks.hasFeature.mockResolvedValue(false);
 
-		await expect(createCaller().effectiveFeatures()).resolves.toEqual({
-			'story-creation': true,
-			automations: true,
-			'compact-mode': true,
+		await expect(createCaller().effectiveAccess()).resolves.toEqual({
+			features: {
+				'story-creation': true,
+				'automation-creation': true,
+			},
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 });
 

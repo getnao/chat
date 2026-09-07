@@ -10,9 +10,11 @@ const densityOptions: { value: ToolCallDensity; label: string }[] = [
 export const ToolCallDensitySlider = ({
 	value,
 	onValueChange,
+	disabled = false,
 }: {
 	value: ToolCallDensity;
 	onValueChange: (value: ToolCallDensity) => void;
+	disabled?: boolean;
 }) => {
 	const selectedIndex = densityOptions.findIndex((option) => option.value === value);
 
@@ -25,7 +27,7 @@ export const ToolCallDensitySlider = ({
 				min={0}
 				max={densityOptions.length - 1}
 				step={1}
-				aria-label='Tool call density'
+				disabled={disabled}
 			>
 				<Slider.Track className='relative h-1.5 grow rounded-full bg-muted'>
 					{densityOptions.map((option, index) => (
@@ -40,8 +42,10 @@ export const ToolCallDensitySlider = ({
 					))}
 				</Slider.Track>
 				<Slider.Thumb
+					aria-label='Tool call density'
 					className={cn(
-						'block size-4 cursor-pointer rounded-full border border-border bg-background shadow-sm transition-colors',
+						'block size-4 rounded-full border border-border bg-background shadow-sm transition-colors',
+						disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
 						'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 					)}
 				/>
@@ -52,8 +56,10 @@ export const ToolCallDensitySlider = ({
 						key={option.value}
 						type='button'
 						onClick={() => onValueChange(option.value)}
+						disabled={disabled}
 						className={cn(
-							'cursor-pointer transition-colors hover:text-foreground',
+							'transition-colors',
+							disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:text-foreground',
 							option.value === value ? 'font-medium text-foreground' : 'text-muted-foreground',
 						)}
 					>

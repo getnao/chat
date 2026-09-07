@@ -38,6 +38,7 @@ vi.mock('../src/services/license.service', () => ({
 	LICENSE_FEATURES: { userGroups: 'user-groups' },
 }));
 vi.mock('../src/queries/user-group.queries', () => ({
+	resolveEffectiveUserGroupAccess: vi.fn(),
 	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
 }));
 vi.mock('../src/services/sso-group-mapping.service', () => ({

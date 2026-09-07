@@ -9,14 +9,13 @@ import { NewsletterSubscribeInlineForm } from '@/components/newsletter-subscribe
 import { signOut, useSession } from '@/lib/auth-client';
 import { SettingsVersionInfo } from '@/components/settings/version-info';
 import { useAuthRoute } from '@/hooks/use-auth-route';
-import { useEffectiveUserGroupFeatures } from '@/hooks/use-effective-user-group-features';
 import { usePermissions } from '@/hooks/use-permissions';
 import { UserProfileCard } from '@/components/settings/profile-card';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { soundNotificationStorage } from '@/hooks/use-stream-end-sound';
 import { useToolCallDensity } from '@/hooks/use-tool-call-density';
 import { ThemeSelector } from '@/components/settings/theme-selector';
-import { ToolCallDensitySlider } from '@/components/settings/tool-call-density-slider';
+import { ToolCallDensitySetting } from '@/components/settings/tool-call-density-setting';
 import { DangerZone } from '@/components/settings/danger-zone';
 import { SettingsMemories } from '@/components/settings/memories';
 import { SettingsCard, SettingsPageWrapper } from '@/components/ui/settings-card';
@@ -34,8 +33,7 @@ function GeneralPage() {
 	const queryClient = useQueryClient();
 	const { isAdmin, isViewer, role } = usePermissions();
 	const [soundEnabled, setSoundEnabled] = useLocalStorage(soundNotificationStorage);
-	const [toolCallDensity, setToolCallDensity] = useToolCallDensity();
-	const { compactModeEnabled } = useEffectiveUserGroupFeatures();
+	const [toolCallDensity, setToolCallDensity, toolCallDensityState] = useToolCallDensity();
 
 	const navigation = useAuthRoute();
 
@@ -105,15 +103,12 @@ function GeneralPage() {
 							checked={soundEnabled}
 							onCheckedChange={setSoundEnabled}
 						/>
-						{compactModeEnabled && (
-							<SettingsControlRow
-								label='Tool Call Density'
-								description='Adjust how much detail is shown for tool calls.'
-								control={
-									<ToolCallDensitySlider value={toolCallDensity} onValueChange={setToolCallDensity} />
-								}
-							/>
-						)}
+						<ToolCallDensitySetting
+							value={toolCallDensity}
+							onValueChange={setToolCallDensity}
+							canChange={toolCallDensityState.canChange}
+							isLoading={toolCallDensityState.isLoading}
+						/>
 						<SettingsControlRow
 							label='Theme'
 							description='Choose how nao looks.'

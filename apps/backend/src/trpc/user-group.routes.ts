@@ -1,18 +1,22 @@
-import { USER_GROUP_FEATURES } from '@nao/shared';
+import { DEFAULT_TOOL_CALL_DENSITY_POLICY, TOOL_CALL_DENSITIES, USER_GROUP_FEATURES } from '@nao/shared';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import * as userGroupQueries from '../queries/user-group.queries';
 import { hasFeature, LICENSE_FEATURES } from '../services/license.service';
-import { getEffectiveUserGroupFeatureFlags } from '../services/user-group-feature-access.service';
+import { getEffectiveUserGroupAccess } from '../services/user-group-feature-access.service';
 import { adminProtectedProcedure, projectProtectedProcedure } from './trpc';
 
 const groupNameSchema = z.string().trim().min(1, 'Group name is required.').max(80, 'Group name is too long.');
 const featureGrantsSchema = z.array(z.enum(USER_GROUP_FEATURES)).max(USER_GROUP_FEATURES.length);
+const toolCallDensityPolicySchema = z.object({
+	defaultDensity: z.enum(TOOL_CALL_DENSITIES),
+	canChange: z.boolean(),
+});
 
 export const userGroupRoutes = {
-	effectiveFeatures: projectProtectedProcedure.query(async ({ ctx }) => {
-		return getEffectiveUserGroupFeatureFlags(ctx.project.id, ctx.user.id);
+	effectiveAccess: projectProtectedProcedure.query(async ({ ctx }) => {
+		return getEffectiveUserGroupAccess(ctx.project.id, ctx.user.id);
 	}),
 
 	overview: adminProtectedProcedure.query(async ({ ctx }) => {
@@ -25,12 +29,18 @@ export const userGroupRoutes = {
 			z.object({
 				name: groupNameSchema,
 				featureGrants: featureGrantsSchema.default([]),
+				toolCallDensityPolicy: toolCallDensityPolicySchema.default(DEFAULT_TOOL_CALL_DENSITY_POLICY),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			await assertUserGroupsLicensed();
 			return handleQuery(() =>
-				userGroupQueries.createUserGroup(ctx.project.id, input.name, unique(input.featureGrants)),
+				userGroupQueries.createUserGroup(
+					ctx.project.id,
+					input.name,
+					unique(input.featureGrants),
+					input.toolCallDensityPolicy,
+				),
 			);
 		}),
 
@@ -40,6 +50,7 @@ export const userGroupRoutes = {
 				groupId: z.string().min(1),
 				name: groupNameSchema.optional(),
 				featureGrants: featureGrantsSchema,
+				toolCallDensityPolicy: toolCallDensityPolicySchema,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -48,6 +59,7 @@ export const userGroupRoutes = {
 				userGroupQueries.updateUserGroup(ctx.project.id, input.groupId, {
 					name: input.name,
 					featureGrants: unique(input.featureGrants),
+					toolCallDensityPolicy: input.toolCallDensityPolicy,
 				}),
 			);
 		}),

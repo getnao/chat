@@ -21,15 +21,13 @@ function assertAutomationsEnabled() {
 	}
 }
 
-const automationProcedure = canSendProcedure.use(async ({ ctx, next }) => {
+const automationProcedure = canSendProcedure.use(({ next }) => {
 	assertAutomationsEnabled();
-	await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'automations');
 	return next();
 });
 
-const automationReadProcedure = projectProtectedProcedure.use(async ({ ctx, next }) => {
+const automationReadProcedure = projectProtectedProcedure.use(({ next }) => {
 	assertAutomationsEnabled();
-	await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'automations');
 	return next();
 });
 
@@ -104,6 +102,7 @@ export const automationRoutes = {
 	}),
 
 	create: automationProcedure.input(createAutomationSchema).mutation(async ({ ctx, input }) => {
+		await assertUserGroupFeatureForTrpc(ctx.project.id, ctx.user.id, 'automation-creation');
 		assertTriggers(input.cron, input.webhookEnabled);
 		const { cron, enabled, title, ...promptInput } = input;
 		const modelSelection =

@@ -3,7 +3,7 @@ import type {
 	MapSettings,
 	McpChartEmbedStoredConfig,
 	McpMapEmbedStoredConfig,
-	UserGroupFeature,
+	StoredUserGroupConfig,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
 import type {
@@ -431,7 +431,7 @@ export const userGroup = pgTable(
 			.references(() => project.id, { onDelete: 'cascade' }),
 		name: text('name').notNull(),
 		isDefault: boolean('is_default').default(false).notNull(),
-		featureGrants: jsonb('feature_grants').$type<UserGroupFeature[]>().notNull().default([]),
+		featureGrants: jsonb('feature_grants').$type<StoredUserGroupConfig>().notNull().default([]),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.defaultNow()

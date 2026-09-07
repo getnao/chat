@@ -13,14 +13,12 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { isMac } from '@/lib/platform';
 import { requireAutomationsEnabled } from '@/lib/require-admin';
-import { requireUserGroupFeature } from '@/lib/require-user-group-feature';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/main';
 
 export const Route = createFileRoute('/_sidebar-layout/automations/$automationId')({
 	beforeLoad: async () => {
 		await requireAutomationsEnabled();
-		await requireUserGroupFeature('automations');
 	},
 	component: AutomationDetailPage,
 });

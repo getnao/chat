@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-	hasUserGroupFeature: vi.fn(),
+	getEffectiveUserGroupFeatureFlags: vi.fn(),
 }));
 
 vi.mock('../src/db/db', () => ({ db: {} }));
 vi.mock('../src/services/user-group-feature-access.service', () => ({
-	hasUserGroupFeature: mocks.hasUserGroupFeature,
+	getEffectiveUserGroupFeatureFlags: mocks.getEffectiveUserGroupFeatureFlags,
 }));
 
 import {
-	appendStoryCreationRestriction,
+	appendUserGroupRestrictions,
 	filterAgentToolsByUserGroupFeatures,
 	isStoryCreationRestricted,
 	shouldAddStoryMode,
@@ -36,16 +36,36 @@ describe('agent user group feature tools', () => {
 		expect(filterAgentToolsByUserGroupFeatures(tools as never, true)).toBe(tools);
 	});
 
-	it('adds the restriction to the final custom prompt only when Story was offered and denied', () => {
+	it('adds Story and Automation restrictions under one heading', () => {
 		const tools = { story: {}, execute_sql: {} };
-		const restricted = isStoryCreationRestricted(tools as never, false);
-		const prompt = appendStoryCreationRestriction('Custom project prompt', restricted);
+		const prompt = appendUserGroupRestrictions('Custom project prompt', {
+			storyCreation: isStoryCreationRestricted(tools as never, false),
+			automationCreation: true,
+		});
 
 		expect(prompt).toContain('Custom project prompt');
 		expect(prompt).toContain('## User group permissions');
 		expect(prompt).toContain('user can still view and manage existing Stories');
-		expect(appendStoryCreationRestriction('Allowed prompt', false)).toBe('Allowed prompt');
+		expect(prompt).toContain('Automation creation is unavailable');
+		expect(prompt).toContain('user can still view and manage existing Automations');
+		expect(prompt.match(/## User group permissions/g)).toHaveLength(1);
 		expect(isStoryCreationRestricted({ execute_sql: {} } as never, false)).toBe(false);
+	});
+
+	it('omits restrictions that are allowed or unavailable in the candidate tools', () => {
+		expect(
+			appendUserGroupRestrictions('Allowed prompt', {
+				storyCreation: false,
+				automationCreation: false,
+			}),
+		).toBe('Allowed prompt');
+
+		const automationOnly = appendUserGroupRestrictions('Prompt', {
+			storyCreation: isStoryCreationRestricted({ execute_sql: {} } as never, false),
+			automationCreation: true,
+		});
+		expect(automationOnly).not.toContain('Story creation through the agent is unavailable');
+		expect(automationOnly).toContain('Automation creation is unavailable');
 	});
 
 	it('suppresses stale Story-mode mentions while restricted', () => {

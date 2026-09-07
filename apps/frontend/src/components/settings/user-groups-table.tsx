@@ -1,12 +1,13 @@
-import { USER_GROUP_FEATURE_DEFINITIONS } from '@nao/shared';
+import { DEFAULT_TOOL_CALL_DENSITY_POLICY, USER_GROUP_FEATURE_DEFINITIONS } from '@nao/shared';
 import { USER_ROLE_LABELS } from '@nao/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, Pencil, Plus } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { MemberStatus, UserRole } from '@nao/shared/types';
+import type { MemberStatus, ToolCallDensity, UserRole } from '@nao/shared/types';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
+import { ToolCallDensitySlider } from '@/components/settings/tool-call-density-slider';
 import { UpgradeToEnterprise } from '@/components/settings/upgrade-to-enterprise';
 import {
 	AlertDialog,
@@ -39,11 +40,17 @@ import { trpc } from '@/main';
 
 type UserGroupFeature = (typeof USER_GROUP_FEATURE_DEFINITIONS)[number]['key'];
 
+interface ToolCallDensityPolicy {
+	defaultDensity: ToolCallDensity;
+	canChange: boolean;
+}
+
 interface UserGroup {
 	id: string;
 	name: string;
 	isDefault: boolean;
 	featureGrants: UserGroupFeature[];
+	toolCallDensityPolicy: ToolCallDensityPolicy;
 }
 
 type ProjectAccessSource = 'project' | 'organization' | 'both';
@@ -67,7 +74,7 @@ const USER_GROUP_DIALOG_TABS: Array<{ id: UserGroupDialogTab; label: string }> =
 function invalidateUserGroupQueries(queryClient: QueryClient) {
 	return Promise.all([
 		queryClient.invalidateQueries({ queryKey: trpc.userGroup.overview.queryKey() }),
-		queryClient.invalidateQueries({ queryKey: trpc.userGroup.effectiveFeatures.queryKey() }),
+		queryClient.invalidateQueries({ queryKey: trpc.userGroup.effectiveAccess.queryKey() }),
 	]);
 }
 
@@ -425,6 +432,9 @@ function UserGroupDialog({
 	const existingGroup = group === 'new' ? null : group;
 	const [name, setName] = useState('');
 	const [featureGrants, setFeatureGrants] = useState<UserGroupFeature[]>([]);
+	const [toolCallDensityPolicy, setToolCallDensityPolicy] = useState<ToolCallDensityPolicy>(
+		DEFAULT_TOOL_CALL_DENSITY_POLICY,
+	);
 	const [formError, setFormError] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [activeTab, setActiveTab] = useState<UserGroupDialogTab>('features');
@@ -435,6 +445,7 @@ function UserGroupDialog({
 	useEffect(() => {
 		setName(existingGroup?.name ?? '');
 		setFeatureGrants(existingGroup?.featureGrants ?? []);
+		setToolCallDensityPolicy(existingGroup?.toolCallDensityPolicy ?? DEFAULT_TOOL_CALL_DENSITY_POLICY);
 		setFormError(null);
 		setConfirmDelete(false);
 		setActiveTab('features');
@@ -448,9 +459,10 @@ function UserGroupDialog({
 					groupId: existingGroup.id,
 					...(existingGroup.isDefault ? {} : { name }),
 					featureGrants,
+					toolCallDensityPolicy,
 				});
 			} else {
-				await createGroup.mutateAsync({ name, featureGrants });
+				await createGroup.mutateAsync({ name, featureGrants, toolCallDensityPolicy });
 			}
 			await invalidateUserGroupQueries(queryClient);
 			onOpenChange(false);
@@ -508,6 +520,8 @@ function UserGroupDialog({
 									<UserGroupFeatures
 										featureGrants={featureGrants}
 										onFeatureGrantsChange={setFeatureGrants}
+										toolCallDensityPolicy={toolCallDensityPolicy}
+										onToolCallDensityPolicyChange={setToolCallDensityPolicy}
 									/>
 								)}
 								{activeTab === 'context' && (
@@ -525,17 +539,27 @@ function UserGroupDialog({
 						{formError && <p className='text-sm text-destructive'>{formError}</p>}
 						<div className='flex justify-between gap-2'>
 							{existingGroup && !existingGroup.isDefault ? (
-								<Button variant='destructive' onClick={() => setConfirmDelete(true)}>
+								<Button
+									variant='destructive'
+									className='rounded-full'
+									onClick={() => setConfirmDelete(true)}
+								>
 									Delete group
 								</Button>
 							) : (
 								<span />
 							)}
 							<div className='flex gap-2'>
-								<Button variant='outline' onClick={() => onOpenChange(false)}>
+								<Button
+									variant='ghost'
+									className='rounded-full border'
+									onClick={() => onOpenChange(false)}
+								>
 									Cancel
 								</Button>
 								<Button
+									variant='primary-gradient'
+									className='rounded-full'
 									onClick={handleSave}
 									disabled={!existingGroup?.isDefault && name.trim().length === 0}
 									isLoading={createGroup.isPending || updateGroup.isPending}
@@ -575,37 +599,74 @@ function UserGroupDialog({
 function UserGroupFeatures({
 	featureGrants,
 	onFeatureGrantsChange,
+	toolCallDensityPolicy,
+	onToolCallDensityPolicyChange,
 }: {
 	featureGrants: UserGroupFeature[];
 	onFeatureGrantsChange: (featureGrants: UserGroupFeature[]) => void;
+	toolCallDensityPolicy: ToolCallDensityPolicy;
+	onToolCallDensityPolicyChange: (policy: ToolCallDensityPolicy) => void;
 }) {
 	return (
-		<div className='flex flex-col gap-3'>
-			<div>
-				<h3 className='text-sm font-medium'>Allowed features</h3>
-				<p className='text-xs text-muted-foreground'>Choose which product features this group can use.</p>
-			</div>
-			{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
-				<div key={feature.key} className='flex items-start justify-between gap-4 rounded-lg border p-3'>
-					<div>
-						<label htmlFor={`user-group-feature-${feature.key}`} className='text-sm font-medium'>
-							{feature.label}
-						</label>
-						<p className='text-xs text-muted-foreground'>{feature.description}</p>
+		<div className='flex flex-col gap-6'>
+			<div className='flex flex-col gap-3'>
+				<div>
+					<h3 className='text-sm font-medium'>Allowed features</h3>
+					<p className='text-xs text-muted-foreground'>Choose which product features this group can use.</p>
+				</div>
+				{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
+					<div key={feature.key} className='flex items-start justify-between gap-4 rounded-lg border p-3'>
+						<div>
+							<label htmlFor={`user-group-feature-${feature.key}`} className='text-sm font-medium'>
+								{feature.label}
+							</label>
+							<p className='text-xs text-muted-foreground'>{feature.description}</p>
+						</div>
+						<Switch
+							id={`user-group-feature-${feature.key}`}
+							checked={featureGrants.includes(feature.key)}
+							onCheckedChange={(checked) =>
+								onFeatureGrantsChange(
+									checked
+										? [...featureGrants, feature.key]
+										: featureGrants.filter((key) => key !== feature.key),
+								)
+							}
+						/>
 					</div>
-					<Switch
-						id={`user-group-feature-${feature.key}`}
-						checked={featureGrants.includes(feature.key)}
-						onCheckedChange={(checked) =>
-							onFeatureGrantsChange(
-								checked
-									? [...featureGrants, feature.key]
-									: featureGrants.filter((key) => key !== feature.key),
-							)
+				))}
+			</div>
+
+			<div className='flex flex-col gap-3 border-t pt-5'>
+				<div>
+					<h3 className='text-sm font-medium'>Tool call density</h3>
+					<p className='text-xs text-muted-foreground'>Set how tool calls appear for this group.</p>
+				</div>
+				<div className='flex items-center justify-between gap-4 rounded-lg border p-3'>
+					<div>
+						<p className='text-sm font-medium'>Default density</p>
+						<p className='text-xs text-muted-foreground'>Used when a member has no personal setting.</p>
+					</div>
+					<ToolCallDensitySlider
+						value={toolCallDensityPolicy.defaultDensity}
+						onValueChange={(defaultDensity) =>
+							onToolCallDensityPolicyChange({ ...toolCallDensityPolicy, defaultDensity })
 						}
 					/>
 				</div>
-			))}
+				<div className='flex items-center justify-between gap-4 rounded-lg border p-3'>
+					<label htmlFor='user-group-density-can-change' className='text-sm font-medium'>
+						Members can change this setting
+					</label>
+					<Switch
+						id='user-group-density-can-change'
+						checked={toolCallDensityPolicy.canChange}
+						onCheckedChange={(canChange) =>
+							onToolCallDensityPolicyChange({ ...toolCallDensityPolicy, canChange })
+						}
+					/>
+				</div>
+			</div>
 		</div>
 	);
 }

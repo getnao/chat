@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
 	hasFeature: vi.fn(),
+	resolveEffectiveUserGroupAccess: vi.fn(),
 	resolveEffectiveUserGroupFeatures: vi.fn(),
 }));
 
 vi.mock('../src/queries/user-group.queries', () => ({
+	resolveEffectiveUserGroupAccess: mocks.resolveEffectiveUserGroupAccess,
 	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
 }));
 vi.mock('../src/services/license.service', () => ({
@@ -15,6 +17,7 @@ vi.mock('../src/services/license.service', () => ({
 
 import {
 	assertUserGroupFeature,
+	getEffectiveUserGroupAccess,
 	getEffectiveUserGroupFeatureFlags,
 	getEffectiveUserGroupFeatures,
 	hasUserGroupFeature,
@@ -25,6 +28,13 @@ describe('user group feature access service', () => {
 		vi.clearAllMocks();
 		mocks.hasFeature.mockResolvedValue(true);
 		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
+		mocks.resolveEffectiveUserGroupAccess.mockResolvedValue({
+			features: ['story-creation'],
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
+		});
 	});
 
 	it('fails open without querying groups when user groups are unlicensed', async () => {
@@ -32,25 +42,40 @@ describe('user group feature access service', () => {
 
 		await expect(getEffectiveUserGroupFeatures('project-id', 'user-id')).resolves.toEqual([
 			'story-creation',
-			'automations',
-			'compact-mode',
+			'automation-creation',
 		]);
+		await expect(getEffectiveUserGroupAccess('project-id', 'user-id')).resolves.toEqual({
+			features: {
+				'story-creation': true,
+				'automation-creation': true,
+			},
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
+		});
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
 	});
 
 	it('returns typed flags for licensed effective grants', async () => {
 		await expect(getEffectiveUserGroupFeatureFlags('project-id', 'user-id')).resolves.toEqual({
 			'story-creation': true,
-			automations: false,
-			'compact-mode': false,
+			'automation-creation': false,
+		});
+		await expect(getEffectiveUserGroupAccess('project-id', 'user-id')).resolves.toMatchObject({
+			toolCallDensityPolicy: {
+				defaultDensity: 'compact',
+				canChange: false,
+			},
 		});
 	});
 
 	it('allows and denies licensed feature checks', async () => {
 		await expect(hasUserGroupFeature('project-id', 'user-id', 'story-creation')).resolves.toBe(true);
-		await expect(assertUserGroupFeature('project-id', 'user-id', 'automations')).rejects.toMatchObject({
+		await expect(assertUserGroupFeature('project-id', 'user-id', 'automation-creation')).rejects.toMatchObject({
 			codeMessage: 'FORBIDDEN',
-			message: 'Automations is not enabled for your user group.',
+			message: 'Automation creation is not enabled for your user group.',
 		});
 	});
 });

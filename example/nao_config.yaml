@@ -1,4 +1,5 @@
 project_name: example
+sso: true
 databases:
 - name: duckdb-jaffle-shop
   templates:

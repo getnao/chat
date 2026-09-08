@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { UIMessage, UIMessagePart } from '../src/types/chat';
 import { settleInterruptedToolParts } from '../src/utils/ai';
@@ -56,60 +56,32 @@ describe('truncateMiddle', () => {
 });
 
 describe('replaceEnvVars', () => {
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
 	it('replaces placeholders from extra env before process env', () => {
-		const previous = process.env.DBT_TOKEN;
-		process.env.DBT_TOKEN = 'from-process';
-		try {
-			expect(replaceEnvVars('${DBT_TOKEN}', { DBT_TOKEN: 'from-project' })).toBe('from-project');
-		} finally {
-			if (previous === undefined) {
-				delete process.env.DBT_TOKEN;
-			} else {
-				process.env.DBT_TOKEN = previous;
-			}
-		}
+		vi.stubEnv('DBT_TOKEN', 'from-process');
+
+		expect(replaceEnvVars('${DBT_TOKEN}', { DBT_TOKEN: 'from-project' })).toBe('from-project');
 	});
 
 	it('falls back to process env when extra env has no value', () => {
-		const previous = process.env.DBTOKEN;
-		process.env.DBTOKEN = 'from-process';
-		try {
-			expect(replaceEnvVars('${DBTOKEN}')).toBe('from-process');
-		} finally {
-			if (previous === undefined) {
-				delete process.env.DBTOKEN;
-			} else {
-				process.env.DBTOKEN = previous;
-			}
-		}
+		vi.stubEnv('DBT_TOKEN', 'from-process');
+
+		expect(replaceEnvVars('${DBT_TOKEN}')).toBe('from-process');
 	});
 
 	it('keeps the placeholder when process env contains an empty value', () => {
-		const previous = process.env.DBTOKEN;
-		process.env.DBTOKEN = '';
-		try {
-			expect(replaceEnvVars('${DBTOKEN}')).toBe('${DBTOKEN}');
-		} finally {
-			if (previous === undefined) {
-				delete process.env.DBTOKEN;
-			} else {
-				process.env.DBTOKEN = previous;
-			}
-		}
+		vi.stubEnv('DBT_TOKEN', '');
+
+		expect(replaceEnvVars('${DBT_TOKEN}')).toBe('${DBT_TOKEN}');
 	});
 
 	it('does not fall back to process env when extra env contains an empty value', () => {
-		const previous = process.env.DBT_TOKEN;
-		process.env.DBT_TOKEN = 'from-process';
-		try {
-			expect(replaceEnvVars('${DBT_TOKEN}', { DBT_TOKEN: '' })).toBe('');
-		} finally {
-			if (previous === undefined) {
-				delete process.env.DBT_TOKEN;
-			} else {
-				process.env.DBT_TOKEN = previous;
-			}
-		}
+		vi.stubEnv('DBT_TOKEN', 'from-process');
+
+		expect(replaceEnvVars('${DBT_TOKEN}', { DBT_TOKEN: '' })).toBe('');
 	});
 
 	it('keeps the placeholder when no value exists', () => {

@@ -57,8 +57,8 @@ import {
 } from './mattermost-helpers';
 import { posthog, PostHogEvent } from './posthog';
 
-/** Mattermost throttles frequent post edits and the adapter has no rate-limit backoff. */
-const UPDATE_INTERVAL_MS = 1000;
+/** 5 patches/s. Mattermost rate limiting is off by default; when on, default is 10/s. */
+const UPDATE_INTERVAL_MS = 200;
 
 type MattermostConversationContext = Omit<ConversationContext, 'blocks' | 'textBlockIndex'> & {
 	answerTextPartIndex: number;

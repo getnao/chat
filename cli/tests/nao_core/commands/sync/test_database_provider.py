@@ -160,6 +160,29 @@ class TestDatabaseSyncProvider:
         assert result.error is not None
         assert result.error.startswith("Failed to sync 1 database: redshift:")
 
+    @patch(
+        "nao_core.commands.sync.providers.databases.provider.get_database_folder_names",
+        return_value=["database=prod-red"],
+    )
+    @patch("nao_core.commands.sync.providers.databases.provider.sync_database")
+    def test_sync_escapes_database_name_markup(
+        self, mock_sync_database, _mock_get_database_folder_names, tmp_path: Path
+    ):
+        provider = DatabaseSyncProvider()
+        output = StringIO()
+        console = Console(file=output, force_terminal=False)
+
+        db = MagicMock()
+        db.name = "prod[red]"
+        db.templates = [MagicMock(value="columns")]
+        mock_sync_database.side_effect = RuntimeError("connection failed")
+
+        with patch("nao_core.commands.sync.providers.databases.provider.console", console):
+            result = provider.sync([db], tmp_path)
+            console.print(result.error)
+
+        assert "prod[red]" in output.getvalue()
+
 
 class TestMatchesSelection:
     def test_schema_only_pattern_selects_whole_schema(self):

@@ -1,9 +1,11 @@
 """Unit tests for the repository sync provider."""
 
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from rich.console import Console
 
 from nao_core.commands.sync.providers.repositories.provider import (
     RepositorySyncProvider,
@@ -128,6 +130,20 @@ class TestRepositorySyncProvider:
 
         assert result.items_synced == 2
         assert result.error == "Failed to sync 1 repository: repo2"
+
+    @patch("nao_core.commands.sync.providers.repositories.provider.sync_repo", return_value=False)
+    def test_sync_escapes_repository_name_markup(self, mock_sync, tmp_path: Path):
+        provider = RepositorySyncProvider()
+        output = StringIO()
+        console = Console(file=output, force_terminal=False)
+        repo = RepoConfig(name="my[b]db", url="https://github.com/test/repo")
+
+        with patch("nao_core.commands.sync.providers.repositories.provider.console", console):
+            result = provider.sync([repo], tmp_path)
+            console.print(result.error)
+
+        assert "my[b]db" in output.getvalue()
+        mock_sync.assert_called_once()
 
     @patch("nao_core.commands.sync.providers.repositories.provider.sync_repo", return_value=True)
     @patch("nao_core.commands.sync.providers.repositories.provider.console")

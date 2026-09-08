@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 
 from nao_core.commands.sync.cleanup import cleanup_stale_repos
 from nao_core.config import NaoConfig
@@ -26,11 +27,11 @@ def clone_or_pull_repo(repo: RepoConfig, base_path: Path) -> bool:
     try:
         # Guard against path traversal via malicious repo.name (e.g. "../other")
         if not repo_path.resolve().is_relative_to(base_path.resolve()):
-            console.print(f"  [yellow]⚠[/yellow] Invalid repo path: {repo.name}")
+            console.print(f"  [yellow]⚠[/yellow] Invalid repo path: {escape(repo.name)}")
             return False
 
         action = "Re-cloning" if repo_path.exists() else "Cloning"
-        console.print(f"  [dim]{action}[/dim] {repo.name}")
+        console.print(f"  [dim]{action}[/dim] {escape(repo.name)}")
 
         if tmp_path.exists():
             shutil.rmtree(tmp_path)
@@ -49,7 +50,7 @@ def clone_or_pull_repo(repo: RepoConfig, base_path: Path) -> bool:
         )
 
         if result.returncode != 0:
-            console.print(f"  [yellow]⚠[/yellow] Failed to clone {repo.name}: {result.stderr.strip()}")
+            console.print(f"  [yellow]⚠[/yellow] Failed to clone {escape(repo.name)}: {result.stderr.strip()}")
             shutil.rmtree(tmp_path, ignore_errors=True)
             return False
 
@@ -68,7 +69,7 @@ def clone_or_pull_repo(repo: RepoConfig, base_path: Path) -> bool:
         return True
 
     except Exception as e:
-        console.print(f"  [yellow]⚠[/yellow] Error syncing {repo.name}: {e}")
+        console.print(f"  [yellow]⚠[/yellow] Error syncing {escape(repo.name)}: {e}")
         shutil.rmtree(tmp_path, ignore_errors=True)
         return False
 
@@ -177,7 +178,7 @@ def sync_local_repo(repo: RepoConfig, base_path: Path) -> bool:
             console.print(f"  [yellow]⚠[/yellow] Local path is not a directory: {source_path}")
             return False
 
-        console.print(f"  [dim]Syncing local path[/dim] {repo.name} [dim]from[/dim] {source_path}")
+        console.print(f"  [dim]Syncing local path[/dim] {escape(repo.name)} [dim]from[/dim] {source_path}")
 
         if repo_path.exists():
             shutil.rmtree(repo_path)
@@ -212,7 +213,7 @@ def sync_local_repo(repo: RepoConfig, base_path: Path) -> bool:
         return True
 
     except Exception as e:
-        console.print(f"  [yellow]⚠[/yellow] Error syncing local path {repo.name}: {e}")
+        console.print(f"  [yellow]⚠[/yellow] Error syncing local path {escape(repo.name)}: {e}")
         return False
 
 
@@ -266,7 +267,7 @@ class RepositorySyncProvider(SyncProvider):
             for repo in items:
                 if sync_repo(repo, output_path):
                     success_count += 1
-                    console.print(f"  [green]✓[/green] {repo.name}")
+                    console.print(f"  [green]✓[/green] {escape(repo.name)}")
                 else:
                     failed_repositories.append(repo.name)
         else:
@@ -278,16 +279,16 @@ class RepositorySyncProvider(SyncProvider):
                     try:
                         if future.result():
                             success_count += 1
-                            console.print(f"  [green]✓[/green] {repo.name}")
+                            console.print(f"  [green]✓[/green] {escape(repo.name)}")
                         else:
                             failed_repositories.append(repo.name)
                     except Exception as e:
                         failed_repositories.append(repo.name)
-                        console.print(f"  [yellow]⚠[/yellow] Error syncing {repo.name}: {e}")
+                        console.print(f"  [yellow]⚠[/yellow] Error syncing {escape(repo.name)}: {e}")
 
         error = None
         if failed_repositories:
-            failed_names = ", ".join(sorted(failed_repositories))
+            failed_names = ", ".join(escape(name) for name in sorted(failed_repositories))
             repository_label = "repository" if len(failed_repositories) == 1 else "repositories"
             error = f"Failed to sync {len(failed_repositories)} {repository_label}: {failed_names}"
 

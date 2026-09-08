@@ -509,7 +509,7 @@ class DatabaseSyncProvider(SyncProvider):
 
         for db in items:
             template_names = [t.value for t in db.templates]
-            console.print(f"[dim]{db.name}:[/dim] {', '.join(template_names)}")
+            console.print(f"[dim]{escape(db.name)}:[/dim] {', '.join(template_names)}")
         if threads > 1 and len(items) > 1:
             console.print(f"[dim]Threads:[/dim] {threads}")
         if select:
@@ -547,8 +547,9 @@ class DatabaseSyncProvider(SyncProvider):
                         total_tables += state.tables_synced
                     except Exception as e:
                         error = _fmt_error(e)
-                        failures.append(f"{db.name}: {error}")
-                        console.print(f"[bold red]✗[/bold red] Failed to sync {db.name}: {error}")
+                        database_name = escape(db.name)
+                        failures.append(f"{database_name}: {error}")
+                        console.print(f"[bold red]✗[/bold red] Failed to sync {database_name}: {error}")
             else:
                 with ThreadPoolExecutor(max_workers=min(threads, len(items))) as executor:
                     futures = {
@@ -574,8 +575,9 @@ class DatabaseSyncProvider(SyncProvider):
                             total_tables += state.tables_synced
                         except Exception as e:
                             error = _fmt_error(e)
-                            failures.append(f"{db.name}: {error}")
-                            console.print(f"[bold red]✗[/bold red] Failed to sync {db.name}: {error}")
+                            database_name = escape(db.name)
+                            failures.append(f"{database_name}: {error}")
+                            console.print(f"[bold red]✗[/bold red] Failed to sync {database_name}: {error}")
 
         if not select:
             for state in sync_states:

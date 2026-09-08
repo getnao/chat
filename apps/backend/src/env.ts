@@ -10,7 +10,7 @@ dotenv.config({
 	path: path.join(process.cwd(), '..', '..', '.env'),
 });
 
-const envSchema = z.object({
+const baseEnvSchema = z.object({
 	MODE: z.enum(['dev', 'prod', 'test']).default('dev'),
 
 	DB_URI: z.string().default('sqlite:./db.sqlite'),
@@ -202,6 +202,18 @@ const envSchema = z.object({
 		.default('true')
 		.transform((val) => val === 'true'),
 
+	/**
+	 * Lifetime (in seconds) of OAuth access tokens issued to MCP clients. Access tokens are
+	 * bearer credentials, so a shorter lifetime limits how long a leaked token stays usable
+	 * (refresh tokens cover renewal). Defaults to 24h to preserve prior behavior.
+	 */
+	MCP_ACCESS_TOKEN_TTL: z.coerce.number().int().positive().default(86400),
+
+	/**
+	 * Lifetime (in seconds) of OAuth refresh tokens issued to MCP clients. Defaults to 7d.
+	 */
+	MCP_REFRESH_TOKEN_TTL: z.coerce.number().int().positive().default(604800),
+
 	POSTHOG_KEY: z.string().optional(),
 	POSTHOG_HOST: z.url({ message: 'POSTHOG_HOST must be a valid URL' }).optional(),
 	POSTHOG_DISABLED: z
@@ -259,6 +271,13 @@ const envSchema = z.object({
 		.optional()
 		.default('false')
 		.transform((val) => val === 'true'),
+});
+
+// Refresh tokens must outlive access tokens, otherwise a client can hold a valid
+// access token it can no longer renew once the refresh token has expired.
+const envSchema = baseEnvSchema.refine((e) => e.MCP_REFRESH_TOKEN_TTL > e.MCP_ACCESS_TOKEN_TTL, {
+	message: 'MCP_REFRESH_TOKEN_TTL must be greater than MCP_ACCESS_TOKEN_TTL so refresh tokens outlive access tokens',
+	path: ['MCP_REFRESH_TOKEN_TTL'],
 });
 
 const result = envSchema.safeParse(process.env);

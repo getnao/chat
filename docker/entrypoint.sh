@@ -199,5 +199,22 @@ if [ "$NAO_MODE" != "cloud" ]; then
     export NAO_DEFAULT_PROJECT_PATH
 fi
 
+# Seed demo data once the server is up (used by PR previews, where there is no
+# way to `docker exec` into the running container)
+if [ "$SEED_ON_START" = "true" ]; then
+    (
+        SERVER_URL="http://127.0.0.1:${SERVER_PORT:-5005}"
+        for _ in $(seq 1 60); do
+            if curl -sf -o /dev/null "$SERVER_URL"; then
+                echo "=== Seeding database ==="
+                su nao -s /bin/bash -c "cd /app && bun run apps/backend/scripts/db.seed.ts" || echo "⚠ Seeding failed"
+                exit 0
+            fi
+            sleep 2
+        done
+        echo "⚠ Server did not become ready in time; skipping seed"
+    ) &
+fi
+
 # Start supervisord (which manages FastAPI and Chat Server)
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/nao.conf

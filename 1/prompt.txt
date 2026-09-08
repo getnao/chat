@@ -1,0 +1,54 @@
+Give PR summary
+
+---
+
+Why this addition?
+	system: COMPACTION_SYSTEM_PROMPT,
+
+---
+
+Why'd you change `agent.ts`?
+
+---
+
+explain with snippets in detail your changes in `agent.ts`
+
+---
+
+I don't get why we added so much about cached system prompt
+
+---
+
+i don't understand...
+
+---
+
+Check if this issue is valid — if so, understand the root cause and fix it. At apps/backend/src/services/mattermost.ts, line 61:
+
+<comment>Reducing UPDATE_INTERVAL_MS from 1000 to 200 cuts the throttle headroom to ~5 patches/s, but the new comment's "5/s < 10/s default" math only counts this one message's manual throttle. The Mattermost rate-limit bucket (PerSec=10 when enabled) is shared across the server: the SDK streaming update loop fed by `streamingUpdateIntervalMs: UPDATE_INTERVAL_MS` (200ms), final/summary patches, chart/map posts, and any concurrent chats all hit the same bucket. The prior comment noted the adapter has no rate-limit backoff, so when a server has rate limiting enabled (a config Mattermost recommends for hardened setups), a burst over 10/s makes patchMattermostAnswerPost throw HTTP errors and drops/stalls streaming. Consider keeping the faster interval but adding a 429/rate-limit backoff or retry in the patch path, or exposing the server's rate-limit setting to scale the interval.</comment>
+
+<file context>
+@@ -57,8 +57,8 @@ import {
+-/** Mattermost throttles frequent post edits and the adapter has no rate-limit backoff. */
+-const UPDATE_INTERVAL_MS = 1000;
++/** 5 patches/s. Mattermost rate limiting is off by default; when on, default is 10/s. */
++const UPDATE_INTERVAL_MS = 200;
+ 
+ type MattermostConversationContext = Omit<ConversationContext, 'blocks' | 'textBlockIndex'> & {
+</file context>
+
+---
+
+I don't quite get what the problem is
+
+---
+
+so what is the problem then?
+
+---
+
+ok so we added a handling in case our mattermost bot is too sollicited at once?
+
+---
+
+draft a line to add to summary

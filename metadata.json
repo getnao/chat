@@ -3,9 +3,10 @@
   "checkpoint_id": "01M208M71D8MP6KXZHFTQE1W4M",
   "strategy": "manual-commit",
   "branch": "fix/remove-logs-lags-in-integrations",
-  "checkpoints_count": 18,
+  "checkpoints_count": 29,
   "files_touched": [
     "apps/backend/src/services/mattermost-helpers.ts",
+    "apps/backend/src/services/mattermost.ts",
     "apps/backend/tests/mattermost-messaging.test.ts"
   ],
   "sessions": [
@@ -15,6 +16,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
-  ]
+  ],
+  "token_usage": {
+    "input_tokens": 1403,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 799744,
+    "output_tokens": 535,
+    "api_call_count": 4
+  }
 }

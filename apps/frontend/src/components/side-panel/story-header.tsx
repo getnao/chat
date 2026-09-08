@@ -4,6 +4,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Code,
+	Copy,
 	Ellipsis,
 	Eye,
 	Globe,
@@ -26,6 +27,7 @@ import type { StoryRefreshFailure } from '@/components/story-page-header';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useToggleFavorite } from '@/hooks/use-toggle-favorite';
 import { StoryDownload } from '@/components/story-download';
+import { useStoryCopy } from '@/hooks/use-story-copy';
 import { EditableStoryTitle } from '@/components/editable-story-title';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/main';
@@ -137,6 +139,14 @@ export const StoryHeader = memo(function StoryHeader({
 	const { data: persistedStories = [] } = useQuery({
 		...trpc.story.listStories.queryOptions({ chatId }),
 		enabled: !isReadonlyMode,
+	});
+	const { canCopy, copyStory, isCopying } = useStoryCopy({
+		chatId,
+		storySlug,
+		shareId: shareId ?? undefined,
+		shareType: shareType ?? undefined,
+		isOwner: !isReadonlyMode,
+		versionNumber,
 	});
 	const stories = useMemo(() => mergeStorySummaries(allStories, persistedStories), [allStories, persistedStories]);
 	const otherStories = useMemo(() => stories.filter((story) => story.id !== storySlug), [stories, storySlug]);
@@ -340,6 +350,15 @@ export const StoryHeader = memo(function StoryHeader({
 					{isShared ? <Globe className='text-primary' strokeWidth={2.25} /> : <Upload strokeWidth={2.25} />}
 					<span>Share</span>
 				</DropdownMenuItem>
+				{canCopy && (
+					<DropdownMenuItem
+						onSelect={() => void copyStory()}
+						disabled={isAgentRunning || isSaving || isCopying}
+					>
+						<Copy strokeWidth={2.25} />
+						<span>Copy</span>
+					</DropdownMenuItem>
+				)}
 				<DropdownMenuItem onSelect={onOpenAnalytics}>
 					<ScanText className='size-3' />
 					<span>Analytics</span>

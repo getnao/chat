@@ -4,6 +4,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Code,
+	Copy,
 	Ellipsis,
 	Eye,
 	Globe,
@@ -23,6 +24,7 @@ import type { StoryViewMode } from '@/components/side-panel/story-viewer.types';
 import { EditableStoryTitle } from '@/components/editable-story-title';
 import { useTimeAgo } from '@/hooks/use-time-ago';
 import { StoryDownload } from '@/components/story-download';
+import { useStoryCopy } from '@/hooks/use-story-copy';
 import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
@@ -114,6 +116,7 @@ export function StoryPageHeader({
 	viewModeControls,
 	versionControls,
 }: StoryPageHeaderProps) {
+	const { canCopy, copyStory, isCopying } = useStoryCopy(download ?? {});
 	return (
 		<div className='shrink-0'>
 			<header className='flex items-center gap-2 border-b bg-background px-4 py-2.5 md:px-6'>
@@ -156,7 +159,7 @@ export function StoryPageHeader({
 
 						{storyId && <FavoriteButton storyId={storyId} />}
 
-						{(onShare || onOpenAnalytics) && (
+						{(onShare || canCopy || onOpenAnalytics) && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
@@ -179,6 +182,13 @@ export function StoryPageHeader({
 											<span>Share</span>
 										</DropdownMenuItem>
 									)}
+									{canCopy && (
+										<DropdownMenuItem onSelect={() => void copyStory()} disabled={isCopying}>
+											<Copy strokeWidth={2.25} />
+											<span>Copy</span>
+										</DropdownMenuItem>
+									)}
+
 									{onOpenAnalytics && (
 										<DropdownMenuItem onSelect={onOpenAnalytics}>
 											<ScanText className='size-3' />

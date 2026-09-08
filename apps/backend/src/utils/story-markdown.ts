@@ -1,10 +1,10 @@
 import type { DateFormatSettings } from '@nao/shared/date';
-import type { QueryDataMap, StoryInput } from './story-download';
-
-import { type Segment, type ParsedTableBlock, splitCodeIntoSegments } from '@nao/shared/story-segments';
-import { getBrowser } from './headless-browser';
+import { type ParsedTableBlock, type Segment, splitCodeIntoSegments } from '@nao/shared/story-segments';
 import { formatCellValue, formatColumnLabel } from '@nao/shared/story-table-utils';
 import { flattenStoryTabs } from '@nao/shared/story-tabs';
+
+import { getBrowser } from './headless-browser';
+import type { QueryDataMap, StoryInput } from './story-download';
 import { generateStoryHtml } from './story-html';
 
 const A4_PRINTABLE_WIDTH_PX = 714;

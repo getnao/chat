@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { UIMessage, UIMessagePart } from '../src/types/chat';
 import { settleInterruptedToolParts } from '../src/utils/ai';
-import { buildUsernameAllowlist, formatErrorMessageForUI, truncateMiddle, replaceEnvVars } from '../src/utils/utils';
+import { buildUsernameAllowlist, formatErrorMessageForUI, replaceEnvVars, truncateMiddle } from '../src/utils/utils';
 
 describe('buildUsernameAllowlist', () => {
 	it('returns an empty set when unset', () => {

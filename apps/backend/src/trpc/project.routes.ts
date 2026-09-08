@@ -25,8 +25,8 @@ import * as projectWhatsappLinkQueries from '../queries/project-whatsapp-link.qu
 import * as userQueries from '../queries/user.queries';
 import { cleanupContextWorktree } from '../services/context-explorer-git.service';
 import { mattermostService } from '../services/mattermost';
-import { mcpService } from '../services/mcp';
 import { MattermostConnectionError, validateMattermostConnection } from '../services/mattermost-helpers';
+import { mcpService } from '../services/mcp';
 import { posthog, PostHogEvent } from '../services/posthog';
 import { slackService } from '../services/slack';
 import { listAvailableTranscribeModels as getAvailableTranscribeModels } from '../services/transcribe.service';

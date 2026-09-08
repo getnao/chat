@@ -34,13 +34,13 @@ export const USER_GROUP_FEATURE_DEFINITIONS: ReadonlyArray<{
 }> = [
 	{
 		key: 'story-creation',
-		label: 'Create stories',
-		description: 'Create new Stories with the agent or Story mode.',
+		label: 'Stories',
+		description: 'Allow the user to create new stories',
 	},
 	{
 		key: 'automation-creation',
-		label: 'Create automations',
-		description: 'Create new Automations.',
+		label: 'Automations',
+		description: 'Allow the user to create new automations',
 	},
 ];
 

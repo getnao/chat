@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 
 import { ToolCallDensitySlider } from '@/components/settings/tool-call-density-slider';
 import { UpgradeToEnterprise } from '@/components/settings/upgrade-to-enterprise';
+import { UserGroupFeatureCard } from '@/components/settings/user-group-feature-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
@@ -595,22 +596,22 @@ function UserGroupFeatures({
 					<h3 className='text-sm font-medium'>Allowed features</h3>
 					<p className='text-xs text-muted-foreground'>Choose which product features this group can use.</p>
 				</div>
-				{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
-					<UserGroupSwitchRow
-						key={feature.key}
-						id={`user-group-feature-${feature.key}`}
-						label={feature.label}
-						description={feature.description}
-						checked={featureGrants.includes(feature.key)}
-						onCheckedChange={(checked) =>
-							onFeatureGrantsChange(
-								checked
-									? [...featureGrants, feature.key]
-									: featureGrants.filter((key) => key !== feature.key),
-							)
-						}
-					/>
-				))}
+				<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+					{USER_GROUP_FEATURE_DEFINITIONS.map((feature) => (
+						<UserGroupFeatureCard
+							key={feature.key}
+							feature={feature}
+							selected={featureGrants.includes(feature.key)}
+							onSelectedChange={(selected) =>
+								onFeatureGrantsChange(
+									selected
+										? [...featureGrants, feature.key]
+										: featureGrants.filter((key) => key !== feature.key),
+								)
+							}
+						/>
+					))}
+				</div>
 			</div>
 
 			<div className='flex flex-col gap-3 border-t pt-5'>
@@ -623,8 +624,8 @@ function UserGroupFeatures({
 						<p className='text-sm font-medium'>Default density</p>
 						<p className='text-xs text-muted-foreground'>
 							{toolCallDensityPolicy.canChange
-								? 'Used when a member has no personal setting.'
-								: 'Applied to members.'}
+								? 'Members start with this setting.'
+								: 'Members always use this setting.'}
 						</p>
 					</div>
 					<ToolCallDensitySlider

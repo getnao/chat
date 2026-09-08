@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M20S31ZZ1XZN4YS0PR8NAT3Y",
+  "strategy": "manual-commit",
+  "branch": "feat/user-group-context-permissions-1496",
+  "checkpoints_count": 24,
+  "files_touched": [
+    "apps/frontend/src/components/settings-search-index.ts",
+    "apps/frontend/src/components/settings/file-explorer-icon.tsx",
+    "apps/frontend/src/components/settings/file-tree.tsx",
+    "apps/frontend/src/components/settings/user-group-context-access.test.tsx",
+    "apps/frontend/src/components/settings/user-group-context-access.tsx",
+    "apps/frontend/src/components/settings/user-groups-table.tsx",
+    "apps/frontend/src/routeTree.gen.ts",
+    "apps/frontend/src/routes/_sidebar-layout.settings.project.user-groups.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 162,
+    "cache_creation_tokens": 229143,
+    "cache_read_tokens": 6934518,
+    "output_tokens": 32146,
+    "api_call_count": 21
+  }
+}

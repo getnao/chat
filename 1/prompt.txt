@@ -1,0 +1,32 @@
+Supposed to make a promotional demo vid of our mattermost integration
+However, as I speak to it, it's slowed and my logs keep spamming:
+[dev:backend ]     responseTime: 47.20966599999883
+[dev:backend ] AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[dev:backend ] AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[dev:backend ] [INFO] [system] Slack socket mode started for project 247951ec-d669-41d9-b420-4a592e8788c5
+[dev:backend ] AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[dev:backend ] AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+
+---
+
+so this would happen only on mattermost?
+
+---
+
+right so is the problem the warning or just mattermost's refresh speed?
+
+---
+
+ok so can we remove both? what would that take?
+
+---
+
+yeah do that, but investigate to be sure it's judicious first
+
+---
+
+so the fact that mattermost is slower hence lags, that has nothing to do with the useless logs ?
+
+---
+
+ok so you fixed both?

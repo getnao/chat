@@ -3,10 +3,14 @@
   "checkpoint_id": "01M207GGXHWCJEKH474QH2P9ZZ",
   "strategy": "manual-commit",
   "branch": "fix/remove-logs-lags-in-integrations",
-  "checkpoints_count": 18,
+  "checkpoints_count": 25,
   "files_touched": [
+    "apps/backend/src/agents/compaction/compaction-llm.ts",
+    "apps/backend/src/agents/memory/memory-extractor-llm.ts",
+    "apps/backend/src/services/agent.ts",
     "apps/backend/src/services/mattermost.ts",
     "apps/backend/src/utils/prompt-cache.ts",
+    "apps/backend/tests/compaction-llm.test.ts",
     "apps/backend/tests/prompt-cache.test.ts"
   ],
   "sessions": [
@@ -16,6 +20,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
-  ]
+  ],
+  "token_usage": {
+    "input_tokens": 107633,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 128256,
+    "output_tokens": 114,
+    "api_call_count": 2
+  }
 }

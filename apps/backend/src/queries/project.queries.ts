@@ -18,6 +18,12 @@ export interface UserProjectWithRole {
 	userRole: UserRole;
 }
 
+export type ProjectAccessSource = 'project' | 'organization' | 'both';
+
+export interface UserWithProjectAccessDetails extends UserWithRole {
+	source: ProjectAccessSource;
+}
+
 export const getProjectByPath = async (path: string): Promise<DBProject | null> => {
 	const [project] = await db.select().from(s.project).where(eq(s.project.path, path)).execute();
 	return project ?? null;
@@ -170,6 +176,30 @@ export const listUsersWithProjectAccess = async (projectId: string): Promise<Use
 			email: s.user.email,
 			role: sql<UserRole>`coalesce(${s.projectMember.role}, ${s.orgMember.role})`,
 			status: userMemberStatus,
+		})
+		.from(s.user)
+		.leftJoin(s.projectMember, and(eq(s.projectMember.userId, s.user.id), eq(s.projectMember.projectId, projectId)))
+		.leftJoin(s.orgMember, and(eq(s.orgMember.userId, s.user.id), eq(s.orgMember.orgId, project?.orgId ?? '')))
+		.where(or(isNotNull(s.projectMember.userId), isNotNull(s.orgMember.userId)))
+		.execute();
+
+	return results;
+};
+
+export const listUsersWithProjectAccessDetails = async (projectId: string): Promise<UserWithProjectAccessDetails[]> => {
+	const project = await getProjectById(projectId);
+	const results = await db
+		.select({
+			id: s.user.id,
+			name: s.user.name,
+			email: s.user.email,
+			role: sql<UserRole>`coalesce(${s.projectMember.role}, ${s.orgMember.role})`,
+			status: userMemberStatus,
+			source: sql<ProjectAccessSource>`case
+				when ${s.projectMember.userId} is not null and ${s.orgMember.userId} is not null then 'both'
+				when ${s.projectMember.userId} is not null then 'project'
+				else 'organization'
+			end`,
 		})
 		.from(s.user)
 		.leftJoin(s.projectMember, and(eq(s.projectMember.userId, s.user.id), eq(s.projectMember.projectId, projectId)))

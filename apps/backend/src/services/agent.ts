@@ -79,6 +79,7 @@ import { getAzureAccessTokenForUser } from './microsoft-auth.service';
 import { skillService } from './skill';
 import { canGrepUserFiles } from './storage/user-files';
 import { getStoryTemplateWarnings } from './story-template-validation';
+import { getEffectiveUserGroupFeatureFlags } from './user-group-feature-access.service';
 
 export interface AgentRunResult {
 	text: string;
@@ -118,6 +119,42 @@ export interface AgentToolsContext {
 
 /** Builds the tool set a run should expose. Callers pass one to `create` to customise tools. */
 export type AgentToolsResolver = (context: AgentToolsContext) => AgentTools | Promise<AgentTools>;
+
+export function filterAgentToolsByUserGroupFeatures(agentTools: AgentTools, storyCreationEnabled: boolean): AgentTools {
+	if (storyCreationEnabled) {
+		return agentTools;
+	}
+	return Object.fromEntries(Object.entries(agentTools).filter(([name]) => name !== 'story')) as AgentTools;
+}
+
+export function appendUserGroupRestrictions(
+	systemPrompt: string,
+	restrictions: { storyCreation: boolean; automationCreation: boolean },
+): string {
+	const messages: string[] = [];
+	if (restrictions.storyCreation) {
+		messages.push(
+			'Story creation through the agent is unavailable for this user in this project. Do not attempt or offer to create or modify a Story, and do not suggest Story mode. The user can still view and manage existing Stories in the app. If asked, explain that their group does not grant Story creation.',
+		);
+	}
+	if (restrictions.automationCreation) {
+		messages.push(
+			'Automation creation is unavailable for this user in this project. Do not attempt, offer, or suggest creating an Automation. The user can still view and manage existing Automations in the app. If asked, explain that their group does not grant Automation creation.',
+		);
+	}
+	if (messages.length === 0) {
+		return systemPrompt;
+	}
+	return `${systemPrompt}\n\n## User group permissions\n\n${messages.join('\n\n')}`;
+}
+
+export function isStoryCreationRestricted(agentTools: AgentTools, storyCreationEnabled: boolean): boolean {
+	return 'story' in agentTools && !storyCreationEnabled;
+}
+
+export function shouldAddStoryMode(mentions: Mention[] | undefined, storyCreationEnabled: boolean): boolean {
+	return storyCreationEnabled && Boolean(mentions?.some((mention) => mention.id === story.MENTION_ID));
+}
 
 /** Default tool set for interactive runs: all built-ins, MCP tools and web search. */
 export const defaultAgentTools: AgentToolsResolver = ({ chat, agentSettings, webTools, customBoundaries }) =>
@@ -271,7 +308,11 @@ export class AgentService {
 		);
 		const webTools = await this._resolveWebTools(chat.projectId, resolvedLlmSelectedModel.provider, agentSettings);
 		const resolveTools = options.tools ?? defaultAgentTools;
-		const agentTools = await resolveTools({ chat, agentSettings, toolContext, webTools, customBoundaries });
+		const resolvedTools = await resolveTools({ chat, agentSettings, toolContext, webTools, customBoundaries });
+		const featureFlags = await getEffectiveUserGroupFeatureFlags(chat.projectId, chat.userId);
+		const storyCreationEnabled = featureFlags['story-creation'];
+		const storyCreationRestricted = isStoryCreationRestricted(resolvedTools, storyCreationEnabled);
+		const agentTools = filterAgentToolsByUserGroupFeatures(resolvedTools, storyCreationEnabled);
 		const stopWhen: StopCondition<AgentTools>[] = options.excludeFollowUps
 			? [stepCountIs(options.maxSteps ?? 20)]
 			: chat.testMode
@@ -287,6 +328,11 @@ export class AgentService {
 			toolContext,
 			stopWhen,
 			options.systemPrompt,
+			storyCreationEnabled,
+			{
+				storyCreation: storyCreationRestricted,
+				automationCreation: !featureFlags['automation-creation'],
+			},
 		);
 		this._agents.set(chat.id, agent);
 		return agent;
@@ -376,6 +422,8 @@ class AgentManager {
 		private readonly _toolContext: ToolContext,
 		stopWhen: StopCondition<AgentTools>[] = [hasToolCall('suggest_follow_ups'), hasToolCall('clarification')],
 		private readonly _systemPromptOverride?: string,
+		private readonly _storyCreationEnabled = true,
+		private readonly _userGroupRestrictions = { storyCreation: false, automationCreation: false },
 	) {
 		this._finished = new Promise((resolve) => {
 			this._resolveFinished = resolve;
@@ -570,7 +618,9 @@ class AgentManager {
 		const uiMessagesWithCompaction = compactionService.useLastCompaction(uiMessagesWithDbContext);
 		const uiMessagesWithResolvedAttachments = await resolveAttachments(uiMessagesWithCompaction);
 
-		const systemPrompt = this._systemPromptOverride ?? (await this._buildSystemPrompt(provider, timezone, chatUrl));
+		const selectedSystemPrompt =
+			this._systemPromptOverride ?? (await this._buildSystemPrompt(provider, timezone, chatUrl));
+		const systemPrompt = appendUserGroupRestrictions(selectedSystemPrompt, this._userGroupRestrictions);
 
 		const systemMessage: Omit<UIMessage, 'id'> = {
 			role: 'system',
@@ -900,7 +950,7 @@ class AgentManager {
 	}
 
 	private _addStoryMode(messages: UIMessage[], mentions?: Mention[]): UIMessage[] {
-		if (!mentions?.some((m) => m.id === story.MENTION_ID)) {
+		if (!shouldAddStoryMode(mentions, this._storyCreationEnabled)) {
 			return messages;
 		}
 

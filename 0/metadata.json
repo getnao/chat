@@ -1,0 +1,124 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M20GPR6DN5WKM3Z3N4V0H24C",
+  "session_id": "341ad488-0d10-4e34-a75d-8a55a7b31324",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-08T12:43:23.080773Z",
+  "branch": "feat/add-user-groups-1496",
+  "checkpoints_count": 11,
+  "save_step_count": 4,
+  "files_touched": [
+    "apps/frontend/src/components/settings/user-group-feature-card.test.tsx",
+    "apps/frontend/src/components/settings/user-group-feature-card.tsx",
+    "apps/frontend/src/components/settings/user-groups-table.tsx",
+    "apps/shared/src/user-group-features.ts"
+  ],
+  "agent": "Cursor",
+  "model": "gpt-5.6-sol-high",
+  "turn_id": "bdc3de78e909",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 18,
+    "cache_creation_tokens": 58207,
+    "cache_read_tokens": 361733,
+    "output_tokens": 1578,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 93,
+    "context_tokens": 259077,
+    "context_window_size": 272000
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-08T12:43:22.572551Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1274,
+    "human_modified": 8,
+    "human_removed": 0,
+    "total_committed": 1274,
+    "total_lines_changed": 1282,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 3802,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 683,
+      "user_added_per_file": {
+        ".pr-review/architecture.md": 47,
+        ".pr-review/dep-graph-backend.dot": 183,
+        ".pr-review/dep-graph-backend.svg": 806,
+        ".pr-review/dep-graph-frontend.dot": 52,
+        ".pr-review/dep-graph-frontend.svg": 123,
+        ".pr-review/dep-graph.dot": 214,
+        ".pr-review/dep-graph.svg": 899,
+        ".pr-review/review-order.md": 85,
+        "apps/frontend/src/components/settings/user-group-feature-card.test.tsx": 60,
+        "apps/frontend/src/components/settings/user-group-feature-card.tsx": 98,
+        "apps/frontend/src/components/settings/user-groups-table.tsx": 684,
+        "nao-prod/.naoignore": 3,
+        "nao-prod/RULES.md": 3,
+        "nao-prod/credentials.json": 13,
+        "nao-prod/nao_config.yaml": 31,
+        "scripts/pr-dep-graph.mjs": 501
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 3234,
+      "user_lines_removed": 0,
+      "agent_lines_added": 17,
+      "agent_lines_removed": 132,
+      "user_added_per_file": {
+        ".pr-review/architecture.md": 47,
+        ".pr-review/dep-graph-backend.dot": 183,
+        ".pr-review/dep-graph-backend.svg": 806,
+        ".pr-review/dep-graph-frontend.dot": 52,
+        ".pr-review/dep-graph-frontend.svg": 123,
+        ".pr-review/dep-graph.dot": 214,
+        ".pr-review/dep-graph.svg": 899,
+        ".pr-review/review-order.md": 85,
+        "apps/frontend/src/components/settings/user-group-feature-card.test.tsx": 60,
+        "apps/frontend/src/components/settings/user-group-feature-card.tsx": 98,
+        "apps/shared/src/user-group-features.ts": 116,
+        "nao-prod/.naoignore": 3,
+        "nao-prod/RULES.md": 3,
+        "nao-prod/credentials.json": 13,
+        "nao-prod/nao_config.yaml": 31,
+        "scripts/pr-dep-graph.mjs": 501
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 3123,
+      "user_lines_removed": 5,
+      "agent_lines_added": 21,
+      "agent_lines_removed": 20,
+      "user_added_per_file": {
+        ".pr-review/architecture.md": 47,
+        ".pr-review/dep-graph-backend.dot": 183,
+        ".pr-review/dep-graph-backend.svg": 806,
+        ".pr-review/dep-graph-frontend.dot": 52,
+        ".pr-review/dep-graph-frontend.svg": 123,
+        ".pr-review/dep-graph.dot": 214,
+        ".pr-review/dep-graph.svg": 899,
+        ".pr-review/review-order.md": 85,
+        "apps/frontend/src/components/settings/user-group-feature-card.test.tsx": 60,
+        "apps/frontend/src/components/settings/user-group-feature-card.tsx": 98,
+        "apps/frontend/src/components/settings/user-groups-table.tsx": 5,
+        "nao-prod/.naoignore": 3,
+        "nao-prod/RULES.md": 3,
+        "nao-prod/credentials.json": 13,
+        "nao-prod/nao_config.yaml": 31,
+        "scripts/pr-dep-graph.mjs": 501
+      },
+      "user_removed_per_file": {
+        "apps/frontend/src/components/settings/user-groups-table.tsx": 5
+      }
+    }
+  ]
+}

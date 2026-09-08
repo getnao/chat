@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M20GPR6DN5WKM3Z3N4V0H24C",
+  "strategy": "manual-commit",
+  "branch": "feat/add-user-groups-1496",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "apps/frontend/src/components/settings/user-group-feature-card.test.tsx",
+    "apps/frontend/src/components/settings/user-group-feature-card.tsx",
+    "apps/frontend/src/components/settings/user-groups-table.tsx",
+    "apps/shared/src/user-group-features.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 18,
+    "cache_creation_tokens": 58207,
+    "cache_read_tokens": 361733,
+    "output_tokens": 1578,
+    "api_call_count": 3
+  }
+}

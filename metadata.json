@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M20XW23ZTGJ83RDWNZK8GGY9",
+  "strategy": "manual-commit",
+  "branch": "feat/user-group-context-permissions-1496",
+  "checkpoints_count": 20,
+  "files_touched": [
+    "apps/backend/src/agents/tools/execute-python.ts",
+    "apps/backend/src/agents/tools/execute-sandboxed-code.ts",
+    "apps/backend/src/agents/tools/grep.ts",
+    "apps/backend/src/agents/tools/list.ts",
+    "apps/backend/src/agents/tools/read.ts",
+    "apps/backend/src/agents/tools/search.ts",
+    "apps/backend/src/db/pg-schema.ts",
+    "apps/backend/src/db/sqlite-schema.ts",
+    "apps/backend/src/queries/user-group.queries.ts",
+    "apps/backend/src/routes/test.ts",
+    "apps/backend/src/services/agent.ts",
+    "apps/backend/src/services/context-access.ts",
+    "apps/backend/src/services/test-agent.service.ts",
+    "apps/backend/src/services/user-group-context-access.service.ts",
+    "apps/backend/src/services/user-group-feature-access.service.ts",
+    "apps/backend/src/services/warehouse-sql.service.ts",
+    "apps/backend/src/trpc/user-group.routes.ts",
+    "apps/backend/src/types/tools.ts",
+    "apps/backend/tests/execute-sql-license.test.ts",
+    "apps/backend/tests/live-story.test.ts",
+    "apps/backend/tests/storage-tools.test.ts",
+    "apps/backend/tests/user-group-context-access.service.test.ts",
+    "apps/backend/tests/user-group-feature-access.service.test.ts",
+    "apps/backend/tests/user-group.queries.test.ts",
+    "apps/backend/tests/user-group.routes.test.ts",
+    "apps/backend/tests/user-rules.test.ts",
+    "apps/frontend/src/components/settings-search-index.ts",
+    "apps/frontend/src/components/settings/user-group-context-access.test.tsx",
+    "apps/frontend/src/components/settings/user-group-context-access.tsx",
+    "apps/frontend/src/components/settings/user-group-editor.tsx",
+    "apps/frontend/src/components/settings/user-groups-table.test.tsx",
+    "apps/frontend/src/components/settings/user-groups-table.tsx",
+    "apps/shared/src/user-group-context.test.ts",
+    "apps/shared/src/user-group-context.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 75,
+    "cache_creation_tokens": 28477,
+    "cache_read_tokens": 3952929,
+    "output_tokens": 11417,
+    "api_call_count": 15
+  }
+}

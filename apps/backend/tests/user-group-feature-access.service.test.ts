@@ -30,6 +30,7 @@ describe('user group feature access service', () => {
 		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
 		mocks.resolveEffectiveUserGroupAccess.mockResolvedValue({
 			features: ['story-creation'],
+			databaseAccess: { mode: 'restricted', grants: [] },
 			toolCallDensityPolicy: {
 				defaultDensity: 'compact',
 				canChange: false,
@@ -53,6 +54,7 @@ describe('user group feature access service', () => {
 				defaultDensity: 'detailed',
 				canChange: true,
 			},
+			databaseAccess: { mode: 'all' },
 		});
 		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
@@ -64,6 +66,7 @@ describe('user group feature access service', () => {
 			'automation-creation': false,
 		});
 		await expect(getEffectiveUserGroupAccess('project-id', 'user-id')).resolves.toMatchObject({
+			databaseAccess: { mode: 'restricted', grants: [] },
 			toolCallDensityPolicy: {
 				defaultDensity: 'compact',
 				canChange: false,

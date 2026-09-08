@@ -14,7 +14,7 @@ class FakeMcpServer {
 	}
 }
 
-function createContext(storyCreationEnabled: boolean) {
+function createContext(storyCreationEnabled: boolean, chartDataMode = false) {
 	return {
 		userId: 'user-id',
 		projectId: 'project-id',
@@ -22,7 +22,7 @@ function createContext(storyCreationEnabled: boolean) {
 			contextLayerModeEnabled: true,
 			subAgentModeEnabled: true,
 		},
-		chartDataMode: false,
+		chartDataMode,
 		storyCreationEnabled,
 	} as never;
 }
@@ -55,7 +55,28 @@ describe('MCP Story creation permission', () => {
 		registerSubAgentTools(server as never, createContext(false));
 
 		const description = server.tools.get('ask_nao')?.description;
-		expect(description).toContain('Story creation and modification are unavailable');
-		expect(description).not.toContain('wants a story created');
+		expect(description).toContain('Story creation is unavailable');
+		expect(description).toContain('inner `ask_nao` agent');
+		expect(description).toContain('`update_story`');
+		expect(description).not.toContain('modification are unavailable');
+		expect(description).not.toContain('wants a Story created');
+	});
+
+	it('advertises Story creation through ask_nao when allowed', () => {
+		const server = new FakeMcpServer();
+
+		registerSubAgentTools(server as never, createContext(true));
+
+		const description = server.tools.get('ask_nao')?.description;
+		expect(description).toContain('create Stories');
+		expect(description).toContain('wants a Story created');
+	});
+
+	it('keeps chart data mode guidance when Story creation is denied', () => {
+		const server = new FakeMcpServer();
+
+		registerSubAgentTools(server as never, createContext(false, true));
+
+		expect(server.tools.get('ask_nao')?.description).toContain('CHARTS:');
 	});
 });

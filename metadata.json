@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M20HF8ME648BE98N7D3TX13Z",
+  "strategy": "manual-commit",
+  "branch": "feat/user-group-context-permissions-1496",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "apps/frontend/src/components/settings/user-groups-table.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 5216,
+    "cache_read_tokens": 247461,
+    "output_tokens": 1743,
+    "api_call_count": 1
+  }
+}

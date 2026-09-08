@@ -3,8 +3,8 @@ import type {
 	MapSettings,
 	McpChartEmbedStoredConfig,
 	McpMapEmbedStoredConfig,
-	StoredDatabaseContextAccess,
 	StoredUserGroupConfig,
+	StoredUserGroupContextAccess,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
 import type {
@@ -434,7 +434,7 @@ export const userGroup = pgTable(
 		name: text('name').notNull(),
 		isDefault: boolean('is_default').default(false).notNull(),
 		featureGrants: jsonb('feature_grants').$type<StoredUserGroupConfig>().notNull().default([]),
-		contextGrants: jsonb('context_grants').$type<StoredDatabaseContextAccess>(),
+		contextGrants: jsonb('context_grants').$type<StoredUserGroupContextAccess>(),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.defaultNow()

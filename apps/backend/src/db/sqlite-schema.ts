@@ -3,8 +3,8 @@ import type {
 	MapSettings,
 	McpChartEmbedStoredConfig,
 	McpMapEmbedStoredConfig,
-	StoredDatabaseContextAccess,
 	StoredUserGroupConfig,
+	StoredUserGroupContextAccess,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
 import type {
@@ -458,7 +458,7 @@ export const userGroup = sqliteTable(
 		name: text('name').notNull(),
 		isDefault: integer('is_default', { mode: 'boolean' }).default(false).notNull(),
 		featureGrants: text('feature_grants', { mode: 'json' }).$type<StoredUserGroupConfig>().notNull().default([]),
-		contextGrants: text('context_grants', { mode: 'json' }).$type<StoredDatabaseContextAccess>(),
+		contextGrants: text('context_grants', { mode: 'json' }).$type<StoredUserGroupContextAccess>(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 			.notNull(),

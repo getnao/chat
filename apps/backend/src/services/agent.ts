@@ -79,8 +79,8 @@ import { getAzureAccessTokenForUser } from './microsoft-auth.service';
 import { skillService } from './skill';
 import { canGrepUserFiles } from './storage/user-files';
 import { getStoryTemplateWarnings } from './story-template-validation';
-import { resolveWarehouseTableAccess } from './user-group-context-access.service';
-import { getEffectiveUserGroupFeatureFlags } from './user-group-feature-access.service';
+import { resolveProjectContextAccess } from './user-group-context-access.service';
+import { createUserGroupFeatureFlags } from './user-group-feature-access.service';
 
 export interface AgentRunResult {
 	text: string;
@@ -222,10 +222,10 @@ async function _buildContextBase(opts: {
 	}
 	const agentSettings =
 		opts.agentSettings !== undefined ? opts.agentSettings : await projectQueries.getAgentSettings(opts.projectId);
-	const [envVars, azureAccessToken, warehouseTableAccess] = await Promise.all([
+	const [envVars, azureAccessToken, contextAccess] = await Promise.all([
 		projectQueries.getEnvVars(opts.projectId),
 		hasFeature(LICENSE_FEATURES.sso).then((has) => (has ? getAzureAccessTokenForUser(opts.userId) : null)),
-		resolveWarehouseTableAccess(opts.projectId, opts.userId, project.path),
+		resolveProjectContextAccess(opts.projectId, opts.userId, project.path),
 	]);
 	return {
 		projectFolder: project.path,
@@ -234,7 +234,9 @@ async function _buildContextBase(opts: {
 		supportsCustomCharts: opts.supportsCustomCharts !== false,
 		agentSettings,
 		envVars,
-		warehouseTableAccess,
+		warehouseTableAccess: contextAccess.warehouseTableAccess,
+		docsContextAccess: contextAccess.docsContextAccess,
+		userGroupFeatures: contextAccess.userGroupFeatures,
 		azureAccessToken,
 		queryResults: new Map(),
 		generatedArtifacts: { charts: [], maps: [], stories: [] },
@@ -312,7 +314,7 @@ export class AgentService {
 		const webTools = await this._resolveWebTools(chat.projectId, resolvedLlmSelectedModel.provider, agentSettings);
 		const resolveTools = options.tools ?? defaultAgentTools;
 		const resolvedTools = await resolveTools({ chat, agentSettings, toolContext, webTools, customBoundaries });
-		const featureFlags = await getEffectiveUserGroupFeatureFlags(chat.projectId, chat.userId);
+		const featureFlags = createUserGroupFeatureFlags(toolContext.userGroupFeatures);
 		const storyCreationEnabled = featureFlags['story-creation'];
 		const storyCreationRestricted = isStoryCreationRestricted(resolvedTools, storyCreationEnabled);
 		const agentTools = filterAgentToolsByUserGroupFeatures(resolvedTools, storyCreationEnabled);

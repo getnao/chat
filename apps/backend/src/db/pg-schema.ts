@@ -5,13 +5,7 @@ import type {
 	McpMapEmbedStoredConfig,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
-import type {
-	AnalyticsEventMetadata,
-	CitationData,
-	LlmProvider,
-	RepoProvider,
-	UserPreferences,
-} from '@nao/shared/types';
+import type { AnalyticsEventMetadata, CitationData, LlmProvider, RepoProvider } from '@nao/shared/types';
 import {
 	ANALYTICS_ASSET_TYPES,
 	ANALYTICS_EVENT_TYPES,
@@ -67,7 +61,7 @@ import {
 	WhatsappSettings,
 } from '../types/messaging-provider';
 import { ORG_ROLES } from '../types/organization';
-import type { UserProjectPreferences } from '../types/usage';
+import type { StoredUserPreferences } from '../types/usage';
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -91,7 +85,7 @@ export const userPreference = pgTable('user_preference', {
 	userId: text('user_id')
 		.primaryKey()
 		.references(() => user.id, { onDelete: 'cascade' }),
-	preferences: jsonb('preferences').$type<UserPreferences>().notNull().default({}),
+	preferences: jsonb('preferences').$type<StoredUserPreferences>().notNull().default({}),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at')
 		.defaultNow()
@@ -404,28 +398,6 @@ export const messageFeedback = pgTable('message_feedback', {
 		.$onUpdate(() => new Date())
 		.notNull(),
 });
-
-export const userProjectPreference = pgTable(
-	'user_project_preference',
-	{
-		userId: text('user_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
-		projectId: text('project_id')
-			.notNull()
-			.references(() => project.id, { onDelete: 'cascade' }),
-		preferences: jsonb('preferences').$type<UserProjectPreferences>().notNull().default({}),
-		createdAt: timestamp('created_at').defaultNow().notNull(),
-		updatedAt: timestamp('updated_at')
-			.defaultNow()
-			.$onUpdate(() => new Date())
-			.notNull(),
-	},
-	(t) => [
-		primaryKey({ columns: [t.userId, t.projectId] }),
-		index('user_project_preference_projectId_idx').on(t.projectId),
-	],
-);
 
 export const projectMember = pgTable(
 	'project_member',

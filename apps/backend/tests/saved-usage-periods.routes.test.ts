@@ -22,16 +22,19 @@ vi.mock('../src/queries/usage.queries', () => ({
 	getUsedProviders: vi.fn(),
 }));
 
-vi.mock('../src/queries/user-project-preference.queries', () => ({
-	getUserProjectPreferences: vi.fn(async () => state.preferences),
-	updateUserProjectPreferences: vi.fn(async (_userId, _projectId, partial: Record<string, unknown>) => {
-		state.preferences = { ...state.preferences, ...partial };
-		return state.preferences;
-	}),
-	mutateUserProjectPreferences: vi.fn(
-		async (_userId, _projectId, transform: (current: Record<string, unknown>) => Record<string, unknown>) => {
-			state.preferences = transform(state.preferences);
-			return state.preferences;
+vi.mock('../src/queries/user-preference.queries', () => ({
+	getUserPreferences: vi.fn(async () => ({
+		projectPreferences: { 'project-id': state.preferences },
+	})),
+	mutateUserPreferences: vi.fn(
+		async (_userId, transform: (current: Record<string, unknown>) => Record<string, unknown>) => {
+			const updated = transform({
+				projectPreferences: { 'project-id': state.preferences },
+			});
+			state.preferences =
+				(updated.projectPreferences as Record<string, Record<string, unknown>> | undefined)?.['project-id'] ??
+				{};
+			return updated;
 		},
 	),
 }));

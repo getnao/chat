@@ -1,3 +1,4 @@
+import type { UserPreferences } from '@nao/shared/types';
 import { z } from 'zod/v4';
 
 import { MESSAGE_SOURCES } from './chat';
@@ -77,6 +78,10 @@ export const savedUsagePeriodsSchema = z
 export interface UserProjectPreferences {
 	usagePeriod?: UsagePeriodSelection;
 	savedUsagePeriods?: SavedUsagePeriod[];
+}
+
+export interface StoredUserPreferences extends UserPreferences {
+	projectPreferences?: Record<string, UserProjectPreferences>;
 }
 
 export function resolveUsagePeriod(

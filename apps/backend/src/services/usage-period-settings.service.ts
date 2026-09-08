@@ -1,12 +1,13 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod/v4';
 
-import * as userProjectPreferenceQueries from '../queries/user-project-preference.queries';
+import * as userPreferenceQueries from '../queries/user-preference.queries';
 import {
 	DEFAULT_USAGE_PERIOD_SELECTION,
 	MAX_SAVED_USAGE_PERIODS,
 	type SavedUsagePeriod,
 	savedUsagePeriodSchema,
+	type StoredUserPreferences,
 	usagePeriodSelectionSchema,
 	type UserProjectPreferences,
 } from '../types/usage';
@@ -24,17 +25,19 @@ const legacySavedPeriodSelectionSchema = z.object({
 });
 
 export async function getAndRepairPeriodSettings(userId: string, projectId: string): Promise<PeriodSettings> {
-	const current = await userProjectPreferenceQueries.getUserProjectPreferences(userId, projectId);
+	const userPreferences = await userPreferenceQueries.getUserPreferences(userId);
+	const current = getProjectPreferences(userPreferences, projectId);
 	const sanitized = sanitizePeriodSettings(current);
 	if (!sanitized.changed) {
 		return sanitized;
 	}
 
-	const preferences = await userProjectPreferenceQueries.mutateUserProjectPreferences(
-		userId,
-		projectId,
-		(latest) => sanitizePeriodSettings(latest).preferences,
-	);
+	const repairedUserPreferences = await userPreferenceQueries.mutateUserPreferences(userId, (latest) => {
+		const preferences = getProjectPreferences(latest, projectId);
+		const repaired = sanitizePeriodSettings(preferences).preferences;
+		return setProjectPreferences(latest, projectId, repaired);
+	});
+	const preferences = getProjectPreferences(repairedUserPreferences, projectId);
 	return {
 		preferences,
 		savedPeriods: sanitizeSavedPeriods(preferences),
@@ -46,16 +49,38 @@ export async function mutatePeriodSettings(
 	projectId: string,
 	transform: PeriodSettingsTransform,
 ): Promise<UserProjectPreferences> {
-	return userProjectPreferenceQueries.mutateUserProjectPreferences(userId, projectId, (current) => {
-		const { preferences, savedPeriods } = sanitizePeriodSettings(current);
-		return transform({ preferences, savedPeriods });
+	const userPreferences = await userPreferenceQueries.mutateUserPreferences(userId, (current) => {
+		const projectPreferences = getProjectPreferences(current, projectId);
+		const { preferences, savedPeriods } = sanitizePeriodSettings(projectPreferences);
+		const updated = transform({ preferences, savedPeriods });
+		return setProjectPreferences(current, projectId, updated);
 	});
+	return getProjectPreferences(userPreferences, projectId);
 }
 
 export function assertSavedPeriodExists(savedPeriods: SavedUsagePeriod[], id: string): void {
 	if (!savedPeriods.some((savedPeriod) => savedPeriod.id === id)) {
 		throw new TRPCError({ code: 'NOT_FOUND', message: 'Saved usage period not found.' });
 	}
+}
+
+function getProjectPreferences(preferences: StoredUserPreferences, projectId: string): UserProjectPreferences {
+	const projectPreferences = preferences.projectPreferences?.[projectId];
+	return projectPreferences && typeof projectPreferences === 'object' ? projectPreferences : {};
+}
+
+function setProjectPreferences(
+	preferences: StoredUserPreferences,
+	projectId: string,
+	projectPreferences: UserProjectPreferences,
+): StoredUserPreferences {
+	return {
+		...preferences,
+		projectPreferences: {
+			...preferences.projectPreferences,
+			[projectId]: projectPreferences,
+		},
+	};
 }
 
 function sanitizePeriodSettings(preferences: UserProjectPreferences): PeriodSettings & { changed: boolean } {

@@ -6,10 +6,10 @@ import s from '../src/db/abstractSchema';
 import { db } from '../src/db/db';
 import { getMessagesUsage, getTotalUsage } from '../src/queries/usage.queries';
 import {
-	getUserProjectPreferences,
-	mutateUserProjectPreferences,
-	updateUserProjectPreferences,
-} from '../src/queries/user-project-preference.queries';
+	getUserPreferences,
+	mutateUserPreferences,
+	updateUserPreferences,
+} from '../src/queries/user-preference.queries';
 import type { UsagePeriodRange } from '../src/types/usage';
 import { usagePeriodRangeSchema } from '../src/types/usage';
 import { formatDate } from '../src/utils/date';
@@ -57,7 +57,7 @@ describe('usage query results', () => {
 	});
 
 	beforeEach(async () => {
-		await db.delete(s.userProjectPreference);
+		await db.delete(s.userPreference);
 		await db.delete(s.llmInference);
 		await db.delete(s.chatMessage);
 	});
@@ -127,38 +127,64 @@ describe('usage query results', () => {
 	it('stores period preferences independently for each user and project', async () => {
 		const usagePeriod = { mode: '6m' as const };
 		const savedUsagePeriods = [{ id: 'year', days: 365, granularity: 'month' as const }];
+		const projectPreferences = { usagePeriod, savedUsagePeriods };
 
-		await updateUserProjectPreferences(USER_ID, PROJECT_ID, { usagePeriod, savedUsagePeriods });
-
-		await expect(getUserProjectPreferences(USER_ID, PROJECT_ID)).resolves.toEqual({
-			usagePeriod,
-			savedUsagePeriods,
+		await updateUserPreferences(USER_ID, {
+			projectPreferences: {
+				[PROJECT_ID]: projectPreferences,
+			},
 		});
-		await expect(getUserProjectPreferences(OTHER_USER_ID, PROJECT_ID)).resolves.toEqual({});
-		await expect(getUserProjectPreferences(USER_ID, OTHER_PROJECT_ID)).resolves.toEqual({});
+
+		await expect(getUserPreferences(USER_ID)).resolves.toEqual({
+			projectPreferences: {
+				[PROJECT_ID]: projectPreferences,
+			},
+		});
+		await expect(getUserPreferences(OTHER_USER_ID)).resolves.toEqual({});
+		expect((await getUserPreferences(USER_ID)).projectPreferences?.[OTHER_PROJECT_ID]).toBeUndefined();
 	});
 
 	it('serializes concurrent project preference transforms', async () => {
+		await updateUserPreferences(USER_ID, { toolCallDensity: 'detailed' });
 		await Promise.all([
-			mutateUserProjectPreferences(USER_ID, PROJECT_ID, (current) => ({
-				...current,
-				savedUsagePeriods: [
-					...(current.savedUsagePeriods ?? []),
-					{ id: 'first', days: 30, granularity: 'day' },
-				],
-			})),
-			mutateUserProjectPreferences(USER_ID, PROJECT_ID, (current) => ({
-				...current,
-				savedUsagePeriods: [
-					...(current.savedUsagePeriods ?? []),
-					{ id: 'second', days: 365, granularity: 'month' },
-				],
-			})),
+			mutateUserPreferences(USER_ID, (current) => {
+				const projectPreferences = current.projectPreferences?.[PROJECT_ID] ?? {};
+				return {
+					...current,
+					projectPreferences: {
+						...current.projectPreferences,
+						[PROJECT_ID]: {
+							...projectPreferences,
+							savedUsagePeriods: [
+								...(projectPreferences.savedUsagePeriods ?? []),
+								{ id: 'first', days: 30, granularity: 'day' },
+							],
+						},
+					},
+				};
+			}),
+			mutateUserPreferences(USER_ID, (current) => {
+				const projectPreferences = current.projectPreferences?.[PROJECT_ID] ?? {};
+				return {
+					...current,
+					projectPreferences: {
+						...current.projectPreferences,
+						[PROJECT_ID]: {
+							...projectPreferences,
+							savedUsagePeriods: [
+								...(projectPreferences.savedUsagePeriods ?? []),
+								{ id: 'second', days: 365, granularity: 'month' },
+							],
+						},
+					},
+				};
+			}),
 		]);
 
-		const preferences = await getUserProjectPreferences(USER_ID, PROJECT_ID);
-		expect(preferences.savedUsagePeriods).toHaveLength(2);
-		expect(preferences.savedUsagePeriods).toEqual(
+		const preferences = await getUserPreferences(USER_ID);
+		expect(preferences.toolCallDensity).toBe('detailed');
+		expect(preferences.projectPreferences?.[PROJECT_ID]?.savedUsagePeriods).toHaveLength(2);
+		expect(preferences.projectPreferences?.[PROJECT_ID]?.savedUsagePeriods).toEqual(
 			expect.arrayContaining([
 				{ id: 'first', days: 30, granularity: 'day' },
 				{ id: 'second', days: 365, granularity: 'month' },

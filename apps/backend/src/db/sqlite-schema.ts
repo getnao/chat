@@ -5,13 +5,7 @@ import type {
 	McpMapEmbedStoredConfig,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
-import type {
-	AnalyticsEventMetadata,
-	CitationData,
-	LlmProvider,
-	RepoProvider,
-	UserPreferences,
-} from '@nao/shared/types';
+import type { AnalyticsEventMetadata, CitationData, LlmProvider, RepoProvider } from '@nao/shared/types';
 import {
 	ANALYTICS_ASSET_TYPES,
 	ANALYTICS_EVENT_TYPES,
@@ -64,7 +58,7 @@ import {
 	WhatsappSettings,
 } from '../types/messaging-provider';
 import { ORG_ROLES } from '../types/organization';
-import type { UserProjectPreferences } from '../types/usage';
+import type { StoredUserPreferences } from '../types/usage';
 
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey(),
@@ -90,7 +84,7 @@ export const userPreference = sqliteTable('user_preference', {
 	userId: text('user_id')
 		.primaryKey()
 		.references(() => user.id, { onDelete: 'cascade' }),
-	preferences: text('preferences', { mode: 'json' }).$type<UserPreferences>().notNull().default({}),
+	preferences: text('preferences', { mode: 'json' }).$type<StoredUserPreferences>().notNull().default({}),
 	createdAt: integer('created_at', { mode: 'timestamp_ms' })
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 		.notNull(),
@@ -426,30 +420,6 @@ export const messageFeedback = sqliteTable('message_feedback', {
 		.$onUpdate(() => new Date())
 		.notNull(),
 });
-
-export const userProjectPreference = sqliteTable(
-	'user_project_preference',
-	{
-		userId: text('user_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
-		projectId: text('project_id')
-			.notNull()
-			.references(() => project.id, { onDelete: 'cascade' }),
-		preferences: text('preferences', { mode: 'json' }).$type<UserProjectPreferences>().notNull().default({}),
-		createdAt: integer('created_at', { mode: 'timestamp_ms' })
-			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-			.notNull(),
-		updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
-			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-			.$onUpdate(() => new Date())
-			.notNull(),
-	},
-	(t) => [
-		primaryKey({ columns: [t.userId, t.projectId] }),
-		index('user_project_preference_projectId_idx').on(t.projectId),
-	],
-);
 
 export const projectMember = sqliteTable(
 	'project_member',

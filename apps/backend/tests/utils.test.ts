@@ -1,3 +1,4 @@
+import { APICallError, RetryError } from 'ai';
 import { describe, expect, it } from 'vitest';
 
 import type { UIMessage, UIMessagePart } from '../src/types/chat';
@@ -35,6 +36,89 @@ describe('formatErrorMessageForUI', () => {
 			expect(formatErrorMessageForUI(error)).toBe('An error occurred.');
 		},
 	);
+
+	it('formats APICallError with rate limit correctly', () => {
+		const apiError = new APICallError({
+			message: 'Rate limit exceeded',
+			url: 'https://api.example.com',
+			requestBodyValues: {},
+			statusCode: 429,
+		});
+
+		const result = formatErrorMessageForUI(apiError);
+		expect(JSON.parse(result)).toEqual({
+			error: {
+				code: 'RATE_LIMIT_EXCEEDED',
+				message: 'Rate limited by the provider. Please try again later.',
+			},
+			message: 'Rate limited by the provider. Please try again later.',
+		});
+	});
+
+	it('formats APICallError with timeout correctly', () => {
+		const apiError = new APICallError({
+			message: 'Timeout error',
+			url: 'https://api.example.com',
+			requestBodyValues: {},
+			statusCode: 504,
+		});
+
+		const result = formatErrorMessageForUI(apiError);
+		expect(JSON.parse(result)).toEqual({
+			error: {
+				code: 'TIMEOUT',
+				message: 'The provider request timed out. Please try again.',
+			},
+			message: 'The provider request timed out. Please try again.',
+		});
+	});
+
+	it('unwraps RetryError containing APICallError', () => {
+		const apiError = new APICallError({
+			message: 'Timeout error',
+			url: 'https://example.com',
+			requestBodyValues: {},
+			statusCode: 504,
+		});
+		const retryError = new RetryError({
+			message: 'Failed after 3 attempts.',
+			reason: 'maxRetriesExceeded',
+			errors: [apiError],
+		});
+
+		const result = formatErrorMessageForUI(retryError);
+		expect(JSON.parse(result)).toEqual({
+			error: {
+				code: 'TIMEOUT',
+				message: 'The provider request timed out. Please try again.',
+			},
+			message: 'The provider request timed out. Please try again.',
+		});
+	});
+
+	it('handles RetryError wrapping a generic error', () => {
+		const genericError = new Error('fetch failed');
+		const retryError = new RetryError({
+			message: 'Failed after 3 attempts.',
+			reason: 'maxRetriesExceeded',
+			errors: [genericError],
+		});
+
+		const result = formatErrorMessageForUI(retryError);
+		expect(JSON.parse(result)).toEqual({
+			error: {
+				code: 'PROVIDER_NETWORK_ERROR',
+				message: "Couldn't reach the LLM provider. Please try again.",
+			},
+			message: "Couldn't reach the LLM provider. Please try again.",
+		});
+	});
+
+	it('returns the message from an AbortError unchanged', () => {
+		const abortError = new Error('The operation was aborted');
+		abortError.name = 'AbortError';
+		expect(formatErrorMessageForUI(abortError)).toBe('The operation was aborted');
+	});
 });
 
 describe('truncateMiddle', () => {

@@ -1,5 +1,9 @@
 import { IncomingHttpHeaders } from 'node:http';
 
+import { APICallError, RetryError } from 'ai';
+
+import { logger } from './logger';
+
 /** Convert fastify headers to basic `Headers` for better-auth. */
 export const convertHeaders = (headers: IncomingHttpHeaders) => {
 	const convertedHeaders = new Headers();
@@ -26,7 +30,52 @@ export const getErrorMessage = (error: unknown): string | null => {
 };
 
 export const formatErrorMessageForUI = (error: unknown): string => {
-	const message = error instanceof Error ? getErrorMessage(error)?.trim() : null;
+	let unwrapped = error;
+	if (RetryError.isInstance(error)) {
+		unwrapped = error.lastError ?? error;
+	}
+
+	if (APICallError.isInstance(unwrapped)) {
+		let code = 'PROVIDER_ERROR';
+		let uiMessage = 'An error occurred with the AI provider. Please try again.';
+
+		if (unwrapped.statusCode === 429) {
+			code = 'RATE_LIMIT_EXCEEDED';
+			uiMessage = 'Rate limited by the provider. Please try again later.';
+		} else if (unwrapped.statusCode === 401 || unwrapped.statusCode === 403) {
+			code = 'PROVIDER_AUTH_ERROR';
+			uiMessage = 'The AI provider rejected the request due to authentication issues.';
+		} else if (unwrapped.statusCode === 408 || unwrapped.statusCode === 504) {
+			code = 'TIMEOUT';
+			uiMessage = 'The provider request timed out. Please try again.';
+		}
+
+		logger.error(`AI SDK APICallError: ${unwrapped.message}`, {
+			source: 'agent',
+			context: {
+				statusCode: unwrapped.statusCode,
+				url: unwrapped.url,
+				providerMessage: unwrapped.message,
+			},
+		});
+
+		return JSON.stringify({
+			error: { code, message: uiMessage },
+			message: uiMessage,
+		});
+	}
+
+	if (RetryError.isInstance(error)) {
+		return JSON.stringify({
+			error: {
+				code: 'PROVIDER_NETWORK_ERROR',
+				message: "Couldn't reach the LLM provider. Please try again.",
+			},
+			message: "Couldn't reach the LLM provider. Please try again.",
+		});
+	}
+
+	const message = unwrapped instanceof Error ? getErrorMessage(unwrapped)?.trim() : null;
 	return message || 'An error occurred.';
 };
 

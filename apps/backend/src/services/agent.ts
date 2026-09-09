@@ -536,7 +536,7 @@ class AgentManager {
 					projectId: this.chat.projectId,
 					context: { chatId: this.chat.id, modelId: this._modelSelection.modelId },
 				});
-				return String(err);
+				return formatErrorMessageForUI(err);
 			},
 			onFinish: async (e) => {
 				try {

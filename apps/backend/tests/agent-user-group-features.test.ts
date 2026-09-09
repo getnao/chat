@@ -125,7 +125,10 @@ describe('agent user group feature tools', () => {
 	});
 });
 
-async function executeStory(input: Parameters<NonNullable<typeof storyTool.execute>>[0], storyCreationEnabled: boolean) {
+async function executeStory(
+	input: Parameters<NonNullable<typeof storyTool.execute>>[0],
+	storyCreationEnabled: boolean,
+) {
 	const context = {
 		chatId: 'chat-id',
 		userId: 'user-id',

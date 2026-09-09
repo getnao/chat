@@ -257,7 +257,9 @@ describe('user group queries', () => {
 		const analysts = await createUserGroup(PROJECT_ID, 'Analysts', ['story-creation']);
 		await setUserGroupMembership(PROJECT_ID, analysts.id, DIRECT_USER_ID, true);
 
-		expect((await resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).features).toEqual(['story-creation']);
+		expect((await resolveEffectiveUserGroupAccess(PROJECT_ID, DIRECT_USER_ID)).features).toEqual([
+			'story-creation',
+		]);
 	});
 
 	it('deduplicates grants shared by multiple groups', async () => {

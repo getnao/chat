@@ -43,13 +43,7 @@ interface UseStoryEditorParams {
  * block extensions, the save shortcut, and the drag-and-drop handlers that move
  * story blocks and grid columns around the document.
  */
-export function useStoryEditor({
-	code,
-	editorRef,
-	onSave,
-	onDragControlsChange,
-	onChange,
-}: UseStoryEditorParams) {
+export function useStoryEditor({ code, editorRef, onSave, onDragControlsChange, onChange }: UseStoryEditorParams) {
 	const processedContent = useMemo(() => preprocessForEditor(code), [code]);
 	const onSaveRef = useRef(onSave);
 	const onDragControlsChangeRef = useRef(onDragControlsChange);

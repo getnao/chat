@@ -662,7 +662,7 @@ export const ChartDisplay = memo(function ChartDisplay({
 						active={disableTooltip ? false : undefined}
 						animationDuration={150}
 						animationEasing='linear'
-						allowEscapeViewBox={{ y: true, x: false }}
+						allowEscapeViewBox={{ y: false, x: false }}
 						content={
 							<ChartTooltipContent
 								percent={isPercentStacked}

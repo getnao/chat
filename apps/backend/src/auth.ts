@@ -219,10 +219,10 @@ async function createAuthInstance(baseURL: string) {
 			oauthProvider({
 				loginPage: '/login',
 				consentPage: '/consent',
-				accessTokenExpiresIn: 86400,
-				refreshTokenExpiresIn: 604800,
+				accessTokenExpiresIn: env.MCP_ACCESS_TOKEN_TTL,
+				refreshTokenExpiresIn: env.MCP_REFRESH_TOKEN_TTL,
 				allowDynamicClientRegistration: true,
-				allowUnauthenticatedClientRegistration: true,
+				allowUnauthenticatedClientRegistration: env.ALLOW_UNAUTHENTICATED_DCR,
 				validAudiences: MCP_VALID_AUDIENCES,
 			}),
 			...ssoPlugins,

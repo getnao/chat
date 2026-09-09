@@ -118,7 +118,7 @@ async function formatVisualImage(
 	image: Buffer,
 	options: StoryMarkdownOptions,
 ): Promise<string> {
-	if (segment.type !== 'chart' || !options.clipboardChartUrls) {
+	if ((segment.type !== 'chart' && segment.type !== 'map') || !options.clipboardChartUrls) {
 		return `data:image/png;base64,${image.toString('base64')}`;
 	}
 	const chartId = await saveClipboardChart(image.toString('base64'));

@@ -24,36 +24,6 @@ type Agent = Awaited<ReturnType<typeof agentService.create>>;
  */
 const ASK_NAO_SYNC_BUDGET_MS = 45_000;
 
-const ASK_NAO_DESCRIPTION =
-	'Default tool for any analytics question or story-creation request. ' +
-	"Delegates the full reasoning loop to nao's sub-agent — it reads project rules/context, " +
-	'writes SQL, builds charts, drafts stories — and the whole conversation is persisted as a ' +
-	'chat visible in the nao UI (replayable, shareable, forkable by the end user).\n\n' +
-	'USE WHEN: the user asks an analytics question, wants a chart, or wants a story created. ' +
-	'Default to this tool; only fall back to `execute_sql` / `display_chart` / `create_story` ' +
-	'when you explicitly need step-by-step control or `ask_nao` cannot handle the request.\n' +
-	"SKIP WHEN: you'd rather drive the workflow yourself by chaining `ls_nao_context` / " +
-	'`grep_nao_context` / `read_nao_context` / `execute_sql` / `display_chart` / ' +
-	'`create_story` step by step — those run as plain tool calls, leave no chat in the UI, ' +
-	'and give you full control over each step.\n\n' +
-	'LONG RUNS: the agent runs in the background. If it does not finish quickly this returns ' +
-	"`status: 'running'` with a `chatId` instead of the answer. When that happens, call " +
-	'`get_nao_answer` with that `chatId` (polling every few seconds) until it returns ' +
-	"`status: 'complete'`.\n\n" +
-	"CLARIFICATIONS: if the question is ambiguous, this returns `status: 'needs_clarification'` " +
-	'with a `clarification.question` (and optional `clarification.options`). Relay the question to the user, ' +
-	'then call `ask_nao` again with the SAME `chatId` and their answer as `question`.';
-
-const ASK_NAO_DATA_MODE_DESCRIPTION = ASK_NAO_DESCRIPTION + CHART_DATA_MODE_ASK_NAO_ADDENDUM;
-
-const ASK_NAO_STORY_RESTRICTED_DESCRIPTION =
-	'Default tool for analytics questions and chart requests. ' +
-	"Delegates the full reasoning loop to nao's sub-agent — it reads project rules/context, writes SQL, and builds charts. " +
-	'The conversation is persisted as a chat visible in the nao UI. Story creation and modification are unavailable for this user.\n\n' +
-	'USE WHEN: the user asks an analytics question or wants a chart. Default to this tool; use `execute_sql` / `display_chart` only when you need step-by-step control.\n\n' +
-	"LONG RUNS: if this returns `status: 'running'`, poll `get_nao_answer` with the returned `chatId` every few seconds until complete.\n\n" +
-	"CLARIFICATIONS: if this returns `status: 'needs_clarification'`, relay its question to the user, then call `ask_nao` again with the same `chatId` and their answer.";
-
 const GET_NAO_ANSWER_DESCRIPTION =
 	'Fetch the result of an `ask_nao` run that is still in progress. ' +
 	"USE WHEN: a previous `ask_nao` (or `get_nao_answer`) call returned `status: 'running'`. " +
@@ -89,11 +59,7 @@ const ASK_NAO_CLARIFICATION_SCHEMA = z
 	);
 
 export function registerSubAgentTools(server: McpServer, ctx: McpContext): void {
-	const askNaoDescription = ctx.storyCreationEnabled
-		? ctx.chartDataMode
-			? ASK_NAO_DATA_MODE_DESCRIPTION
-			: ASK_NAO_DESCRIPTION
-		: ASK_NAO_STORY_RESTRICTED_DESCRIPTION + (ctx.chartDataMode ? CHART_DATA_MODE_ASK_NAO_ADDENDUM : '');
+	const askNaoDescription = buildAskNaoDescription(ctx.storyCreationEnabled, ctx.chartDataMode);
 
 	registerMcpTool(server, ctx, {
 		name: 'ask_nao',
@@ -188,6 +154,39 @@ export function registerSubAgentTools(server: McpServer, ctx: McpContext): void 
 			return resolveAnswerPayload(chatId, ctx);
 		},
 	});
+}
+
+function buildAskNaoDescription(storyCreationEnabled: boolean, chartDataMode: boolean): string {
+	const storyCapability = storyCreationEnabled
+		? 'It can also create Stories using its combined `story` tool. '
+		: 'Story creation is unavailable. The inner `ask_nao` agent does not receive its combined `story` tool, so it cannot modify a Story itself. Use the separate `list_stories`, `get_story`, `update_story`, `archive_story`, and `delete_story` tools to manage existing Stories. ';
+	const requestTypes = storyCreationEnabled
+		? 'an analytics question, wants a chart, or wants a Story created'
+		: 'an analytics question or wants a chart';
+	const directTools = storyCreationEnabled
+		? '`execute_sql` / `display_chart` / `create_story`'
+		: '`execute_sql` / `display_chart`';
+	const workflowTools = storyCreationEnabled
+		? '`ls_nao_context` / `grep_nao_context` / `read_nao_context` / `execute_sql` / `display_chart` / `create_story`'
+		: '`ls_nao_context` / `grep_nao_context` / `read_nao_context` / `execute_sql` / `display_chart`';
+
+	const description =
+		'Default tool for analytics questions and chart requests. ' +
+		"Delegates the full reasoning loop to nao's sub-agent — it reads project rules/context, writes SQL, and builds charts. " +
+		storyCapability +
+		'The whole conversation is persisted as a chat visible in the nao UI (replayable, shareable, forkable by the end user).\n\n' +
+		`USE WHEN: the user asks ${requestTypes}. ` +
+		`Default to this tool; only fall back to ${directTools} when you explicitly need step-by-step control or \`ask_nao\` cannot handle the request.\n` +
+		`SKIP WHEN: you'd rather drive the workflow yourself by chaining ${workflowTools} step by step — those run as plain tool calls, leave no chat in the UI, and give you full control over each step.\n\n` +
+		'LONG RUNS: the agent runs in the background. If it does not finish quickly this returns ' +
+		"`status: 'running'` with a `chatId` instead of the answer. When that happens, call " +
+		'`get_nao_answer` with that `chatId` (polling every few seconds) until it returns ' +
+		"`status: 'complete'`.\n\n" +
+		"CLARIFICATIONS: if the question is ambiguous, this returns `status: 'needs_clarification'` " +
+		'with a `clarification.question` (and optional `clarification.options`). Relay the question to the user, ' +
+		'then call `ask_nao` again with the SAME `chatId` and their answer as `question`.';
+
+	return description + (chartDataMode ? CHART_DATA_MODE_ASK_NAO_ADDENDUM : '');
 }
 
 /**

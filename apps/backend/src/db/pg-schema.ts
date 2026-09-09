@@ -4,6 +4,7 @@ import type {
 	McpChartEmbedStoredConfig,
 	McpMapEmbedStoredConfig,
 	StoredUserGroupConfig,
+	StoredUserGroupContextAccess,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
 import type {
@@ -68,6 +69,7 @@ import {
 	WhatsappSettings,
 } from '../types/messaging-provider';
 import { ORG_ROLES } from '../types/organization';
+import type { StoryQuerySources } from '../types/story-cache';
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -432,6 +434,7 @@ export const userGroup = pgTable(
 		name: text('name').notNull(),
 		isDefault: boolean('is_default').default(false).notNull(),
 		featureGrants: jsonb('feature_grants').$type<StoredUserGroupConfig>().notNull().default([]),
+		contextGrants: jsonb('context_grants').$type<StoredUserGroupContextAccess>(),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.defaultNow()
@@ -936,6 +939,7 @@ export const storyDataCache = pgTable('story_data_cache', {
 		.references(() => story.id, { onDelete: 'cascade' })
 		.primaryKey(),
 	queryData: jsonb('query_data').$type<Record<string, { data: unknown[]; columns: string[] }>>().notNull(),
+	querySources: jsonb('query_sources').$type<StoryQuerySources>(),
 	analysisResults: jsonb('analysis_results').$type<Record<string, string>>(),
 	cachedAt: timestamp('cached_at').defaultNow().notNull(),
 });

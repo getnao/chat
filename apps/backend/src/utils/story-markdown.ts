@@ -3,6 +3,8 @@ import { type ParsedTableBlock, type Segment, splitCodeIntoSegments } from '@nao
 import { formatCellValue, formatColumnLabel } from '@nao/shared/story-table-utils';
 import { flattenStoryTabs } from '@nao/shared/story-tabs';
 
+import { env } from '../env';
+import { saveClipboardChart } from '../queries/chart-image';
 import { getBrowser } from './headless-browser';
 import type { QueryDataMap, StoryInput } from './story-download';
 import { generateStoryHtml } from './story-html';
@@ -12,14 +14,19 @@ const A4_PRINTABLE_HEIGHT_PX = 1043;
 
 type VisualSegment = Extract<Segment, { type: 'map' | 'chart' }>;
 
+export interface StoryMarkdownOptions {
+	clipboardChartUrls?: boolean;
+}
+
 export async function generateStoryMarkdown(
 	story: StoryInput,
 	queryData: QueryDataMap | null,
 	dateFormat?: DateFormatSettings | null,
+	options: StoryMarkdownOptions = {},
 ): Promise<string> {
 	const segments = splitCodeIntoSegments(flattenStoryTabs(story.code));
 	const visualSegments = collectVisualSegments(segments);
-	const visualImages = await captureVisuals(visualSegments, queryData, dateFormat);
+	const visualImages = await captureVisuals(visualSegments, queryData, dateFormat, options);
 	const sections = segments.flatMap((s) => segmentToMarkdown(s, queryData, visualImages, dateFormat));
 
 	return sections.filter(Boolean).join('\n\n');
@@ -41,6 +48,7 @@ async function captureVisuals(
 	segments: VisualSegment[],
 	queryData: QueryDataMap | null,
 	dateFormat?: DateFormatSettings | null,
+	options: StoryMarkdownOptions = {},
 ): Promise<Map<string, string>> {
 	const uniqueSegments = deduplicateSegments(segments);
 	if (uniqueSegments.length === 0) {
@@ -59,7 +67,7 @@ async function captureVisuals(
 			deviceScaleFactor: 2,
 		});
 		for (const segment of uniqueSegments) {
-			const image = await captureVisual(page, segment, queryData, dateFormat);
+			const image = await captureVisual(page, segment, queryData, dateFormat, options);
 			if (image) {
 				images.set(visualSegmentId(segment), image);
 			}
@@ -83,6 +91,7 @@ async function captureVisual(
 	segment: VisualSegment,
 	queryData: QueryDataMap | null,
 	dateFormat?: DateFormatSettings | null,
+	options: StoryMarkdownOptions = {},
 ): Promise<string | null> {
 	const code = visualSegmentId(segment);
 	const html = await generateStoryHtml({ title: visualSegmentTitle(segment), code }, queryData, dateFormat);
@@ -97,10 +106,23 @@ async function captureVisual(
 			return null;
 		}
 		const screenshot = await visual.screenshot({ type: 'png' });
-		return `data:image/png;base64,${Buffer.from(screenshot).toString('base64')}`;
+
+		return formatVisualImage(segment, Buffer.from(screenshot), options);
 	} catch {
 		return null;
 	}
+}
+
+async function formatVisualImage(
+	segment: VisualSegment,
+	image: Buffer,
+	options: StoryMarkdownOptions,
+): Promise<string> {
+	if (segment.type !== 'chart' || !options.clipboardChartUrls) {
+		return `data:image/png;base64,${image.toString('base64')}`;
+	}
+	const chartId = await saveClipboardChart(image.toString('base64'));
+	return new URL(`/c/clipboard/${chartId}.png`, env.BETTER_AUTH_URL).toString();
 }
 
 function visualSegmentId(segment: VisualSegment): string {

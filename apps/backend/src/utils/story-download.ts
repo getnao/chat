@@ -2,7 +2,7 @@ import type { DateFormatSettings } from '@nao/shared/date';
 import type { DownloadFormat } from '@nao/shared/types';
 
 import { generateStoryHtml } from './story-html';
-import { generateStoryMarkdown } from './story-markdown';
+import { generateStoryMarkdown, type StoryMarkdownOptions } from './story-markdown';
 import { generateStoryPdf } from './story-pdf';
 
 export type QueryDataMap = Record<string, { data: unknown[]; columns: string[] }>;
@@ -11,6 +11,8 @@ export interface StoryInput {
 	title: string;
 	code: string;
 }
+
+export type StoryDownloadOptions = StoryMarkdownOptions;
 
 const MIME_TYPES: Record<DownloadFormat, string> = {
 	pdf: 'application/pdf',
@@ -24,9 +26,10 @@ export async function buildStoryDownloadFile(
 	code: string,
 	queryData: QueryDataMap | null,
 	dateFormat?: DateFormatSettings | null,
+	options: StoryMarkdownOptions = {},
 ): Promise<{ buffer: Buffer; filename: string; mimeType: string }> {
 	const story = { title, code };
-	const buffer = await generateStoryBuffer(format, story, queryData, dateFormat);
+	const buffer = await generateStoryBuffer(format, story, queryData, dateFormat, options);
 	return {
 		buffer,
 		filename: formatDownloadFilename(title, format),
@@ -40,8 +43,16 @@ export async function buildDownloadResponse(
 	code: string,
 	queryData: QueryDataMap | null,
 	dateFormat?: DateFormatSettings | null,
+	options: StoryDownloadOptions = {},
 ): Promise<{ data: string; filename: string; mimeType: string }> {
-	const { buffer, filename, mimeType } = await buildStoryDownloadFile(format, title, code, queryData, dateFormat);
+	const { buffer, filename, mimeType } = await buildStoryDownloadFile(
+		format,
+		title,
+		code,
+		queryData,
+		dateFormat,
+		options,
+	);
 	return {
 		data: buffer.toString('base64'),
 		filename,
@@ -54,6 +65,7 @@ async function generateStoryBuffer(
 	story: StoryInput,
 	queryData: QueryDataMap | null,
 	dateFormat: DateFormatSettings | null | undefined,
+	options: StoryDownloadOptions,
 ): Promise<Buffer> {
 	switch (format) {
 		case 'pdf':
@@ -61,7 +73,7 @@ async function generateStoryBuffer(
 		case 'html':
 			return Buffer.from(await generateStoryHtml(story, queryData, dateFormat));
 		case 'markdown':
-			return Buffer.from(await generateStoryMarkdown(story, queryData, dateFormat));
+			return Buffer.from(await generateStoryMarkdown(story, queryData, dateFormat, options));
 	}
 }
 

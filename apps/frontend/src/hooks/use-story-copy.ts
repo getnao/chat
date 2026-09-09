@@ -33,13 +33,18 @@ export function useStoryCopy({
 		try {
 			let result;
 			if (storyId) {
-				result = await trpcClient.story.downloadStandalone.query({ storyId, format: 'markdown' });
+				result = await trpcClient.story.downloadStandalone.query({
+					storyId,
+					format: 'markdown',
+					clipboardChartUrls: true,
+				});
 			} else if (isOwner) {
 				result = await trpcClient.story.download.query({
 					chatId: chatId!,
 					storySlug: storySlug!,
 					format: 'markdown',
 					versionNumber,
+					clipboardChartUrls: true,
 				});
 			} else if (shareType === 'chat') {
 				result = await trpcClient.sharedChat.downloadStory.query({
@@ -47,12 +52,14 @@ export function useStoryCopy({
 					storySlug: storySlug!,
 					format: 'markdown',
 					versionNumber,
+					clipboardChartUrls: true,
 				});
 			} else {
 				result = await trpcClient.storyShare.download.query({
 					shareId: shareId!,
 					format: 'markdown',
 					versionNumber,
+					clipboardChartUrls: true,
 				});
 			}
 			const markdown = new TextDecoder().decode(

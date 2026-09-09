@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
 	logActivity: vi.fn(),
 	moveStoryToFolder: vi.fn(),
 	renameStory: vi.fn(),
-	resolveEffectiveUserGroupFeatures: vi.fn(),
+	resolveEffectiveUserGroupAccess: vi.fn(),
 	saveStoryInPrivateRoot: vi.fn(),
 	updateAutomation: vi.fn(),
 	role: 'user' as 'admin' | 'user' | 'viewer' | null,
@@ -73,8 +73,7 @@ vi.mock('../src/queries/shared-story.queries', () => ({
 	getSharedStory: vi.fn(),
 }));
 vi.mock('../src/queries/user-group.queries', () => ({
-	resolveEffectiveUserGroupAccess: vi.fn(),
-	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
+	resolveEffectiveUserGroupAccess: mocks.resolveEffectiveUserGroupAccess,
 }));
 vi.mock('../src/queries/story.queries', () => ({
 	createStoryVersion: mocks.createStoryVersion,
@@ -154,11 +153,11 @@ describe('user group feature route enforcement', () => {
 		mocks.buildDownloadResponse.mockReturnValue({ body: 'download' });
 		mocks.createSharedStory.mockResolvedValue({ id: 'shared-story-id' });
 		mocks.hasLicenseFeature.mockResolvedValue(true);
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation', 'automation-creation']);
+		mockEffectiveFeatures(['story-creation', 'automation-creation']);
 	});
 
 	it('denies Automation creation after the beta and role checks', async () => {
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
+		mockEffectiveFeatures(['story-creation']);
 
 		await expect(
 			createCaller().automation.create({
@@ -169,11 +168,11 @@ describe('user group feature route enforcement', () => {
 			code: 'FORBIDDEN',
 			message: 'Automation creation is not enabled for your user group.',
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).toHaveBeenCalledWith('project-id', 'user-id');
+		expect(mocks.resolveEffectiveUserGroupAccess).toHaveBeenCalledWith('project-id', 'user-id');
 	});
 
 	it('allows existing Automation operations without the creation grant', async () => {
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
+		mockEffectiveFeatures(['story-creation']);
 		mocks.getAutomation
 			.mockResolvedValueOnce(null)
 			.mockResolvedValueOnce(null)
@@ -193,7 +192,7 @@ describe('user group feature route enforcement', () => {
 		await expect(createCaller().automation.setEnabled({ id: 'automation-id', enabled: false })).resolves.toBeNull();
 		await expect(createCaller().automation.runNow({ id: 'automation-id' })).resolves.toBeNull();
 		await expect(createCaller().automation.delete({ id: 'automation-id' })).resolves.toEqual({ success: true });
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 		expect(mocks.listAutomations).toHaveBeenCalledWith('project-id', 'user-id');
 		expect(mocks.getAutomation).toHaveBeenCalledWith('project-id', 'user-id', 'automation-id');
 		expect(mocks.updateAutomation).toHaveBeenCalledWith(
@@ -217,7 +216,7 @@ describe('user group feature route enforcement', () => {
 			code: 'FORBIDDEN',
 			message: 'Automations are disabled on this instance.',
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 
 	it('preserves the Automation role check before the creation grant', async () => {
@@ -232,7 +231,7 @@ describe('user group feature route enforcement', () => {
 			code: 'FORBIDDEN',
 			message: 'Viewers cannot perform this action',
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 
 	it('preserves Story ownership before feature grants', async () => {
@@ -242,19 +241,19 @@ describe('user group feature route enforcement', () => {
 			code: 'FORBIDDEN',
 			message: 'You are not authorized to modify this story.',
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 
 	it('allows management of an owned Story without the creation grant', async () => {
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['automation-creation']);
+		mockEffectiveFeatures(['automation-creation']);
 
 		await expect(createCaller().story.rename({ storyId: 'story-id', title: 'Renamed' })).resolves.toBeUndefined();
 		expect(mocks.renameStory).toHaveBeenCalledWith('story-id', 'Renamed');
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 
 	it('allows listing, viewing, archiving, downloading, and sharing existing Stories without the creation grant', async () => {
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue([]);
+		mockEffectiveFeatures([]);
 
 		await expect(createCaller().story.listAll()).resolves.toHaveLength(1);
 		await expect(
@@ -278,14 +277,14 @@ describe('user group feature route enforcement', () => {
 				notify: false,
 			}),
 		).resolves.toEqual({ id: 'shared-story-id' });
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 
 	it.each(['update', 'replace'] as const)(
 		'denies %s against a missing Story without the creation grant',
 		async (action) => {
 			mocks.getStoryByChatAndSlug.mockResolvedValue(null);
-			mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['automation-creation']);
+			mockEffectiveFeatures(['automation-creation']);
 
 			await expect(
 				createCaller().story.createVersion({
@@ -299,12 +298,12 @@ describe('user group feature route enforcement', () => {
 				code: 'FORBIDDEN',
 				message: 'Story creation is not enabled for your user group.',
 			});
-			expect(mocks.resolveEffectiveUserGroupFeatures).toHaveBeenCalledWith('project-id', 'user-id');
+			expect(mocks.resolveEffectiveUserGroupAccess).toHaveBeenCalledWith('project-id', 'user-id');
 		},
 	);
 
 	it('allows updating an existing Story without the creation grant', async () => {
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['automation-creation']);
+		mockEffectiveFeatures(['automation-creation']);
 
 		await expect(
 			createCaller().story.createVersion({
@@ -315,10 +314,20 @@ describe('user group feature route enforcement', () => {
 				action: 'update',
 			}),
 		).resolves.toEqual({ storyId: 'story-id', version: 2 });
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 		expect(mocks.saveStoryInPrivateRoot).not.toHaveBeenCalled();
 	});
 });
+
+function mockEffectiveFeatures(features: Array<'story-creation' | 'automation-creation'>): void {
+	mocks.resolveEffectiveUserGroupAccess.mockResolvedValue({
+		features,
+		toolCallDensityPolicy: {
+			defaultDensity: 'detailed',
+			canChange: true,
+		},
+	});
+}
 
 function createCaller() {
 	return testRouter.createCaller({

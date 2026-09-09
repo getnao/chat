@@ -47,10 +47,10 @@ const ASK_NAO_DESCRIPTION =
 const ASK_NAO_DATA_MODE_DESCRIPTION = ASK_NAO_DESCRIPTION + CHART_DATA_MODE_ASK_NAO_ADDENDUM;
 
 const ASK_NAO_STORY_RESTRICTED_DESCRIPTION =
-	'Default tool for analytics questions and chart requests. ' +
+	'Default tool for analytics questions, chart requests, and updates to existing Stories. ' +
 	"Delegates the full reasoning loop to nao's sub-agent — it reads project rules/context, writes SQL, and builds charts. " +
-	'The conversation is persisted as a chat visible in the nao UI. Story creation and modification are unavailable for this user.\n\n' +
-	'USE WHEN: the user asks an analytics question or wants a chart. Default to this tool; use `execute_sql` / `display_chart` only when you need step-by-step control.\n\n' +
+	'The conversation is persisted as a chat visible in the nao UI. New Story creation is unavailable for this user, but existing Stories can still be updated.\n\n' +
+	'USE WHEN: the user asks an analytics question, wants a chart, or wants to update an existing Story. Default to this tool; use `execute_sql` / `display_chart` / `update_story` only when you need step-by-step control.\n\n' +
 	"LONG RUNS: if this returns `status: 'running'`, poll `get_nao_answer` with the returned `chatId` every few seconds until complete.\n\n" +
 	"CLARIFICATIONS: if this returns `status: 'needs_clarification'`, relay its question to the user, then call `ask_nao` again with the same `chatId` and their answer.";
 

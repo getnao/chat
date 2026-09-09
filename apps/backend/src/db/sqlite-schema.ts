@@ -1,9 +1,10 @@
-import type {
-	BackgroundModelSettings,
-	MapSettings,
-	McpChartEmbedStoredConfig,
-	McpMapEmbedStoredConfig,
-	StoredUserGroupConfig,
+import {
+	type BackgroundModelSettings,
+	DEFAULT_USER_GROUP_CONFIG,
+	type MapSettings,
+	type McpChartEmbedStoredConfig,
+	type McpMapEmbedStoredConfig,
+	type StoredUserGroupConfig,
 } from '@nao/shared';
 import type { DisplaySettings } from '@nao/shared/date';
 import type {
@@ -455,7 +456,10 @@ export const userGroup = sqliteTable(
 			.references(() => project.id, { onDelete: 'cascade' }),
 		name: text('name').notNull(),
 		isDefault: integer('is_default', { mode: 'boolean' }).default(false).notNull(),
-		featureGrants: text('feature_grants', { mode: 'json' }).$type<StoredUserGroupConfig>().notNull().default([]),
+		featureGrants: text('feature_grants', { mode: 'json' })
+			.$type<StoredUserGroupConfig>()
+			.notNull()
+			.default(DEFAULT_USER_GROUP_CONFIG),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 			.notNull(),

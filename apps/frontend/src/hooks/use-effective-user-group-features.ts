@@ -15,7 +15,7 @@ export function useEffectiveUserGroupFeatures() {
 		...trpc.userGroup.effectiveAccess.queryOptions(),
 		enabled: hasCurrentProject,
 	});
-	const isLoading = project.isPending || (hasCurrentProject && (query.isPending || query.isFetching));
+	const isLoading = project.isPending || (hasCurrentProject && query.isPending);
 	const isError = project.isError || query.isError;
 	const access = getRenderableUserGroupAccess(
 		query.data as EffectiveUserGroupAccess | undefined,

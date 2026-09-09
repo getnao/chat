@@ -956,7 +956,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'[]'"
+          "default": "'{\"version\":2,\"features\":[],\"toolCallDensity\":{\"defaultDensity\":\"detailed\",\"canChange\":true}}'"
         }
       },
       "indexes": {

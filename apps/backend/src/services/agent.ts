@@ -120,13 +120,6 @@ export interface AgentToolsContext {
 /** Builds the tool set a run should expose. Callers pass one to `create` to customise tools. */
 export type AgentToolsResolver = (context: AgentToolsContext) => AgentTools | Promise<AgentTools>;
 
-export function filterAgentToolsByUserGroupFeatures(agentTools: AgentTools, storyCreationEnabled: boolean): AgentTools {
-	if (storyCreationEnabled) {
-		return agentTools;
-	}
-	return Object.fromEntries(Object.entries(agentTools).filter(([name]) => name !== 'story')) as AgentTools;
-}
-
 export function appendUserGroupRestrictions(
 	systemPrompt: string,
 	restrictions: { storyCreation: boolean; automationCreation: boolean },
@@ -134,7 +127,7 @@ export function appendUserGroupRestrictions(
 	const messages: string[] = [];
 	if (restrictions.storyCreation) {
 		messages.push(
-			'Story creation through the agent is unavailable for this user in this project. Do not attempt or offer to create or modify a Story, and do not suggest Story mode. The user can still view and manage existing Stories in the app. If asked, explain that their group does not grant Story creation.',
+			'Story creation through the agent is unavailable for this user in this project. Do not attempt or offer to create a new Story, and do not suggest Story mode. You may update or replace existing Stories with the Story tool. If asked, explain that their group does not grant Story creation.',
 		);
 	}
 	if (restrictions.automationCreation) {
@@ -195,6 +188,7 @@ export async function buildToolContext(opts: {
 	agentSettings?: AgentSettings | null;
 	adminMode?: boolean;
 	supportsCustomCharts?: boolean;
+	storyCreationEnabled?: boolean;
 }): Promise<ToolContext> {
 	const base = await _buildContextBase(opts);
 	return { ...base, chatId: opts.chatId, adminMode: opts.adminMode ?? false };
@@ -214,6 +208,7 @@ async function _buildContextBase(opts: {
 	userId: string;
 	agentSettings?: AgentSettings | null;
 	supportsCustomCharts?: boolean;
+	storyCreationEnabled?: boolean;
 }): Promise<Omit<ToolContext, 'chatId'>> {
 	const project = await projectQueries.retrieveProjectById(opts.projectId);
 	if (!project.path) {
@@ -229,6 +224,7 @@ async function _buildContextBase(opts: {
 		projectFolder: project.path,
 		userId: opts.userId,
 		projectId: opts.projectId,
+		storyCreationEnabled: opts.storyCreationEnabled ?? true,
 		supportsCustomCharts: opts.supportsCustomCharts !== false,
 		agentSettings,
 		envVars,
@@ -294,9 +290,10 @@ export class AgentService {
 		const resolvedLlmSelectedModel = await this._getResolvedLlmSelectedModel(chat.projectId, modelSelection);
 		await assertBudgetNotExceeded(chat.projectId, resolvedLlmSelectedModel.provider, chat.userId);
 		const modelConfig = await this._getModelConfig(chat.projectId, resolvedLlmSelectedModel);
-		const [agentSettings, customBoundaries] = await Promise.all([
+		const [agentSettings, customBoundaries, featureFlags] = await Promise.all([
 			projectQueries.getAgentSettings(chat.projectId),
 			projectQueries.getCustomBoundaries(chat.projectId),
+			getEffectiveUserGroupFeatureFlags(chat.projectId, chat.userId),
 		]);
 		const toolContext = await this._getToolContext(
 			chat.projectId,
@@ -305,14 +302,14 @@ export class AgentService {
 			agentSettings,
 			options.adminMode,
 			options.supportsCustomCharts,
+			featureFlags['story-creation'],
 		);
 		const webTools = await this._resolveWebTools(chat.projectId, resolvedLlmSelectedModel.provider, agentSettings);
 		const resolveTools = options.tools ?? defaultAgentTools;
 		const resolvedTools = await resolveTools({ chat, agentSettings, toolContext, webTools, customBoundaries });
-		const featureFlags = await getEffectiveUserGroupFeatureFlags(chat.projectId, chat.userId);
 		const storyCreationEnabled = featureFlags['story-creation'];
 		const storyCreationRestricted = isStoryCreationRestricted(resolvedTools, storyCreationEnabled);
-		const agentTools = filterAgentToolsByUserGroupFeatures(resolvedTools, storyCreationEnabled);
+		const agentTools = resolvedTools;
 		const stopWhen: StopCondition<AgentTools>[] = options.excludeFollowUps
 			? [stepCountIs(options.maxSteps ?? 20)]
 			: chat.testMode
@@ -363,8 +360,17 @@ export class AgentService {
 		agentSettings: AgentSettings | null,
 		adminMode?: boolean,
 		supportsCustomCharts?: boolean,
+		storyCreationEnabled?: boolean,
 	): Promise<ToolContext> {
-		return buildToolContext({ projectId, userId, chatId, agentSettings, adminMode, supportsCustomCharts });
+		return buildToolContext({
+			projectId,
+			userId,
+			chatId,
+			agentSettings,
+			adminMode,
+			supportsCustomCharts,
+			storyCreationEnabled,
+		});
 	}
 
 	private _disposeAgent(chatId: string): void {

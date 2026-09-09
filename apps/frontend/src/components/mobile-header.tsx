@@ -18,9 +18,10 @@ export function MobileHeader({
 	automationId?: string;
 }) {
 	const { isMobile, openMobile } = useSidebar();
-	const { isViewer } = usePermissions();
+	const { role } = usePermissions();
 	const config = useQuery(trpc.system.getPublicConfig.queryOptions());
-	const showAutomationLink = !isViewer && config.data?.betaAutomationsEnabled === true;
+	const showAutomationLink =
+		role !== undefined && role !== 'viewer' && config.data?.betaAutomationsEnabled === true;
 
 	if (!isMobile) {
 		return null;

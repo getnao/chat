@@ -55,7 +55,8 @@ describe('MCP Story creation permission', () => {
 		registerSubAgentTools(server as never, createContext(false));
 
 		const description = server.tools.get('ask_nao')?.description;
-		expect(description).toContain('Story creation and modification are unavailable');
+		expect(description).toContain('New Story creation is unavailable');
+		expect(description).toContain('existing Stories can still be updated');
 		expect(description).not.toContain('wants a story created');
 	});
 });

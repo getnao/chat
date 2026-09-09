@@ -1,11 +1,19 @@
-import type { BackgroundModelSettings, CustomBoundarySet, MapSettings } from '@nao/shared';
+import {
+	type BackgroundModelSettings,
+	type CustomBoundarySet,
+	DEFAULT_TOOL_CALL_DENSITY_POLICY,
+	DEFAULT_USER_GROUP_NAME,
+	type MapSettings,
+	serializeUserGroupConfig,
+	USER_GROUP_FEATURES,
+} from '@nao/shared';
 import { DEFAULT_DATE_FORMAT_SETTINGS, type DisplaySettings } from '@nao/shared/date';
 import type { UpdatedAtFilter, UserRole } from '@nao/shared/types';
 import { and, asc, desc, eq, gt, gte, isNotNull, lte, or, type SQL, sql } from 'drizzle-orm';
 
 import type { AgentSettings, DBProject, DBProjectMember, NewProject, NewProjectMember } from '../db/abstractSchema';
 import s from '../db/abstractSchema';
-import { db } from '../db/db';
+import { db, type DBExecutor } from '../db/db';
 import dbConfig, { Dialect } from '../db/dbConfig';
 import { env, isCloud } from '../env';
 import type { ListProjectChatsResponse, ProjectChatsFacetKey, UserWithRole } from '../types/project';
@@ -60,10 +68,10 @@ export const setProjectMemoryEnabled = async (projectId: string, memoryEnabled: 
 	await updateAgentSettings(projectId, { memoryEnabled });
 };
 
-export const createProject = async (project: NewProject): Promise<DBProject> => {
-	const [created] = await db.insert(s.project).values(project).returning().execute();
-	return created;
-};
+export const createProject = async (project: NewProject, executor?: DBExecutor): Promise<DBProject> =>
+	executor
+		? createProjectWithDefaultGroup(project, executor)
+		: db.transaction((tx) => createProjectWithDefaultGroup(project, tx));
 
 export const getProjectMember = async (projectId: string, userId: string): Promise<DBProjectMember | null> => {
 	const [member] = await db
@@ -408,6 +416,28 @@ const lockForUpdate = <Query extends { execute(): unknown }>(query: Query): Quer
 	dbConfig.dialect === Dialect.Postgres ? (query as Query & Lockable<Query>).for('update') : query;
 
 type Lockable<Query> = { for(strength: 'update'): Query };
+
+const createProjectWithDefaultGroup = (project: NewProject, executor: DBExecutor): DBProject | Promise<DBProject> => {
+	if (dbConfig.dialect === Dialect.Postgres) {
+		return createPostgresProjectWithDefaultGroup(project, executor);
+	}
+	const [created] = executor.insert(s.project).values(project).returning().all();
+	executor.insert(s.userGroup).values(defaultUserGroupValues(created.id)).run();
+	return created;
+};
+
+const createPostgresProjectWithDefaultGroup = async (project: NewProject, executor: DBExecutor): Promise<DBProject> => {
+	const [created] = await executor.insert(s.project).values(project).returning().execute();
+	await executor.insert(s.userGroup).values(defaultUserGroupValues(created.id)).execute();
+	return created;
+};
+
+const defaultUserGroupValues = (projectId: string) => ({
+	projectId,
+	name: DEFAULT_USER_GROUP_NAME,
+	isDefault: true,
+	featureGrants: serializeUserGroupConfig(USER_GROUP_FEATURES, DEFAULT_TOOL_CALL_DENSITY_POLICY),
+});
 
 export const getEnvVars = async (projectId: string): Promise<Record<string, string>> => {
 	const project = await getProjectById(projectId);

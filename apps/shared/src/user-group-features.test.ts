@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseStoredUserGroupConfig, serializeUserGroupConfig, USER_GROUP_FEATURES } from './user-group-features';
+import {
+	DEFAULT_USER_GROUP_CONFIG,
+	parseStoredUserGroupConfig,
+	serializeUserGroupConfig,
+	USER_GROUP_FEATURES,
+} from './user-group-features';
 
 describe('user group configuration', () => {
+	it('uses canonical v2 configuration for new groups', () => {
+		expect(DEFAULT_USER_GROUP_CONFIG).toEqual({
+			version: 2,
+			features: [],
+			toolCallDensity: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
+		});
+	});
+
 	it('serializes canonical v2 configuration without compact-mode', () => {
 		expect(
 			serializeUserGroupConfig(['story-creation', 'automation-creation', 'compact-mode'], {

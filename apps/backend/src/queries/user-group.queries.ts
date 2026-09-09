@@ -17,7 +17,8 @@ import {
 	type UserWithProjectAccessDetails,
 } from './project.queries';
 
-export const DEFAULT_USER_GROUP_NAME = 'All Users';
+const USER_GROUP_NAME_CONFLICT_MESSAGE = 'A user group with this name already exists.';
+const USER_GROUP_NAME_UNIQUE_CONSTRAINT = 'user_group_project_name_unique';
 
 export interface UserGroup extends Omit<DBUserGroup, 'featureGrants'> {
 	featureGrants: UserGroupFeature[];
@@ -45,7 +46,6 @@ export class UserGroupQueryError extends Error {
 }
 
 export const getUserGroupOverview = async (projectId: string): Promise<UserGroupOverview> => {
-	await ensureDefaultUserGroup(projectId);
 	const [users, groups, storedMemberships] = await Promise.all([
 		listUsersWithProjectAccessDetails(projectId),
 		listUserGroups(projectId),
@@ -62,40 +62,10 @@ export const getUserGroupOverview = async (projectId: string): Promise<UserGroup
 	};
 };
 
-export const ensureDefaultUserGroup = async (projectId: string): Promise<UserGroup> => {
-	await db
-		.insert(s.userGroup)
-		.values({
-			projectId,
-			name: DEFAULT_USER_GROUP_NAME,
-			isDefault: true,
-			featureGrants: serializeUserGroupConfig(USER_GROUP_FEATURES, DEFAULT_TOOL_CALL_DENSITY_POLICY),
-		})
-		.onConflictDoNothing()
-		.execute();
-
-	const [group] = await db
-		.select()
-		.from(s.userGroup)
-		.where(and(eq(s.userGroup.projectId, projectId), eq(s.userGroup.isDefault, true)))
-		.limit(1)
-		.execute();
-	if (!group) {
-		throw new UserGroupQueryError('CONFLICT', 'The All Users group could not be created.');
-	}
-	return normalizeUserGroup(group);
-};
-
-export const resolveEffectiveUserGroupFeatures = async (
-	projectId: string,
-	userId: string,
-): Promise<UserGroupFeature[]> => (await resolveEffectiveUserGroupAccess(projectId, userId)).features;
-
 export const resolveEffectiveUserGroupAccess = async (
 	projectId: string,
 	userId: string,
 ): Promise<EffectiveUserGroupAccess> => {
-	await ensureDefaultUserGroup(projectId);
 	const groups = await db
 		.select({
 			id: s.userGroup.id,
@@ -162,18 +132,19 @@ export const createUserGroup = async (
 	featureGrants: UserGroupFeature[] = [],
 	toolCallDensityPolicy: ToolCallDensityPolicy = DEFAULT_TOOL_CALL_DENSITY_POLICY,
 ): Promise<UserGroup> => {
-	await ensureDefaultUserGroup(projectId);
 	await assertNameAvailable(projectId, name);
-	const [group] = await db
-		.insert(s.userGroup)
-		.values({
-			projectId,
-			name,
-			featureGrants: serializeUserGroupConfig(featureGrants, toolCallDensityPolicy),
-			isDefault: false,
-		})
-		.returning()
-		.execute();
+	const [group] = await executeUserGroupNameMutation(() =>
+		db
+			.insert(s.userGroup)
+			.values({
+				projectId,
+				name,
+				featureGrants: serializeUserGroupConfig(featureGrants, toolCallDensityPolicy),
+				isDefault: false,
+			})
+			.returning()
+			.execute(),
+	);
 	return normalizeUserGroup(group);
 };
 
@@ -194,19 +165,21 @@ export const updateUserGroup = async (
 	if (data.name !== undefined && data.name !== group.name) {
 		await assertNameAvailable(projectId, data.name, groupId);
 	}
-	const [updated] = await db
-		.update(s.userGroup)
-		.set({
-			...(data.name === undefined ? {} : { name: data.name }),
-			featureGrants: serializeUserGroupConfig(
-				data.featureGrants,
-				data.toolCallDensityPolicy ?? currentConfig.toolCallDensity,
-			),
-			updatedAt: new Date(),
-		})
-		.where(and(eq(s.userGroup.id, groupId), eq(s.userGroup.projectId, projectId)))
-		.returning()
-		.execute();
+	const [updated] = await executeUserGroupNameMutation(() =>
+		db
+			.update(s.userGroup)
+			.set({
+				...(data.name === undefined ? {} : { name: data.name }),
+				featureGrants: serializeUserGroupConfig(
+					data.featureGrants,
+					data.toolCallDensityPolicy ?? currentConfig.toolCallDensity,
+				),
+				updatedAt: new Date(),
+			})
+			.where(and(eq(s.userGroup.id, groupId), eq(s.userGroup.projectId, projectId)))
+			.returning()
+			.execute(),
+	);
 	return normalizeUserGroup(updated);
 };
 
@@ -279,9 +252,34 @@ const assertNameAvailable = async (projectId: string, name: string, excludedGrou
 		.where(and(eq(s.userGroup.projectId, projectId), eq(s.userGroup.name, name)))
 		.execute();
 	if (groups.some((group) => group.id !== excludedGroupId)) {
-		throw new UserGroupQueryError('CONFLICT', 'A user group with this name already exists.');
+		throw new UserGroupQueryError('CONFLICT', USER_GROUP_NAME_CONFLICT_MESSAGE);
 	}
 };
+
+const executeUserGroupNameMutation = async <T>(operation: () => Promise<T>): Promise<T> => {
+	try {
+		return await operation();
+	} catch (error) {
+		if (isUserGroupNameUniqueViolation(error)) {
+			throw new UserGroupQueryError('CONFLICT', USER_GROUP_NAME_CONFLICT_MESSAGE);
+		}
+		throw error;
+	}
+};
+
+function isUserGroupNameUniqueViolation(error: unknown): boolean {
+	const databaseError = error instanceof Error && error.cause ? error.cause : error;
+	if (!databaseError || typeof databaseError !== 'object') {
+		return false;
+	}
+	const { code, constraint_name: constraintName, errno, message } = databaseError as Record<string, unknown>;
+	return (
+		(code === '23505' && constraintName === USER_GROUP_NAME_UNIQUE_CONSTRAINT) ||
+		((code === 'SQLITE_CONSTRAINT_UNIQUE' || errno === 2067) &&
+			typeof message === 'string' &&
+			message.includes('UNIQUE constraint failed: user_group.project_id, user_group.name'))
+	);
+}
 
 function normalizeUserGroup(group: DBUserGroup): UserGroup {
 	const config = parseStoredUserGroupConfig(group.featureGrants);

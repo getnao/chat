@@ -14,10 +14,6 @@ export const favoriteRoutes = {
 			if (!canAccess) {
 				throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this story.' });
 			}
-			const projectId = await storyQueries.getStoryProjectId(input.id);
-			if (!projectId) {
-				throw new TRPCError({ code: 'NOT_FOUND', message: 'Story not found.' });
-			}
 		} else {
 			const folder = await storyFolderQueries.getFolderById(input.id);
 			if (!folder || (folder.visibility === 'private' && folder.ownerId !== ctx.user.id)) {

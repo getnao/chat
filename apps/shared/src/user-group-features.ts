@@ -27,6 +27,14 @@ export const DEFAULT_TOOL_CALL_DENSITY_POLICY: ToolCallDensityPolicy = {
 	canChange: true,
 };
 
+export const DEFAULT_USER_GROUP_NAME = 'All Users';
+
+export const DEFAULT_USER_GROUP_CONFIG: StoredUserGroupConfig = {
+	version: 2,
+	features: [],
+	toolCallDensity: DEFAULT_TOOL_CALL_DENSITY_POLICY,
+};
+
 export const USER_GROUP_FEATURE_DEFINITIONS: ReadonlyArray<{
 	key: UserGroupFeature;
 	label: string;

@@ -1068,7 +1068,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'[]'::jsonb"
+          "default": "'{\"version\":2,\"features\":[],\"toolCallDensity\":{\"defaultDensity\":\"detailed\",\"canChange\":true}}'::jsonb"
         }
       },
       "indexes": {

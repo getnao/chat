@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 	getQueryDataFromCode: vi.fn(),
 	getSharedStory: vi.fn(),
 	hasLicenseFeature: vi.fn(),
-	resolveEffectiveUserGroupFeatures: vi.fn(),
+	resolveEffectiveUserGroupAccess: vi.fn(),
 }));
 
 vi.mock('../src/auth', () => ({ getAuth: vi.fn() }));
@@ -38,8 +38,7 @@ vi.mock('../src/services/license.service', () => ({
 	LICENSE_FEATURES: { userGroups: 'user-groups' },
 }));
 vi.mock('../src/queries/user-group.queries', () => ({
-	resolveEffectiveUserGroupAccess: vi.fn(),
-	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
+	resolveEffectiveUserGroupAccess: mocks.resolveEffectiveUserGroupAccess,
 }));
 vi.mock('../src/services/sso-group-mapping.service', () => ({
 	isGroupRoleMappingActive: vi.fn(async () => false),
@@ -54,7 +53,13 @@ describe('chat fork Story creation permission', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mocks.hasLicenseFeature.mockResolvedValue(true);
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue([]);
+		mocks.resolveEffectiveUserGroupAccess.mockResolvedValue({
+			features: [],
+			toolCallDensityPolicy: {
+				defaultDensity: 'detailed',
+				canChange: true,
+			},
+		});
 		mocks.getSharedStory.mockResolvedValue({
 			id: 'share-id',
 			projectId: 'project-id',
@@ -94,14 +99,14 @@ describe('chat fork Story creation permission', () => {
 				selection: { start: 0, end: 5, text: 'Story' },
 			}),
 		).resolves.toEqual({ chatId: 'fork-chat-id' });
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 
 	it('opens an existing standalone Story without the creation grant', async () => {
 		await expect(createCaller().chatFork.openStandalone({ storyId: 'story-id' })).resolves.toEqual({
 			chatId: 'existing-chat-id',
 		});
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
+		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
 	});
 });
 

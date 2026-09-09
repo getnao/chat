@@ -20,7 +20,6 @@ vi.mock('../src/queries/user-group.queries', () => ({
 	deleteUserGroup: vi.fn(),
 	getUserGroupOverview: mocks.getUserGroupOverview,
 	resolveEffectiveUserGroupAccess: mocks.resolveEffectiveUserGroupAccess,
-	resolveEffectiveUserGroupFeatures: vi.fn(),
 	setUserGroupMembership: vi.fn(),
 	updateUserGroup: mocks.updateUserGroup,
 }));

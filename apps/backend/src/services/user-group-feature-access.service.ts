@@ -5,7 +5,7 @@ import {
 	type UserGroupFeature,
 } from '@nao/shared';
 
-import { resolveEffectiveUserGroupAccess, resolveEffectiveUserGroupFeatures } from '../queries/user-group.queries';
+import { resolveEffectiveUserGroupAccess } from '../queries/user-group.queries';
 import { HandlerError } from '../utils/error';
 import { hasFeature, LICENSE_FEATURES } from './license.service';
 
@@ -21,13 +21,6 @@ export class UserGroupFeatureAccessError extends HandlerError {
 		super('FORBIDDEN', `${featureLabel(feature)} is not enabled for your user group.`);
 		this.name = 'UserGroupFeatureAccessError';
 	}
-}
-
-export async function getEffectiveUserGroupFeatures(projectId: string, userId: string): Promise<UserGroupFeature[]> {
-	if (!(await hasFeature(LICENSE_FEATURES.userGroups))) {
-		return [...USER_GROUP_FEATURES];
-	}
-	return resolveEffectiveUserGroupFeatures(projectId, userId);
 }
 
 export async function getEffectiveUserGroupAccess(
@@ -59,8 +52,7 @@ export async function hasUserGroupFeature(
 	userId: string,
 	feature: UserGroupFeature,
 ): Promise<boolean> {
-	const effectiveFeatures = await getEffectiveUserGroupFeatures(projectId, userId);
-	return effectiveFeatures.includes(feature);
+	return (await getEffectiveUserGroupFeatureFlags(projectId, userId))[feature];
 }
 
 export async function assertUserGroupFeature(

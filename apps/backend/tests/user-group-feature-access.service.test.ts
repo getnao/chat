@@ -3,12 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
 	hasFeature: vi.fn(),
 	resolveEffectiveUserGroupAccess: vi.fn(),
-	resolveEffectiveUserGroupFeatures: vi.fn(),
 }));
 
 vi.mock('../src/queries/user-group.queries', () => ({
 	resolveEffectiveUserGroupAccess: mocks.resolveEffectiveUserGroupAccess,
-	resolveEffectiveUserGroupFeatures: mocks.resolveEffectiveUserGroupFeatures,
 }));
 vi.mock('../src/services/license.service', () => ({
 	hasFeature: mocks.hasFeature,
@@ -19,7 +17,6 @@ import {
 	assertUserGroupFeature,
 	getEffectiveUserGroupAccess,
 	getEffectiveUserGroupFeatureFlags,
-	getEffectiveUserGroupFeatures,
 	hasUserGroupFeature,
 } from '../src/services/user-group-feature-access.service';
 
@@ -27,7 +24,6 @@ describe('user group feature access service', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mocks.hasFeature.mockResolvedValue(true);
-		mocks.resolveEffectiveUserGroupFeatures.mockResolvedValue(['story-creation']);
 		mocks.resolveEffectiveUserGroupAccess.mockResolvedValue({
 			features: ['story-creation'],
 			toolCallDensityPolicy: {
@@ -40,10 +36,6 @@ describe('user group feature access service', () => {
 	it('fails open without querying groups when user groups are unlicensed', async () => {
 		mocks.hasFeature.mockResolvedValue(false);
 
-		await expect(getEffectiveUserGroupFeatures('project-id', 'user-id')).resolves.toEqual([
-			'story-creation',
-			'automation-creation',
-		]);
 		await expect(getEffectiveUserGroupAccess('project-id', 'user-id')).resolves.toEqual({
 			features: {
 				'story-creation': true,
@@ -54,8 +46,8 @@ describe('user group feature access service', () => {
 				canChange: true,
 			},
 		});
+		await expect(hasUserGroupFeature('project-id', 'user-id', 'story-creation')).resolves.toBe(true);
 		expect(mocks.resolveEffectiveUserGroupAccess).not.toHaveBeenCalled();
-		expect(mocks.resolveEffectiveUserGroupFeatures).not.toHaveBeenCalled();
 	});
 
 	it('returns typed flags for licensed effective grants', async () => {

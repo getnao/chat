@@ -68,10 +68,10 @@ export function useStoryCopy({
 				Uint8Array.from(atob(result.data), (character) => character.charCodeAt(0)),
 			);
 			await writeMarkdownToClipboard(markdown);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Copy failed';
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Copy failed';
 			setError(message);
-			console.error('Story copy failed:', error);
+			console.error('Story copy failed:', err);
 		} finally {
 			setIsCopying(false);
 		}

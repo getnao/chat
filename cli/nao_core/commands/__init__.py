@@ -4,6 +4,7 @@ from nao_core.commands.deploy import deploy
 from nao_core.commands.docs import docs
 from nao_core.commands.init import init
 from nao_core.commands.migrate import migrate
+from nao_core.commands.metabase import metabase
 from nao_core.commands.reset_password import reset_password
 from nao_core.commands.skills import skills
 from nao_core.commands.sync import sync
@@ -17,6 +18,7 @@ __all__ = [
     "docs",
     "init",
     "migrate",
+    "metabase",
     "reset_password",
     "skills",
     "sync",

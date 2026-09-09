@@ -185,6 +185,20 @@ Syncs configured resources to local files:
 
 After syncing, any Jinja templates (`*.j2` files) in the project directory are rendered with the nao context.
 
+### Export a Metabase dashboard for migration
+
+Set read-only Metabase credentials, then export the dashboard into a portable manifest:
+
+```bash
+export METABASE_URL=https://metabase.example.com
+export METABASE_API_KEY=...
+nao metabase dashboard 42 --output metabase-dashboard.json
+```
+
+The manifest includes source tabs, filters and their card mappings, full card definitions (native SQL or MBQL), visualization settings, and text cards. Give it to an agent using the `migrate-metabase-dashboard` skill, which creates and verifies the nao story through the nao MCP story tools. The exporter only makes read requests to Metabase and never writes credentials to the manifest.
+
+Use `nao metabase collections`, `nao metabase dashboards`, or `nao metabase card <id>` to inspect individual source assets.
+
 Optional `ai_summary` generation:
 
 - Add `ai_summary` to a database connection `templates` list to render `ai_summary.md`.

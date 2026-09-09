@@ -1,4 +1,3 @@
-import type { LlmSelectedModel } from '@nao/shared/types';
 import type { ModelMessage } from 'ai';
 import { describe, expect, it } from 'vitest';
 
@@ -41,21 +40,10 @@ const responseMessages: ModelMessage[] = [
 	{ role: 'assistant', content: 'Revenue is 42.' },
 ];
 
-const geminiTurnSequenceModels = [
-	{ provider: 'google', modelId: 'gemini-2.5-flash' },
-	{ provider: 'vertex', modelId: 'gemini-3-flash-preview' },
-] satisfies LlmSelectedModel[];
-
-const otherMessageSequenceModels = [
-	{ provider: 'vertex', modelId: 'claude-sonnet-4-6' },
-	{ provider: 'openrouter', modelId: 'google/gemini-2.5-flash' },
-	{ provider: 'openaiCompatible/custom', modelId: 'gemini-2.5-flash' },
-] satisfies LlmSelectedModel[];
-
 describe('buildVerificationMessages', () => {
-	it.each(geminiTurnSequenceModels)('restores the original user turn for $provider/$modelId', (modelSelection) => {
+	it('restores the original user turn for the Google message format', () => {
 		const messages = buildVerificationMessages(
-			modelSelection,
+			'google',
 			'What is the revenue?',
 			responseMessages,
 			['revenue'],
@@ -69,20 +57,17 @@ describe('buildVerificationMessages', () => {
 		});
 	});
 
-	it.each(otherMessageSequenceModels)(
-		'keeps the existing message sequence for $provider/$modelId',
-		(modelSelection) => {
-			const messages = buildVerificationMessages(
-				modelSelection,
-				'What is the revenue?',
-				responseMessages,
-				['revenue'],
-				queryResults,
-			);
+	it('keeps the existing message sequence for the default format', () => {
+		const messages = buildVerificationMessages(
+			'default',
+			'What is the revenue?',
+			responseMessages,
+			['revenue'],
+			queryResults,
+		);
 
-			expect(messages.slice(0, -1)).toEqual(responseMessages);
-			expect(messages).toHaveLength(responseMessages.length + 1);
-			expect(messages.at(-1)).toMatchObject({ role: 'user' });
-		},
-	);
+		expect(messages.slice(0, -1)).toEqual(responseMessages);
+		expect(messages).toHaveLength(responseMessages.length + 1);
+		expect(messages.at(-1)).toMatchObject({ role: 'user' });
+	});
 });

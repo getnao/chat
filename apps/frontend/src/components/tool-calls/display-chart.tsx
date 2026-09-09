@@ -251,6 +251,7 @@ export const DisplayChartToolCall = ({ toolPart }: ToolCallComponentProps<'displ
 	};
 
 	const isKpiChartView = viewMode === 'chart' && chartConfig.chart_type === 'kpi_card';
+	const isPieChartView = viewMode === 'chart' && displayChart.isPieChart(chartConfig.chart_type);
 
 	return (
 		<div
@@ -266,8 +267,14 @@ export const DisplayChartToolCall = ({ toolPart }: ToolCallComponentProps<'displ
 			<div
 				className={cn(
 					'flex items-center py-2',
-					isKpiChartView ? 'absolute top-0 right-0 z-10 gap-1 px-3' : 'w-full justify-between',
-					!isKpiChartView && (viewMode === 'chart' ? 'gap-2' : 'gap-0 px-3 border-b border-border'),
+					isKpiChartView
+						? 'absolute top-0 right-0 z-10 gap-1 px-3'
+						: isPieChartView
+							? 'absolute inset-x-0 top-0 z-10 w-full justify-between gap-2 px-3'
+							: 'w-full justify-between',
+					!isKpiChartView &&
+						!isPieChartView &&
+						(viewMode === 'chart' ? 'gap-2' : 'gap-0 px-3 border-b border-border'),
 				)}
 			>
 				{chartConfig.chart_type != 'kpi_card' ? (
@@ -417,6 +424,7 @@ export const DisplayChartToolCall = ({ toolPart }: ToolCallComponentProps<'displ
 					comparisonMode={'comparison_mode' in chartConfig ? chartConfig.comparison_mode : undefined}
 					hideTotal={chartConfig.hide_total}
 					className={displayChart.isPieChart(chartConfig.chart_type) ? 'flex-1 justify-center' : undefined}
+					chartContentClassName={displayChart.isPieChart(chartConfig.chart_type) ? 'aspect-4/3' : undefined}
 				/>
 			)}
 		</div>

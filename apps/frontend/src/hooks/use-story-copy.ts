@@ -77,7 +77,7 @@ export function useStoryCopy({
 		}
 	}, [canCopy, isCopying, isOwner, storyId, chatId, storySlug, shareId, shareType, versionNumber]);
 
-	return { copyStory, isCopying, canCopy };
+	return { copyStory, isCopying, canCopy, error };
 }
 
 async function writeMarkdownToClipboard(markdown: string): Promise<void> {

@@ -123,7 +123,7 @@ export function StoryPageHeader({
 		'toggle-story-chat': onOpenChat && !isOpeningChat ? onOpenChat : undefined,
 	});
 
-	const { canCopy, copyStory, isCopying } = useStoryCopy(download ?? { isOwner: false });
+	const { canCopy, copyStory, isCopying, error: copyError } = useStoryCopy(download ?? { isOwner: false });
 	const showCopy = !!download && canCopy;
 	return (
 		<div className='shrink-0'>
@@ -222,6 +222,11 @@ export function StoryPageHeader({
 				</div>
 			</header>
 
+			{copyError && (
+				<p role='alert' className='border-b bg-destructive/10 px-4 py-2 text-xs text-destructive'>
+					{copyError}
+				</p>
+			)}
 			{live?.lastRefreshFailure && <StoryRefreshFailureBanner failure={live.lastRefreshFailure} />}
 			<StorySubHeader viewModeControls={viewModeControls} versionControls={versionControls} />
 		</div>

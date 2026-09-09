@@ -142,7 +142,12 @@ export const StoryHeader = memo(function StoryHeader({
 		...trpc.story.listStories.queryOptions({ chatId }),
 		enabled: !isReadonlyMode,
 	});
-	const { canCopy, copyStory, isCopying } = useStoryCopy({
+	const {
+		canCopy,
+		copyStory,
+		isCopying,
+		error: copyError,
+	} = useStoryCopy({
 		chatId,
 		storySlug,
 		shareId: shareId ?? undefined,
@@ -441,6 +446,11 @@ export const StoryHeader = memo(function StoryHeader({
 				</div>
 			)}
 
+			{copyError && (
+				<p role='alert' className='border-b bg-destructive/10 px-4 py-2 text-xs text-destructive'>
+					{copyError}
+				</p>
+			)}
 			{lastRefreshFailure && <StoryRefreshFailureBanner failure={lastRefreshFailure} />}
 			{showSubHeader && (
 				<div className='flex items-center justify-between border-b bg-muted/40 px-4 py-2'>

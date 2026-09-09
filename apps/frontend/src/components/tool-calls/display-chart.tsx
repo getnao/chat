@@ -1,4 +1,4 @@
-import { buildChart, bucketPieData, buildStoryChartBlock, labelize, resolveDataKey } from '@nao/shared';
+import { buildChart, bucketPieData, buildStoryChartBlock, DEFAULT_COLORS, labelize, resolveDataKey } from '@nao/shared';
 import { appendBlockToStoryCode } from '@nao/shared/story-tabs';
 import { displayChart } from '@nao/shared/tools';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -51,9 +51,8 @@ import { cn } from '@/lib/utils';
 import { ExportDataMenu } from '@/components/export-data-menu';
 import { useSourceQuery } from '@/hooks/use-source-query';
 
-const Colors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+const Colors = DEFAULT_COLORS.map((_, index) => `var(--chart-${index + 1})`);
 const LEGEND_SCROLL_OFFSET = 120;
-const PIE_LEGEND_BREAKPOINT = 280;
 const HORIZONTAL_LABEL_GAP = 12;
 const DIAGONAL_LABEL_GAP = 8;
 const CHAR_WIDTH_RATIO = 0.6;
@@ -417,6 +416,7 @@ export const DisplayChartToolCall = ({ toolPart }: ToolCallComponentProps<'displ
 					showDataLabels={chartConfig.show_data_labels}
 					comparisonMode={'comparison_mode' in chartConfig ? chartConfig.comparison_mode : undefined}
 					hideTotal={chartConfig.hide_total}
+					className={displayChart.isPieChart(chartConfig.chart_type) ? 'flex-1 justify-center' : undefined}
 				/>
 			)}
 		</div>
@@ -508,8 +508,7 @@ export const ChartDisplay = memo(function ChartDisplay({
 	const isPercentStacked = displayChart.isPercentStackedChartType(chartType);
 
 	const isPie = displayChart.isPieChart(chartType);
-	const compactPieLegend = isPie && width > 0 && width < PIE_LEGEND_BREAKPOINT;
-	const pieCenteringClass = isPie && !compactPieLegend ? 'mx-auto max-w-[480px]' : '';
+	const pieCenteringClass = isPie ? 'mx-auto max-w-[480px]' : '';
 	const pieValueKey = series[0]?.data_key ?? '';
 	const pieData = useMemo(
 		() => (isPie ? bucketPieData(data, xAxisKey, pieValueKey) : data),
@@ -684,13 +683,12 @@ export const ChartDisplay = memo(function ChartDisplay({
 						<ChartLegend
 							key='legend'
 							payload={legendPayload}
-							layout={isPie && !compactPieLegend ? 'vertical' : 'horizontal'}
-							align={isPie && !compactPieLegend ? 'right' : 'center'}
-							verticalAlign={isPie && !compactPieLegend ? 'middle' : 'bottom'}
+							layout='horizontal'
+							align='center'
+							verticalAlign='bottom'
 							content={
 								<ChartLegendContent
-									layout={isPie && !compactPieLegend ? 'vertical' : 'horizontal'}
-									className={compactPieLegend ? 'flex-wrap' : undefined}
+									className={isPie ? 'flex-wrap' : undefined}
 									onItemClick={isPie ? undefined : handleToggleSeriesVisibility}
 								/>
 							}
@@ -704,7 +702,6 @@ export const ChartDisplay = memo(function ChartDisplay({
 			pieData,
 			chartType,
 			isPie,
-			compactPieLegend,
 			compactXAxis,
 			compactXAxisInterval,
 			xAxisTickFontSize,

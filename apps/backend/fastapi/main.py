@@ -1,16 +1,18 @@
 import math
 import os
+import secrets
 import sys
 from contextlib import asynccontextmanager
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Annotated
 
 import numpy as np
 import pandas as pd
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -20,6 +22,10 @@ cli_path = Path(__file__).resolve().parent.parent.parent.parent / "cli"
 sys.path.insert(0, str(cli_path))
 
 from nao_core.config import NaoConfig, NaoConfigError
+from nao_core.config.databases.column_access import (
+    ColumnAccessError,
+    validate_column_access,
+)
 from nao_core.context import get_context_provider
 
 port = int(os.environ.get("PORT", 8005))
@@ -97,6 +103,7 @@ class ExecuteSQLRequest(BaseModel):
     database_id: str | None = None
     env_vars: dict[str, str] | None = None
     azure_access_token: str | None = None
+    enforce_excluded_columns: bool = False
 
 
 class ExecuteSQLResponse(BaseModel):
@@ -104,12 +111,6 @@ class ExecuteSQLResponse(BaseModel):
     row_count: int
     columns: list[str]
     dialect: str | None = None
-
-
-class RefreshResponse(BaseModel):
-    status: str
-    updated: bool
-    message: str
 
 
 class HealthResponse(BaseModel):
@@ -161,6 +162,20 @@ def _convert_value(v: object):
     return v
 
 
+def require_internal_secret(
+    provided: Annotated[str | None, Header(alias="X-Nao-Internal-Secret")] = None,
+):
+    """Only the nao backend, which shares BETTER_AUTH_SECRET, may call internal routes."""
+    expected = os.environ.get("BETTER_AUTH_SECRET")
+    if not expected:
+        raise HTTPException(status_code=503, detail="BETTER_AUTH_SECRET is not configured")
+    if provided is None or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid internal secret")
+
+
+internal_only = [Depends(require_internal_secret)]
+
+
 # =============================================================================
 # API Endpoints
 # =============================================================================
@@ -187,39 +202,7 @@ async def health_check():
         )
 
 
-@app.post("/api/refresh", response_model=RefreshResponse)
-async def refresh_context():
-    """Trigger a context refresh (git pull if using git source).
-
-    This endpoint can be called by:
-    - CI/CD pipelines after pushing new context
-    - Webhooks when data schemas change
-    - Manual triggers for immediate updates
-    """
-    try:
-        provider = get_context_provider()
-        updated = provider.refresh()
-
-        if updated:
-            return RefreshResponse(
-                status="ok",
-                updated=True,
-                message="Context updated successfully",
-            )
-        else:
-            return RefreshResponse(
-                status="ok",
-                updated=False,
-                message="Context already up-to-date",
-            )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to refresh context: {str(e)}",
-        )
-
-
-@app.post("/execute_sql", response_model=ExecuteSQLResponse)
+@app.post("/execute_sql", response_model=ExecuteSQLResponse, dependencies=internal_only)
 async def execute_sql(request: ExecuteSQLRequest):
     try:
         project_path = Path(request.nao_project_folder)
@@ -263,22 +246,31 @@ async def execute_sql(request: ExecuteSQLRequest):
             )
 
         auth_mode_value = getattr(getattr(db_config, "auth_mode", None), "value", None)
+        is_azure_entra_id = auth_mode_value == "azure_entra_id"
 
-        if auth_mode_value == "azure_entra_id":
-            if not request.azure_access_token:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "azure_access_token is required when the database auth_mode is "
-                        "'azure_entra_id'. Runtime queries must use the end user's access "
-                        "token; any configured user/password is only used by nao sync."
-                    ),
-                )
-            df = db_config.execute_sql_with_token(
-                request.sql, request.azure_access_token
+        if is_azure_entra_id and not request.azure_access_token:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "azure_access_token is required when the database auth_mode is "
+                    "'azure_entra_id'. Runtime queries must use the end user's access "
+                    "token; any configured user/password is only used by nao sync."
+                ),
             )
+
+        try:
+            validated_sql = request.sql
+            if request.enforce_excluded_columns and db_config.exclude_columns:
+                validated_sql = validate_column_access(
+                    request.sql, db_config, project_path
+                )
+        except ColumnAccessError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        if is_azure_entra_id:
+            df = db_config.execute_sql_with_token(validated_sql, request.azure_access_token)
         else:
-            df = db_config.execute_sql(request.sql)
+            df = db_config.execute_sql(validated_sql)
 
         data = [
             {k: _convert_value(v) for k, v in row.items()}
@@ -300,4 +292,4 @@ async def execute_sql(request: ExecuteSQLRequest):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)

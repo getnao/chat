@@ -28,6 +28,7 @@ interface StoryTabbedEditorProps {
 	code: string;
 	editorRef: MutableRefObject<TiptapEditor | null>;
 	onSave?: () => void;
+	onChange?: (code: string) => void;
 	getCodeRef: MutableRefObject<(() => string) | null>;
 	barContentClassName?: string;
 	contentClassName?: string;
@@ -37,6 +38,7 @@ export function StoryTabbedEditor({
 	code,
 	editorRef,
 	onSave,
+	onChange,
 	getCodeRef,
 	barContentClassName,
 	contentClassName,
@@ -49,31 +51,43 @@ export function StoryTabbedEditor({
 	const activeRef = useRef(active);
 	const pendingMovedSelectionRef = useRef<{ destinationBlockOffset: number; tabIndex: number } | null>(null);
 	const editorDragControlsRef = useRef<StoryEditorDragControls | null>(null);
+	const onChangeRef = useRef(onChange);
 
 	bufferRef.current = bufferCode;
 	activeRef.current = active;
+	onChangeRef.current = onChange;
 
 	useEffect(() => {
 		pendingMovedSelectionRef.current = null;
+		bufferRef.current = code;
 		setBufferCode(code);
 	}, [code]);
 
 	useEffect(() => {
-		getCodeRef.current = () => {
-			const currentCode = bufferRef.current;
-			const currentActive = activeRef.current;
-			const editor = editorRef.current;
-			const parsed = parseStoryTabs(currentCode);
-			const inner = editor ? getEditorMarkdown(editor) : (parsed?.[currentActive]?.innerCode ?? '');
-			if (!parsed?.length) {
-				return inner;
-			}
-			return replaceStoryTabInner(currentCode, currentActive, inner);
-		};
+		getCodeRef.current = () => bufferRef.current;
 		return () => {
 			getCodeRef.current = null;
 		};
-	}, [editorRef, getCodeRef]);
+	}, [getCodeRef]);
+
+	const updateBuffer = useCallback((nextCode: string) => {
+		bufferRef.current = nextCode;
+		setBufferCode(nextCode);
+		onChangeRef.current?.(nextCode);
+	}, []);
+
+	const getCurrentBuffer = useCallback(() => {
+		const currentCode = bufferRef.current;
+		const editor = editorRef.current;
+		const currentTabs = parseStoryTabs(currentCode);
+		if (!editor || !currentTabs?.[activeRef.current]) {
+			return currentCode;
+		}
+		const editorMarkdown = getEditorMarkdown(editor);
+		return currentTabs[activeRef.current].innerCode === editorMarkdown
+			? currentCode
+			: replaceStoryTabInner(currentCode, activeRef.current, editorMarkdown);
+	}, [editorRef]);
 
 	const handleSelect = useCallback(
 		(nextIndex: number) => {
@@ -82,17 +96,27 @@ export function StoryTabbedEditor({
 			if (editor) {
 				editor.view.dispatch(editor.state.tr.setMeta(blockSelectionPluginKey, emptySelection()));
 			}
-			const spliced = editor ? replaceStoryTabInner(bufferCode, active, getEditorMarkdown(editor)) : bufferCode;
-			setBufferCode(spliced);
+			const currentCode = getCurrentBuffer();
+			if (currentCode !== bufferRef.current) {
+				updateBuffer(currentCode);
+			}
 			setActiveIndex(nextIndex);
 		},
-		[active, bufferCode, editorRef],
+		[editorRef, getCurrentBuffer, updateBuffer],
 	);
 
-	const spliceCurrent = () => {
-		const editor = editorRef.current;
-		return editor ? replaceStoryTabInner(bufferCode, active, getEditorMarkdown(editor)) : bufferCode;
-	};
+	const handleEditorChange = useCallback(
+		(innerCode: string) => {
+			const currentCode = bufferRef.current;
+			const parsed = parseStoryTabs(currentCode);
+			const nextCode = parsed?.length
+				? replaceStoryTabInner(currentCode, activeRef.current, innerCode)
+				: innerCode;
+			updateBuffer(nextCode);
+		},
+		[updateBuffer],
+	);
+
 	const handleMoveSelection = useCallback(
 		(origin: DragOrigin, destinationTabIndex: number) => {
 			const currentCode = bufferRef.current;
@@ -129,10 +153,10 @@ export function StoryTabbedEditor({
 				destinationBlockOffset,
 				tabIndex: destinationTabIndex,
 			};
-			setBufferCode(movedCode);
+			updateBuffer(movedCode);
 			setActiveIndex(destinationTabIndex);
 		},
-		[editorRef],
+		[editorRef, updateBuffer],
 	);
 	const selectionActions = useMemo(
 		() => ({
@@ -195,6 +219,7 @@ export function StoryTabbedEditor({
 					editorRef={editorRef}
 					onSave={onSave}
 					onDragControlsChange={handleDragControlsChange}
+					onChange={handleEditorChange}
 				/>
 			</StoryEditorSelectionActionsProvider>
 		);
@@ -214,17 +239,16 @@ export function StoryTabbedEditor({
 							onTargetActivate: deactivateEditorDropTargets,
 						}}
 						editable={{
-							onRename: (index, title) => setBufferCode(renameStoryTab(spliceCurrent(), index, title)),
+							onRename: (index, title) => updateBuffer(renameStoryTab(getCurrentBuffer(), index, title)),
 							onDelete: (index) => {
-								const spliced = spliceCurrent();
+								const currentCode = getCurrentBuffer();
 								setActiveIndex((current) =>
 									Math.max(0, current > index ? current - 1 : Math.min(current, tabs.length - 2)),
 								);
-								setBufferCode(deleteStoryTab(spliced, index));
+								updateBuffer(deleteStoryTab(currentCode, index));
 							},
 							onMove: (fromIndex, toIndex) => {
-								const spliced = spliceCurrent();
-								setBufferCode(moveStoryTab(spliced, fromIndex, toIndex));
+								updateBuffer(moveStoryTab(getCurrentBuffer(), fromIndex, toIndex));
 								setActiveIndex((current) => {
 									if (current === fromIndex) {
 										return toIndex;
@@ -237,8 +261,7 @@ export function StoryTabbedEditor({
 								});
 							},
 							onAdd: () => {
-								const spliced = spliceCurrent();
-								setBufferCode(addStoryTab(spliced));
+								updateBuffer(addStoryTab(getCurrentBuffer()));
 								setActiveIndex(tabs.length);
 							},
 						}}
@@ -250,6 +273,7 @@ export function StoryTabbedEditor({
 						editorRef={editorRef}
 						onSave={onSave}
 						onDragControlsChange={handleDragControlsChange}
+						onChange={handleEditorChange}
 					/>
 				</div>
 			</div>

@@ -22,6 +22,7 @@ import {
 	preprocessForEditor,
 	removeCardFromOrigin,
 } from '../story-editor-utils';
+import { shouldSyncStoryEditorContent } from './story-editor-content-sync';
 import type { GridDragSource, StoryBlockDragSource, StoryEditorDragControls } from '../story-editor-drag-context';
 import type { DragUnit, GridColumnRef } from '../story-block-selection';
 import type { Node as PMNode } from '@tiptap/pm/model';
@@ -34,6 +35,7 @@ interface UseStoryEditorParams {
 	editorRef: MutableRefObject<Editor | null>;
 	onSave?: () => void;
 	onDragControlsChange?: (controls: StoryEditorDragControls | null) => void;
+	onChange?: (code: string) => void;
 }
 
 /**
@@ -41,9 +43,18 @@ interface UseStoryEditorParams {
  * block extensions, the save shortcut, and the drag-and-drop handlers that move
  * story blocks and grid columns around the document.
  */
-export function useStoryEditor({ code, editorRef, onSave, onDragControlsChange }: UseStoryEditorParams) {
+export function useStoryEditor({
+	code,
+	editorRef,
+	onSave,
+	onDragControlsChange,
+	onChange,
+}: UseStoryEditorParams) {
 	const processedContent = useMemo(() => preprocessForEditor(code), [code]);
 	const onSaveRef = useRef(onSave);
+	const onDragControlsChangeRef = useRef(onDragControlsChange);
+	const onChangeRef = useRef(onChange);
+	const lastEmittedMarkdownRef = useRef<string | null>(null);
 	const gridDragSourceRef = useRef<GridDragSource | null>(null);
 	const storyBlockSourceRef = useRef<StoryBlockDragSource | null>(null);
 	const multiSelectionDragRef = useRef<DragUnit[] | null>(null);
@@ -102,6 +113,8 @@ export function useStoryEditor({ code, editorRef, onSave, onDragControlsChange }
 		}
 	}, []);
 	onSaveRef.current = onSave;
+	onDragControlsChangeRef.current = onDragControlsChange;
+	onChangeRef.current = onChange;
 
 	const extensions = useMemo(
 		() => [
@@ -281,11 +294,12 @@ export function useStoryEditor({ code, editorRef, onSave, onDragControlsChange }
 	}, [editor]);
 
 	useEffect(() => {
-		if (!onDragControlsChange) {
+		const handleDragControlsChange = onDragControlsChangeRef.current;
+		if (!handleDragControlsChange) {
 			return;
 		}
-		onDragControlsChange({ deactivateDropTargets });
-		return () => onDragControlsChange(null);
+		handleDragControlsChange({ deactivateDropTargets });
+		return () => handleDragControlsChange(null);
 	}, [deactivateDropTargets, onDragControlsChange]);
 
 	useEffect(() => {
@@ -469,9 +483,32 @@ export function useStoryEditor({ code, editorRef, onSave, onDragControlsChange }
 		if (!editor) {
 			return;
 		}
-		if (editor.getMarkdown() === code) {
+		const handleUpdate = () => {
+			const markdown = editor.getMarkdown();
+			lastEmittedMarkdownRef.current = markdown;
+			onChangeRef.current?.(markdown);
+		};
+		editor.on('update', handleUpdate);
+		return () => {
+			editor.off('update', handleUpdate);
+		};
+	}, [editor]);
+
+	useEffect(() => {
+		if (!editor) {
 			return;
 		}
+		if (
+			!shouldSyncStoryEditorContent({
+				editorMarkdown: editor.getMarkdown(),
+				incomingCode: code,
+				lastEmittedMarkdown: lastEmittedMarkdownRef.current,
+			})
+		) {
+			lastEmittedMarkdownRef.current = null;
+			return;
+		}
+		lastEmittedMarkdownRef.current = null;
 		editor.commands.setContent(processedContent, { emitUpdate: false, contentType: 'markdown' });
 	}, [editor, code, processedContent]);
 

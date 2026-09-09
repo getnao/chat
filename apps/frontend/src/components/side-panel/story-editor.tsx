@@ -17,6 +17,7 @@ interface StoryEditorProps {
 	editorRef: React.MutableRefObject<Editor | null>;
 	onSave?: () => void;
 	onDragControlsChange?: (controls: StoryEditorDragControls | null) => void;
+	onChange?: (code: string) => void;
 }
 
 export const StoryEditor = memo(function StoryEditor({
@@ -24,6 +25,7 @@ export const StoryEditor = memo(function StoryEditor({
 	editorRef,
 	onSave,
 	onDragControlsChange,
+	onChange,
 }: StoryEditorProps) {
 	const {
 		editor,
@@ -37,7 +39,7 @@ export const StoryEditor = memo(function StoryEditor({
 		onElementDragStart,
 		onElementDragEnd,
 		getDragHandleOrigin,
-	} = useStoryEditor({ code, editorRef, onSave, onDragControlsChange });
+	} = useStoryEditor({ code, editorRef, onSave, onDragControlsChange, onChange });
 
 	const hideFloatingHandle =
 		handleNodeType === 'gridBlock' ||

@@ -8,6 +8,7 @@ import { NEW_CHAT_ID } from '@/lib/ai';
 import { StoryOpenButton } from '@/components/story-open-button';
 import { StoryViewer } from '@/components/side-panel/story-viewer';
 import { DEFAULT_USAGE_SEARCH } from '@/components/settings/usage-route-search';
+import { ChatAccessError } from '@/components/chat-access-error';
 import { ChatInput } from '@/components/chat-input';
 import { ChatMessages } from '@/components/chat-messages/chat-messages';
 import { HighlightBubble } from '@/components/highlight-bubble';
@@ -31,7 +32,7 @@ import { chatPendingCitationStore } from '@/stores/chat-pending-citation';
 import { useSetChatInputCallback } from '@/contexts/set-chat-input-callback';
 import { useTrackViewDuration } from '@/hooks/use-track-view-duration';
 import { getTextOffset } from '@/lib/selection-dom.utils';
-import { isForbiddenError } from '@/lib/trpc-error';
+import { isForbiddenError, shouldShowChatAccessError } from '@/lib/trpc-error';
 
 export const Route = createFileRoute('/_sidebar-layout/_chat-layout/$chatId')({
 	component: RouteComponent,
@@ -64,6 +65,7 @@ function ChatPage() {
 	const title = chat.data?.title;
 
 	const isForbidden = chat.isError && isForbiddenError(chat.error);
+	const shouldShowChatError = shouldShowChatAccessError(chat);
 	const shouldRedirectToReplay = isForbidden && canViewChatReplay;
 	const isResolvingReplayRedirect = isForbidden && role === undefined;
 
@@ -80,7 +82,7 @@ function ChatPage() {
 
 	const shareQuery = useQuery({
 		...trpc.sharedChat.getShareOptionsByChatId.queryOptions({ chatId }),
-		enabled: chat.isSuccess,
+		enabled: !!chat.data && !shouldShowChatError,
 	});
 	const isShared = !!shareQuery.data?.shareId;
 	const projects = useQuery(trpc.project.listForCurrentUser.queryOptions());
@@ -117,7 +119,7 @@ function ChatPage() {
 
 	useEffect(() => {
 		const openStorySlug = router.state.location.state.openStorySlug;
-		if (chat.isError || !openStorySlug || isLoadingMessages) {
+		if (shouldShowChatError || !openStorySlug || isLoadingMessages) {
 			return;
 		}
 
@@ -130,13 +132,13 @@ function ChatPage() {
 			});
 		});
 		return () => clearTimeout(timer);
-	}, [chat.isError, isLoadingMessages]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [shouldShowChatError, isLoadingMessages]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	if (chat.isError) {
+	if (shouldShowChatError) {
 		if (shouldRedirectToReplay || isResolvingReplayRedirect) {
 			return null;
 		}
-		return <ChatNotFoundState />;
+		return <ChatAccessError error={chat.error} onRetry={() => chat.refetch()} chatId={chatId} />;
 	}
 
 	return (
@@ -289,27 +291,6 @@ function ChatPage() {
 				chatId={chatId}
 			/>
 		</SidePanelProvider>
-	);
-}
-
-function ChatNotFoundState() {
-	return (
-		<div className='flex h-full flex-1 flex-col min-w-0 overflow-hidden justify-center bg-panel'>
-			<MobileHeader />
-			<div className='flex flex-1 items-center justify-center p-6'>
-				<div className='flex max-w-sm flex-col items-center gap-4 text-center'>
-					<div className='space-y-2'>
-						<h1 className='text-lg font-medium tracking-tight'>Chat not found</h1>
-						<p className='text-sm text-muted-foreground'>
-							This chat may have been deleted, moved, or you may not have access to it.
-						</p>
-					</div>
-					<Button asChild variant='secondary'>
-						<Link to='/'>Start a new chat</Link>
-					</Button>
-				</div>
-			</div>
-		</div>
 	);
 }
 

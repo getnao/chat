@@ -39,12 +39,6 @@ vi.mock('@/contexts/story-embed-data', () => ({
 
 describe('expanded story page editor layout', () => {
 	it('gives tabbed edit content the full available page width', () => {
-		const editor = {
-			viewMode: 'edit',
-			tiptapEditorRef: createRef<Editor>(),
-			tabbedEditCodeRef: createRef<() => string>(),
-			handleSave: vi.fn(),
-		} as unknown as ReturnType<typeof useStoryPageEditor>;
 		const code = [
 			'<tab title="Overview">',
 			'# Fulfillment and Payments',
@@ -53,8 +47,15 @@ describe('expanded story page editor layout', () => {
 			'# Trends',
 			'</tab>',
 		].join('\n');
+		const editor = {
+			viewMode: 'edit',
+			editCode: code,
+			tiptapEditorRef: createRef<Editor>(),
+			tabbedEditCodeRef: createRef<() => string>(),
+			handleSave: vi.fn(),
+		} as unknown as ReturnType<typeof useStoryPageEditor>;
 
-		render(<StoryPageBody code={code} editor={editor} preview={null} />);
+		render(<StoryPageBody editor={editor} preview={null} />);
 
 		expect(screen.getByTestId('tabbed-editor-content').className).toBe('mx-auto w-full max-w-5xl p-4 md:p-8');
 	});

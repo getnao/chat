@@ -24,7 +24,7 @@ const ChartTypeNameSchema = z
 	.string()
 	.regex(/^[a-z][a-z0-9_-]*$/, 'Chart type must use lowercase letters, numbers, underscores, or hyphens.');
 const CustomChartTypeSchema = ChartTypeNameSchema.refine(
-	(type) => type !== 'table' && !(BUILTIN_CHART_TYPES as readonly string[]).includes(type),
+	(type) => !isNativeDisplayType(type),
 ).brand<'CustomChartType'>();
 const ChartTypeSchema = z.union([ChartTypeEnum, CustomChartTypeSchema]);
 
@@ -345,6 +345,11 @@ export type BuiltinChartInput = Omit<ChartInput, 'chart_type'> & { chart_type: C
 
 export function isBuiltinChartType(type: string): type is ChartType {
 	return (BUILTIN_CHART_TYPES as readonly string[]).includes(type);
+}
+
+/** Display types nao renders natively (as opposed to project-defined custom charts): builtins plus `table`. */
+export function isNativeDisplayType(type: string): boolean {
+	return type === 'table' || isBuiltinChartType(type);
 }
 
 export function isTableInput(input: Input): input is TableInput {

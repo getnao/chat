@@ -29,7 +29,7 @@ export async function generateStoryMarkdown(
 	const visualImages = await captureVisuals(visualSegments, queryData, dateFormat, options);
 	const sections = segments.flatMap((s) => segmentToMarkdown(s, queryData, visualImages, dateFormat));
 
-	return sections.filter(Boolean).join('\n\n');
+	return [`# ${story.title.replace(/\r?\n/g, ' ')}`, ...sections].filter(Boolean).join('\n\n');
 }
 
 function collectVisualSegments(segments: Segment[]): VisualSegment[] {

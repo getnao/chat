@@ -351,7 +351,7 @@ export const StoryHeader = memo(function StoryHeader({
 		</>
 	);
 
-	const actionButtons = !isReadonlyMode && (
+	const actionButtons = (!isReadonlyMode || canCopy) && (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<Button variant='ghost' size='icon-sm' className='hover:rounded-full' aria-label='More actions'>
@@ -359,10 +359,16 @@ export const StoryHeader = memo(function StoryHeader({
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align='end' className='w-auto min-w-20'>
-				<DropdownMenuItem onSelect={onShare} disabled={isAgentRunning}>
-					{isShared ? <Globe className='text-primary' strokeWidth={2.25} /> : <Upload strokeWidth={2.25} />}
-					<span>Share</span>
-				</DropdownMenuItem>
+				{!isReadonlyMode && (
+					<DropdownMenuItem onSelect={onShare} disabled={isAgentRunning}>
+						{isShared ? (
+							<Globe className='text-primary' strokeWidth={2.25} />
+						) : (
+							<Upload strokeWidth={2.25} />
+						)}
+						<span>Share</span>
+					</DropdownMenuItem>
+				)}
 				{canCopy && (
 					<DropdownMenuItem
 						onSelect={() => void copyStory()}
@@ -372,10 +378,12 @@ export const StoryHeader = memo(function StoryHeader({
 						<span>Copy</span>
 					</DropdownMenuItem>
 				)}
-				<DropdownMenuItem onSelect={onOpenAnalytics}>
-					<ScanText className='size-3' />
-					<span>Analytics</span>
-				</DropdownMenuItem>
+				{!isReadonlyMode && (
+					<DropdownMenuItem onSelect={onOpenAnalytics}>
+						<ScanText className='size-3' />
+						<span>Analytics</span>
+					</DropdownMenuItem>
+				)}
 				<DropdownMenuItem onSelect={onEnlarge}>
 					<Maximize2 strokeWidth={2.25} />
 					<span>Expand</span>

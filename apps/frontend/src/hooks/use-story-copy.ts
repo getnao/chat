@@ -24,12 +24,14 @@ export function useStoryCopy({
 }: StoryCopyOptions) {
 	const [isCopying, setIsCopying] = useState(false);
 	const canCopy = isOwner || !!shareId || !!storyId;
+	const [error, setError] = useState<string | null>(null);
 
 	const copyStory = useCallback(async () => {
 		if (!canCopy || isCopying) {
 			return;
 		}
 		setIsCopying(true);
+		setError(null);
 		try {
 			let result;
 			if (storyId) {
@@ -67,6 +69,8 @@ export function useStoryCopy({
 			);
 			await writeMarkdownToClipboard(markdown);
 		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Copy failed';
+			setError(message);
 			console.error('Story copy failed:', error);
 		} finally {
 			setIsCopying(false);
@@ -77,8 +81,13 @@ export function useStoryCopy({
 }
 
 async function writeMarkdownToClipboard(markdown: string): Promise<void> {
-	if (!navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
-		await navigator.clipboard.writeText(markdown);
+	const clipboard = navigator.clipboard;
+	if (!clipboard) {
+		throw new Error('Clipboard access is unavailable in this browser.');
+	}
+
+	if (!clipboard.write || typeof ClipboardItem === 'undefined') {
+		await clipboard.writeText(markdown);
 		return;
 	}
 
@@ -88,21 +97,64 @@ async function writeMarkdownToClipboard(markdown: string): Promise<void> {
 		'text/html': new Blob([html], { type: 'text/html' }),
 	});
 
-	await navigator.clipboard.write([clipboardItem]);
+	await clipboard.write([clipboardItem]);
 }
 
 function sanitizeClipboardHtml(html: string): string {
 	const document = new DOMParser().parseFromString(html, 'text/html');
-	document.querySelectorAll('script, style, iframe, object, embed').forEach((element) => element.remove());
+	document.querySelectorAll('script, style, iframe, object, embed, svg, math').forEach((element) => element.remove());
 
 	for (const element of document.body.querySelectorAll('*')) {
 		for (const attribute of [...element.attributes]) {
-			const value = attribute.value.trim().toLowerCase();
-			if (attribute.name.startsWith('on') || value.startsWith('javascript:')) {
+			const name = attribute.name.toLowerCase();
+			if (
+				name.startsWith('on') ||
+				name === 'style' ||
+				name === 'srcdoc' ||
+				(URL_ATTRIBUTES.has(name) && !isSafeClipboardUrl(element, name, attribute.value))
+			) {
 				element.removeAttribute(attribute.name);
 			}
 		}
 	}
 
 	return document.body.innerHTML;
+}
+
+const URL_ATTRIBUTES = new Set([
+	'action',
+	'background',
+	'cite',
+	'formaction',
+	'href',
+	'longdesc',
+	'ping',
+	'poster',
+	'src',
+	'srcset',
+	'usemap',
+	'xlink:href',
+]);
+
+function isSafeClipboardUrl(element: Element, attributeName: string, value: string): boolean {
+	if (attributeName === 'src' && element.tagName === 'IMG' && isPngDataUrl(value)) {
+		return true;
+	}
+	if (
+		(attributeName !== 'href' || element.tagName !== 'A') &&
+		(attributeName !== 'src' || element.tagName !== 'IMG')
+	) {
+		return false;
+	}
+
+	try {
+		const protocol = new URL(value, window.location.origin).protocol;
+		return protocol === 'http:' || protocol === 'https:' || (element.tagName === 'A' && protocol === 'mailto:');
+	} catch {
+		return false;
+	}
+}
+
+function isPngDataUrl(value: string): boolean {
+	return /^data:image\/png;base64,[a-z0-9+/]+={0,2}$/i.test(value.trim());
 }

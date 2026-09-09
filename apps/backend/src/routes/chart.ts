@@ -18,10 +18,7 @@ export const chartRoutes = async (app: App) => {
 			throw new HandlerError('NOT_FOUND', 'Chart image not found');
 		}
 
-		reply
-			.header('Content-Type', 'image/png')
-			.header('Content-Disposition', 'inline')
-			.header('X-Content-Type-Options', 'nosniff');
+		reply.header('Content-Disposition', 'inline').header('X-Content-Type-Options', 'nosniff');
 		if (imageData.expiresAt) {
 			const maxAge = Math.max(0, Math.floor((imageData.expiresAt.getTime() - Date.now()) / 1000));
 			reply.header('Cache-Control', `public, max-age=${maxAge}`);

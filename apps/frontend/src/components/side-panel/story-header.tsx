@@ -389,10 +389,12 @@ export const StoryHeader = memo(function StoryHeader({
 						<span>Analytics</span>
 					</DropdownMenuItem>
 				)}
-				<DropdownMenuItem onSelect={onEnlarge}>
-					<Maximize2 strokeWidth={2.25} />
-					<span>Expand</span>
-				</DropdownMenuItem>
+				{!isReadonlyMode && (
+					<DropdownMenuItem onSelect={onEnlarge}>
+						<Maximize2 strokeWidth={2.25} />
+						<span>Expand</span>
+					</DropdownMenuItem>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

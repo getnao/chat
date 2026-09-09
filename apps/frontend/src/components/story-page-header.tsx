@@ -123,7 +123,8 @@ export function StoryPageHeader({
 		'toggle-story-chat': onOpenChat && !isOpeningChat ? onOpenChat : undefined,
 	});
 
-	const { canCopy, copyStory, isCopying } = useStoryCopy(download ?? {});
+	const { canCopy, copyStory, isCopying } = useStoryCopy(download ?? { isOwner: false });
+	const showCopy = !!download && canCopy;
 	return (
 		<div className='shrink-0'>
 			<header className='flex items-center gap-2 border-b bg-background px-4 py-2.5 md:px-6'>
@@ -178,7 +179,7 @@ export function StoryPageHeader({
 
 						{storyId && <FavoriteButton storyId={storyId} />}
 
-						{(onShare || canCopy || onOpenAnalytics) && (
+						{(onShare || showCopy || onOpenAnalytics) && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
@@ -201,7 +202,7 @@ export function StoryPageHeader({
 											<span>Share</span>
 										</DropdownMenuItem>
 									)}
-									{canCopy && (
+									{showCopy && (
 										<DropdownMenuItem onSelect={() => void copyStory()} disabled={isCopying}>
 											<Copy strokeWidth={2.25} />
 											<span>Copy</span>

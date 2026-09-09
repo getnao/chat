@@ -161,6 +161,7 @@ export function SidebarSettingsNav({
 	const navigate = useNavigate();
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [query, setQuery] = useState('');
+	const [isSearchFocused, setIsSearchFocused] = useState(false);
 
 	const navContext = {
 		isAdmin,
@@ -205,6 +206,15 @@ export function SidebarSettingsNav({
 		}
 	};
 
+	const handlePointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+		if (!e.currentTarget.readOnly) {
+			return;
+		}
+		e.preventDefault();
+		e.currentTarget.readOnly = false;
+		e.currentTarget.focus();
+	};
+
 	return (
 		<div className={cn('flex flex-1 min-h-0 flex-col gap-1 overflow-y-auto', hideIf(isCollapsed))}>
 			{!isViewer && (
@@ -214,8 +224,14 @@ export function SidebarSettingsNav({
 						<input
 							ref={inputRef}
 							type='text'
+							name='settings-search'
+							autoComplete='off'
 							placeholder='Search settings...'
 							value={query}
+							readOnly={!isSearchFocused}
+							onPointerDown={handlePointerDown}
+							onFocus={() => setIsSearchFocused(true)}
+							onBlur={() => setIsSearchFocused(false)}
 							onChange={(e) => setQuery(e.target.value)}
 							onKeyDown={handleKeyDown}
 							className={cn(
